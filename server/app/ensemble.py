@@ -3,7 +3,9 @@
 1. decisive positive rule (ok, score>=0.5) -> p = max(p, decisive_floor), verdict likely_ai
 2. otherwise weighted mean over status=ok, score!=None, weight>0 signals
 3. no strong positive signal -> p = min(p, cap_without_strong)
-4. no usable signal -> p = None, verdict unknown
+4. no strong negative signal -> p = max(p, floor_without_strong)   (symmetric to 3: weak or
+   uncalibrated evidence alone can't say likely_real either; LOO on eval set, 05_calibration_report)
+5. no usable signal -> p = None, verdict unknown
 """
 from __future__ import annotations
 
@@ -17,23 +19,30 @@ class EnsembleConfig:
     uncertain: float = 0.40
     decisive_floor: float = 0.95
     cap_without_strong: Optional[float] = 0.74
+    floor_without_strong: Optional[float] = None
     strong_signals: frozenset[str] = frozenset()
+    strong_negative_signals: frozenset[str] = frozenset()
 
     @classmethod
     def from_weights(cls, w: dict) -> "EnsembleConfig":
         th = w.get("thresholds", {}) or {}
         en = w.get("ensemble", {}) or {}
         strong = set(en.get("strong_signals", []) or [])
+        strong_neg = set(en.get("strong_negative_signals", []) or [])
         for det_id, dc in (w.get("detectors", {}) or {}).items():
             if (dc or {}).get("calibrated"):
                 strong.add(det_id)
+                strong_neg.add(det_id)
         return cls(
             likely_ai=float(th.get("likely_ai", 0.75)),
             uncertain=float(th.get("uncertain", 0.40)),
             decisive_floor=float(en.get("decisive_floor", 0.95)),
             cap_without_strong=(None if en.get("cap_without_strong") is None
                                 else float(en["cap_without_strong"])),
+            floor_without_strong=(None if en.get("floor_without_strong") is None
+                                  else float(en["floor_without_strong"])),
             strong_signals=frozenset(strong),
+            strong_negative_signals=frozenset(strong_neg),
         )
 
 
@@ -69,6 +78,10 @@ def combine(signals: Iterable[dict], cfg: EnsembleConfig) -> tuple[Optional[floa
         strong_pos = any(s["id"] in cfg.strong_signals and s["score"] >= 0.5 for s in used)
         if not decisive and not strong_pos and cfg.cap_without_strong is not None:
             p = min(p, cfg.cap_without_strong)
+        strong_neg = any(s["score"] < 0.5 and (s["id"] in cfg.strong_negative_signals
+                                               or s.get("decisive")) for s in used)
+        if not decisive and not strong_neg and cfg.floor_without_strong is not None:
+            p = max(p, cfg.floor_without_strong)
     if decisive:
         p = max(p if p is not None else 0.0, cfg.decisive_floor)
     if p is not None:

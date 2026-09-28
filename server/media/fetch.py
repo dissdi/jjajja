@@ -83,7 +83,9 @@ class Fetcher:
             return FetchResult(None, "error", "yt-dlp not installed")
         out_dir.mkdir(parents=True, exist_ok=True)
         opts = {
-            "format": "worst[ext=mp4][height>=240]/worst[ext=mp4]/worst",
+            # Detectors only look at frames, so a small video-only stream is enough. Many Shorts
+            # expose only split DASH video/audio (no muxed mp4), so muxed-only selectors fail.
+            "format": "wv*[height>=360][ext=mp4]/wv*[height>=240]/worst[height>=240]/bv*[height<=720]/b",
             "outtmpl": str(out_dir / "video.%(ext)s"),
             "quiet": True, "no_warnings": True, "noprogress": True,
             "noplaylist": True, "socket_timeout": 15, "retries": 0, "extractor_retries": 0,

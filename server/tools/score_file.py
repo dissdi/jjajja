@@ -8,7 +8,6 @@ after checking GPU owners on the shared server).
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
 import sys
 import tempfile
@@ -23,6 +22,27 @@ from app.settings import Settings  # noqa: E402
 from detectors import Registry  # noqa: E402
 from detectors.base import MediaBundle  # noqa: E402
 from media.ffmpeg import find_ffmpeg, find_ffprobe, probe, sample_clip, sample_uniform  # noqa: E402
+
+
+def score_path(reg: Registry, f: Path, ff: str, fp: str) -> dict:
+    """Sample frames exactly like the pipeline and return raw + calibrated scores per detector."""
+    with tempfile.TemporaryDirectory() as td:
+        t1 = time.perf_counter()
+        info = probe(f, ff, fp)
+        u = sample_uniform(f, Path(td) / "u", 16, info.duration, ff)
+        c = sample_clip(f, Path(td) / "c", 16, 8, info.duration, ff)
+        t2 = time.perf_counter()
+        media = MediaBundle(f, u, c, meta={"duration": info.duration})
+        out = {"file": str(f), "duration": info.duration, "sample_s": round(t2 - t1, 2)}
+        for h in reg.handles:
+            if not h.ok:
+                out[h.id] = {"status": "down", "error": h.error}
+                continue
+            t3 = time.perf_counter()
+            r = h.detector.infer(media)
+            out[h.id] = {"score": r.score, "raw": r.raw, "status": r.status,
+                         "infer_s": round(time.perf_counter() - t3, 2)}
+        return out
 
 
 def main() -> None:
@@ -40,23 +60,8 @@ def main() -> None:
           file=sys.stderr)
     ff, fp = find_ffmpeg(s.ffmpeg), find_ffprobe(s.ffprobe)
     for f in a.files:
-        with tempfile.TemporaryDirectory() as td:
-            t1 = time.perf_counter()
-            info = probe(Path(f), ff, fp)
-            u = sample_uniform(Path(f), Path(td) / "u", 16, info.duration, ff)
-            c = sample_clip(Path(f), Path(td) / "c", 16, 8, info.duration, ff)
-            t2 = time.perf_counter()
-            media = MediaBundle(Path(f), u, c, meta={"duration": info.duration})
-            out = {"file": f, "duration": info.duration, "sample_s": round(t2 - t1, 2)}
-            for h in reg.handles:
-                if not h.ok:
-                    out[h.id] = {"status": "down", "error": h.error}
-                    continue
-                t3 = time.perf_counter()
-                r = h.detector.infer(media)
-                out[h.id] = {"score": r.score, "raw": r.raw, "status": r.status,
-                             "infer_s": round(time.perf_counter() - t3, 2)}
-            print(json.dumps(out, ensure_ascii=False) if a.json else out)
+        out = score_path(reg, Path(f), ff, fp)
+        print(json.dumps(out, ensure_ascii=False) if a.json else out)
 
 
 if __name__ == "__main__":

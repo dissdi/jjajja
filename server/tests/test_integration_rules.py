@@ -64,5 +64,6 @@ def test_rules_only_partial(tmp_path, vid, verdict):
 
 def test_rules_plus_model(tmp_path, sample_video):
     b = run(tmp_path, "u5TpxWFZ1vM", fetch=sample_video, mock_score=0.1)
-    assert b["partial"] is False and b["verdict"] == "likely_real"
+    # no strong negative signal -> uncalibrated model can't reach likely_real (floor 0.40)
+    assert b["partial"] is False and b["verdict"] == "uncertain" and b["ai_probability"] == 0.4
     assert {s["kind"] for s in b["signals"]} == {"rule", "model"}

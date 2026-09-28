@@ -40,7 +40,8 @@ def test_decisive_negative_score_is_not_positive():
 
 def test_weight_zero_and_non_ok_excluded():
     p, v = combine([sig("yt_no_ai_label", 0.5, 0.0), sig("x", None, 1, status="unavailable"),
-                    sig("y", 0.9, 1, status="error"), sig("mock", 0.1, 1, kind="model")], CFG)
+                    sig("y", 0.9, 1, status="error"), sig("mock", 0.1, 1, kind="model"),
+                    sig("yt_c2pa_camera", 0.1, 1)], CFG)
     assert p == 0.1 and v == "likely_real"
 
 
@@ -71,3 +72,34 @@ def test_calibrated_model_becomes_strong():
     cfg = EnsembleConfig.from_weights(w)
     p, v = combine([sig("d3", 0.9, 0.5, kind="model")], cfg)
     assert v == "likely_ai" and p == 0.9
+
+
+def test_floor_without_strong_negative():
+    # uncalibrated models alone must not reach likely_real either (LOO eval 2026-09-28)
+    assert CFG.floor_without_strong == 0.40
+    p, v = combine([sig("commfor_224", 0.05, 0.25, kind="model")], CFG)
+    assert p == 0.40 and v == "uncertain"
+    p, v = combine([sig("yt_self_report_ai", 0.5, 0.0), sig("d3", 0.01, 0.0, kind="model"),
+                    sig("commfor_224", 0.02, 0.25, kind="model")], CFG)
+    assert v == "uncertain"
+
+
+def test_strong_negative_lifts_floor():
+    p, v = combine([sig("yt_c2pa_camera", 0.05, 3.0), sig("commfor_224", 0.2, 0.25, kind="model")], CFG)
+    assert v == "likely_real" and p < 0.40
+
+
+def test_calibrated_model_is_strong_negative_too():
+    w = yaml.safe_load(yaml.safe_dump(W))
+    w["detectors"]["commfor_224"]["calibrated"] = True
+    cfg = EnsembleConfig.from_weights(w)
+    p, v = combine([sig("commfor_224", 0.1, 0.25, kind="model")], cfg)
+    assert v == "likely_real" and p == 0.1
+
+
+def test_eval_calibration_models_not_trusted_alone():
+    # d3 off (chance level on eval), commfor small weight, neither calibrated (cap 0.74 kept)
+    d = W["detectors"]
+    assert d["d3"]["weight"] == 0 and not d["d3"]["calibrated"]
+    assert 0 < d["commfor_224"]["weight"] <= 0.5 and not d["commfor_224"]["calibrated"]
+    assert W["ensemble"]["cap_without_strong"] == 0.74

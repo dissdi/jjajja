@@ -139,7 +139,8 @@ def test_url_fetched_runs_models(tmp_path, monkeypatch, sample_video):
         b = c.post("/v1/detect", json={"url": URL}).json()
     assert_contract_body(b)
     assert b["partial"] is False
-    assert b["ai_probability"] == 0.2 and b["verdict"] == "likely_real"
+    # uncalibrated model alone is floored at 0.40 (floor_without_strong) -> uncertain
+    assert b["ai_probability"] == 0.4 and b["verdict"] == "uncertain"
     mock = next(s for s in b["signals"] if s["id"] == "mock")
     assert mock == {"id": "mock", "kind": "model", "status": "ok", "decisive": False, "score": 0.2,
                     "weight": 1.0, "evidence_ko": mock["evidence_ko"], "via": "model"}
@@ -170,7 +171,7 @@ def test_upload_ok_and_cached(tmp_path, monkeypatch, sample_video):
     a, b = a.json(), b.json()
     assert_contract_body(a)
     assert a["platform"] == "upload" and a["video_id"] is None and a["partial"] is False
-    assert a["verdict"] == "likely_real" and not a["cached"] and b["cached"]
+    assert a["verdict"] == "uncertain" and not a["cached"] and b["cached"]  # model-only floor
 
 
 def test_upload_too_large_413(tmp_path, monkeypatch, sample_video):

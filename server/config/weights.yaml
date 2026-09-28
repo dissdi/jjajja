@@ -1,6 +1,6 @@
 # Ensemble config. Tuned from detection-qa results (eval/dataset.csv); keep code free of constants.
 # Changing this file changes the cache version -> old cached verdicts are ignored.
-version: 1
+version: 2   # 2026-09-28 LOO calibration on eval/dataset.csv (_workspace/05_calibration_report.md)
 
 # verdict bands (must equal the table in .claude/skills/detect-api-contract/SKILL.md)
 thresholds:
@@ -16,7 +16,15 @@ ensemble:
   strong_signals:
     - yt_creator_ai_disclosure
     - yt_c2pa_ai_label
-  # models with `calibrated: true` below are added to strong_signals automatically
+  # Symmetric guard: unless a *strong negative* signal (camera C2PA record, decisive negative,
+  # or a calibrated model) points to real, p is floored here, so uncalibrated models alone can
+  # never produce likely_real. Reason: LOO on the eval set (n=22) put both models at chance
+  # level; CommFor raw < 0.40 on 6/14 AI shorts -> they'd have been told "AI 흔적 없음".
+  floor_without_strong: 0.40
+  strong_negative_signals:
+    - yt_c2pa_camera
+  # models with `calibrated: true` below are added to strong_signals AND strong_negative_signals
+  # automatically. Keep false until a LOO/held-out eval shows real->likely_ai FPR = 0 (<= 2%).
 
 rules:
   # rule signals keep the weight they report (02_rules_spec §4); override per id here.
@@ -30,16 +38,25 @@ detectors:
   d3:
     # training-free temporal detector (ICCV'25). raw = std of 2nd-order diff of XCLIP-16
     # frame-embedding L2 distances; larger = more AI. NOT calibrated yet:
-    # p = sigmoid(a * (raw - b)); a,b are provisional until Platt fit on eval/dataset.csv.
-    weight: 0.5
+    # p = sigmoid(a * (raw - b)).
+    # 2026-09-28 eval (22 labelled shorts, 14 AI / 8 real): raw AUC 0.44 (95% CI 0.17-0.71),
+    # Platt LOO AUC 0.00-0.41 -> no usable signal on real Shorts (real cooking/pet clips reach
+    # raw 8.7). Old provisional a=1.5,b=2.5 mapped almost every video (AI or real) to p~0.9.
+    # Turned OFF: weight 0 (shown, never averaged) and a=0 -> constant 0.5 so the evidence text
+    # reads "판단하기 어려워요" instead of claiming AI-like motion on real videos.
+    weight: 0.0
     calibrated: false
     encoder: microsoft/xclip-base-patch16
     frames: 16
     fps: 8
-    calibration: {a: 1.5, b: 2.5}
+    calibration: {a: 0.0, b: 0.0}
   commfor_224:
     # Community Forensics ViT-S/16 224 image detector (CVPR'25), per-frame sigmoid prob.
-    weight: 0.5
+    # 2026-09-28 eval: raw AUC 0.70 (95% CI 0.44-0.92), top25 0.73. Platt LOO AUC 0.46 (prior-
+    # matched) / 0.62 (class-balanced), LOO log-loss >= chance -> Platt NOT adopted (fit {a:1.43,
+    # b:0.002} is unstable across folds). Kept as raw prob with a small weight; the ensemble
+    # floor/cap keep it from deciding likely_real / likely_ai on its own.
+    weight: 0.25
     calibrated: false
     hf_repo: OwensLab/commfor-model-224
     frames: 16
