@@ -10,7 +10,7 @@ describe('copy.ts ↔ 계약', () => {
     expect(Object.keys(copy.result.verdict).sort()).toEqual([...VERDICTS].sort());
   });
 
-  it('error 키 = 계약 code 6개 + 앱 전용 3개 (+ homeButton)', () => {
+  it('error 키 = 계약 code 7개 + 앱 전용 3개 (+ homeButton)', () => {
     const keys = Object.keys(copy.error).filter((k) => k !== 'homeButton').sort();
     expect(keys).toEqual([...CONTRACT_ERROR_CODES, ...APP_ONLY].sort());
   });
@@ -33,6 +33,8 @@ describe('copy.ts ↔ 계약', () => {
     expect(errorButtonAction(errorCopyFor('invalid_url').button)).toBe('home');
     expect(errorButtonAction(errorCopyFor('video_unavailable').button)).toBe('home');
     expect(errorButtonAction(errorCopyFor('file_too_large').button)).toBe('home');
+    // invalid_file: 같은 파일 재시도는 의미 없으므로 처음으로 (v1.1)
+    expect(errorButtonAction(errorCopyFor('invalid_file').button)).toBe('home');
     expect(errorButtonAction(errorCopyFor('network').button)).toBe('retry');
     expect(errorButtonAction(errorCopyFor('timeout').button)).toBe('retry');
     expect(errorButtonAction(errorCopyFor('detectors_down').button)).toBe('retry');

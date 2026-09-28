@@ -176,3 +176,26 @@ describe('URL 검증 (§2.1.1: http(s) 형태까지만)', () => {
     'm.youtube.com/shorts/abc123',
   ])('%s → 서버로 그대로 보냄', (u) => expect(extractUrl(u)).toBe(u));
 });
+
+describe('score=null 신호 (계약 v1.1, QA 회귀)', () => {
+  it('정렬이 NaN으로 깨지지 않고 null 점수는 뒤로 간다', () => {
+    for (const v of ['likely_ai', 'uncertain', 'likely_real'] as const) {
+      const out = selectEvidence(v, [
+        sig({ evidence_ko: 'N', score: null }),
+        sig({ evidence_ko: 'S', score: v === 'likely_real' ? 0.1 : 0.9 }),
+      ]);
+      expect(out).toEqual(['S', 'N']);
+    }
+  });
+  it('unavailable 모델 신호(score=null)는 근거에 나오지 않고 partialNoVideo 안내', () => {
+    const r = res({
+      partial: true,
+      signals: [
+        sig({ id: 'yt_c2pa_ai_label', decisive: true, score: 1, evidence_ko: '제작 기록' }),
+        sig({ id: 'd3', kind: 'model', status: 'unavailable', score: null, evidence_ko: '영상을 받아오지 못했어요', via: 'model' }),
+      ],
+    });
+    expect(selectEvidence('likely_ai', r.signals)).toEqual(['제작 기록']);
+    expect(partialNoteFor(r, false)).toBe(copy.result.partialNoVideo);
+  });
+});

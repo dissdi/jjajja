@@ -103,8 +103,14 @@ export const copy = {
       button: '다시 붙여넣기',
     },
     file_too_large: {
-      title: '영상이 너무 커요',
-      body: '1분 이내 영상을 넣어 주세요',
+      title: '영상이 너무 크거나 길어요',
+      body: '3분 이내의 짧은 영상을 골라 주세요',
+      button: '처음으로',
+    },
+    // 계약 v1.1 — 업로드한 파일이 없거나 영상으로 열 수 없음. 같은 파일 재시도는 의미 없으므로 '처음으로'
+    invalid_file: {
+      title: '이 영상 파일은 열 수 없어요',
+      body: '휴대폰에 저장된 다른 영상을 골라 다시 확인해 주세요',
       button: '처음으로',
     },
     rate_limited: {

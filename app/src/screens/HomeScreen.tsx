@@ -76,6 +76,8 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
       name: a.fileName ?? 'video.mp4',
       mimeType: a.mimeType ?? 'video/mp4',
       file: a.file,
+      sizeBytes: typeof a.fileSize === 'number' ? a.fileSize : undefined,
+      durationMs: typeof a.duration === 'number' ? a.duration : undefined,
     });
   };
 

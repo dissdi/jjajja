@@ -61,6 +61,7 @@ URL 또는 업로드 영상 하나를 탐지한다.
 | `signals[].evidence_ko` | 사용자에게 그대로 보여줄 수 있는 쉬운 한국어. 전문용어 금지 (`senior-ux-korean` 참조) |
 | `partial` | **`true` ⇔ `kind=="model"` 이고 `status=="ok"`인 신호가 하나도 없음** (영상 자체를 보지 못함 — 예: 영상 확보 차단, 모델 전부 실패). 이때도 규칙 신호로 `ai_probability`를 채울 수 있다 (v1.1 명시) |
 | `signals[].evidence_ko` (상태별) | `status=="ok"`인 신호는 판정 방향과 무관하게(음성 포함, 모델 포함) 항상 채운다. `unavailable/error`도 가능하면 채운다(예: "영상을 받아오지 못해 화면은 확인하지 못했어요"). 규칙 쪽 `unavailable`은 빈 문자열일 수 있다 |
+| `signals[].score` | 0.0~1.0 float 또는 **`null`**. `status`가 `unavailable`/`error`면 `null`(점수 없음). 앱 타입은 `number \| null` (v1.1 명시 — 서버는 v1부터 null을 보냈음) |
 | `signals[].weight` | 앙상블에 실제로 쓴 가중치. `0`이면 설명용 신호(가중 평균 제외, 화면 표시는 가능) |
 | `signals[].decisive` | `true`면 이 신호 하나로 verdict가 결정됨 (예: 공식 AI 라벨, C2PA 생성 기록) |
 | 이름 규칙 | JSON은 snake_case. 앱 TS 타입도 snake_case 그대로 쓴다 (변환 레이어로 인한 누락 방지) |
@@ -100,3 +101,4 @@ URL 방식에서 영상 확보가 막혀도(봇 차단 등) 에러가 아니라 
 |------|------|------|------|
 | v1 | 2026-09-28 | 초기 계약 | - |
 | v1.1 | 2026-09-28 | (추가만, 기존 필드 불변) 에러 `invalid_file`(400) 추가 / 업로드 한도 50MB·180초 명시 + `/v1/health`에 `limits` 추가 / `partial` 정의 명시(모델 ok 신호 없음) / 상태별 `evidence_ko`·`weight=0` 규칙 명시 | 업로드 경로 구현(detection-engineer), mobile-engineer 요청 (1)(2)(3) |
+| v1.1 (QA 보완) | 2026-09-28 | `signals[].score` nullable 명시(필드 규칙 표). 동작 변경 없음 — 서버는 이미 unavailable 신호에 `null`을 보냈고 앱 v1 파서가 이를 거부해 URL partial 결과가 전부 에러 화면이 되던 경계면 버그를 문서로 고정 | qa-integrator (04_qa_report) |

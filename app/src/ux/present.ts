@@ -46,10 +46,11 @@ export function selectEvidence(verdict: Verdict, signals: Signal[]): string[] {
     seen.add(text);
     cands.push({ s, i });
   });
+  // score=null(ok인데 점수 없는 설명용 신호)은 정렬 가중치 0 → 뒤로 (계약 v1.1: score nullable)
   const key =
     verdict === 'likely_real'
-      ? (s: Signal) => (1 - s.score) * s.weight
-      : (s: Signal) => s.score * s.weight;
+      ? (s: Signal) => (s.score === null ? 0 : (1 - s.score) * s.weight)
+      : (s: Signal) => (s.score === null ? 0 : s.score * s.weight);
   cands.sort((a, b) => {
     if (verdict !== 'likely_real' && a.s.decisive !== b.s.decisive) return a.s.decisive ? -1 : 1;
     const d = key(b.s) - key(a.s);

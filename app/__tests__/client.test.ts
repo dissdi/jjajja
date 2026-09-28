@@ -1,4 +1,4 @@
-import { detect, mapHttpError, uploadVideo } from '../src/api/client';
+import { detect, exceedsUploadLimits, mapHttpError, uploadVideo } from '../src/api/client';
 import { SAMPLE } from './fixtures';
 
 const mockFetch = (impl: (...a: unknown[]) => Promise<unknown>) => {
@@ -15,6 +15,7 @@ describe('mapHttpError', () => {
     [404, 'video_unavailable'],
     [413, 'file_too_large'],
     [429, 'rate_limited'],
+    [400, 'invalid_file'],
     [503, 'detectors_down'],
   ])('%p %s', (status, code) => {
     expect(mapHttpError(status, { error: { code, message_ko: '서버 문구' } })).toBe(code);
@@ -85,5 +86,38 @@ describe('uploadVideo', () => {
     expect(form.get('source')).toBe('upload');
     expect(form.get('file')).toBeTruthy();
     expect((init.headers as Record<string, string>)['Content-Type']).toBeUndefined();
+  });
+});
+
+describe('업로드 전 한도 검사 (계약 v1.1)', () => {
+  const L = { max_upload_mb: 50, max_duration_s: 180 };
+  it('exceedsUploadLimits: 50MB/180초 초과만 걸러낸다', () => {
+    expect(exceedsUploadLimits({ sizeBytes: 50 * 1024 * 1024 }, L)).toBe(false);
+    expect(exceedsUploadLimits({ sizeBytes: 50 * 1024 * 1024 + 1 }, L)).toBe(true);
+    expect(exceedsUploadLimits({ durationMs: 180_000 }, L)).toBe(false);
+    expect(exceedsUploadLimits({ durationMs: 181_000 }, L)).toBe(true);
+    expect(exceedsUploadLimits({}, L)).toBe(false);
+  });
+
+  it('health.limits보다 길면 보내지 않고 file_too_large', async () => {
+    const f = mockFetch((url) =>
+      String(url).endsWith('/v1/health')
+        ? jsonRes(200, { status: 'ok', detectors: {}, limits: { max_upload_mb: 50.0, max_duration_s: 180.0 } })
+        : jsonRes(200, SAMPLE),
+    );
+    const out = await uploadVideo({ uri: 'file:///v.mp4', name: 'v.mp4', mimeType: 'video/mp4', durationMs: 200_000 });
+    expect(out).toEqual({ ok: false, code: 'file_too_large' });
+    expect(f.mock.calls.map((c) => String(c[0]))).toEqual([expect.stringMatching(/\/v1\/health$/)]);
+  });
+
+  it('health 실패 시 기본값(50MB)으로 검사하고, 한도 안이면 업로드', async () => {
+    const f = mockFetch((url) =>
+      String(url).endsWith('/v1/health') ? Promise.reject(new Error('down')) : jsonRes(200, { ...SAMPLE, platform: 'upload', video_id: null }),
+    );
+    const big = await uploadVideo({ uri: 'f', name: 'v.mp4', mimeType: 'video/mp4', sizeBytes: 60 * 1024 * 1024 });
+    expect(big).toEqual({ ok: false, code: 'file_too_large' });
+    const ok = await uploadVideo({ uri: 'f', name: 'v.mp4', mimeType: 'video/mp4', sizeBytes: 1024, durationMs: 6000 });
+    expect(ok.ok).toBe(true);
+    expect(f.mock.calls.filter((c) => String(c[0]).endsWith('/v1/detect'))).toHaveLength(1);
   });
 });

@@ -1,4 +1,4 @@
-// source: .claude/skills/detect-api-contract/SKILL.md (v1)
+// source: .claude/skills/detect-api-contract/SKILL.md (v1.1)
 //
 // 이 파일은 계약 문서의 스키마를 그대로 옮긴 것이다. 필드명은 snake_case 그대로 쓴다
 // (변환 레이어 금지). 필드를 바꾸려면 계약 문서를 먼저 고치고 이 파일을 맞춘다.
@@ -28,7 +28,8 @@ export interface Signal {
   kind: SignalKind;
   status: SignalStatus;
   decisive: boolean;
-  score: number;
+  /** 0.0~1.0. status가 ok가 아니면(unavailable/error) null (v1.1 명시) */
+  score: number | null;
   weight: number;
   evidence_ko: string;
   via: SignalVia;
@@ -53,6 +54,24 @@ export interface DetectResponse {
 export interface HealthResponse {
   status: 'ok';
   detectors: Record<string, 'ok' | 'down'>;
+  /** v1.1 (선택 필드). 없으면 DEFAULT_UPLOAD_LIMITS */
+  limits?: UploadLimits;
+}
+
+/** 업로드 한도 (v1.1) — 앱은 업로드 전에 이 값으로 거른다 */
+export interface UploadLimits {
+  max_upload_mb: number;
+  max_duration_s: number;
+}
+export const DEFAULT_UPLOAD_LIMITS: UploadLimits = { max_upload_mb: 50, max_duration_s: 180 };
+
+/** GET /v1/health 본문에서 limits만 꺼낸다. 없거나 형식이 다르면 기본값 */
+export function parseUploadLimits(v: unknown): UploadLimits {
+  if (!isObj(v) || !isObj(v.limits)) return DEFAULT_UPLOAD_LIMITS;
+  const { max_upload_mb, max_duration_s } = v.limits;
+  if (typeof max_upload_mb !== 'number' || typeof max_duration_s !== 'number') return DEFAULT_UPLOAD_LIMITS;
+  if (!(max_upload_mb > 0) || !(max_duration_s > 0)) return DEFAULT_UPLOAD_LIMITS;
+  return { max_upload_mb, max_duration_s };
 }
 
 /** 에러 응답 code (계약) */
@@ -62,6 +81,7 @@ export type ContractErrorCode =
   | 'video_unavailable'
   | 'file_too_large'
   | 'rate_limited'
+  | 'invalid_file'
   | 'detectors_down';
 export const CONTRACT_ERROR_CODES: readonly ContractErrorCode[] = [
   'invalid_url',
@@ -69,6 +89,7 @@ export const CONTRACT_ERROR_CODES: readonly ContractErrorCode[] = [
   'video_unavailable',
   'file_too_large',
   'rate_limited',
+  'invalid_file',
   'detectors_down',
 ];
 
@@ -90,7 +111,7 @@ function parseSignal(v: unknown): Signal | null {
   if (v.kind !== 'rule' && v.kind !== 'model') return null;
   if (v.status !== 'ok' && v.status !== 'error' && v.status !== 'unavailable') return null;
   if (typeof v.decisive !== 'boolean') return null;
-  if (typeof v.score !== 'number' || typeof v.weight !== 'number') return null;
+  if (!(v.score === null || typeof v.score === 'number') || typeof v.weight !== 'number') return null;
   if (typeof v.evidence_ko !== 'string') return null;
   if (typeof v.via !== 'string') return null;
   return {

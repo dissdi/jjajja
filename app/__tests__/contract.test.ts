@@ -1,5 +1,12 @@
-import { SAMPLE } from './fixtures';
-import { parseDetectResponse, parseErrorCode, VERDICTS, CONTRACT_ERROR_CODES } from '../src/api/contract';
+import { SAMPLE, SERVER_UPLOAD, SERVER_URL_PARTIAL } from './fixtures';
+import {
+  CONTRACT_ERROR_CODES,
+  DEFAULT_UPLOAD_LIMITS,
+  parseDetectResponse,
+  parseErrorCode,
+  parseUploadLimits,
+  VERDICTS,
+} from '../src/api/contract';
 
 
 describe('parseDetectResponse', () => {
@@ -34,9 +41,40 @@ describe('parseDetectResponse', () => {
     expect(parseDetectResponse({ ...SAMPLE, verdict: 'fake' })).toBeNull();
   });
 
-  it('verdict enum 4개, error code 6개 (계약 v1)', () => {
+  it('verdict enum 4개, error code 7개 (계약 v1.1: invalid_file 추가)', () => {
     expect([...VERDICTS].sort()).toEqual(['likely_ai', 'likely_real', 'uncertain', 'unknown']);
-    expect(CONTRACT_ERROR_CODES).toHaveLength(6);
+    expect(CONTRACT_ERROR_CODES).toHaveLength(7);
+    expect(CONTRACT_ERROR_CODES).toContain('invalid_file');
+  });
+
+  // QA 회귀(04_qa_report): 서버는 unavailable/error 신호의 score를 null로 보낸다.
+  // v1 앱은 이를 거부해 영상 확보가 막힌 모든 URL 결과가 에러 화면이 됐다.
+  it('score=null 신호(unavailable)를 허용한다 — 실제 서버 응답 (URL, partial)', () => {
+    const r = parseDetectResponse(SERVER_URL_PARTIAL);
+    expect(r).not.toBeNull();
+    expect(r?.verdict).toBe('likely_ai');
+    expect(r?.signals.filter((s) => s.score === null)).toHaveLength(2);
+  });
+
+  it('실제 서버 응답 (업로드) 파싱', () => {
+    expect(parseDetectResponse(SERVER_UPLOAD)).toEqual(SERVER_UPLOAD);
+  });
+
+  it('score가 문자열이면 거부', () => {
+    expect(parseDetectResponse({ ...SAMPLE, signals: [{ ...SAMPLE.signals[0], score: '1' }] })).toBeNull();
+  });
+});
+
+describe('parseUploadLimits (v1.1)', () => {
+  it('health.limits를 꺼낸다', () => {
+    expect(parseUploadLimits({ status: 'ok', detectors: {}, limits: { max_upload_mb: 50.0, max_duration_s: 180.0 } }))
+      .toEqual({ max_upload_mb: 50, max_duration_s: 180 });
+  });
+  it('없거나 형식이 다르면 기본값 50MB/180초', () => {
+    expect(parseUploadLimits({ status: 'ok', detectors: {} })).toEqual(DEFAULT_UPLOAD_LIMITS);
+    expect(parseUploadLimits({ limits: { max_upload_mb: '50' } })).toEqual(DEFAULT_UPLOAD_LIMITS);
+    expect(parseUploadLimits(null)).toEqual(DEFAULT_UPLOAD_LIMITS);
+    expect(DEFAULT_UPLOAD_LIMITS).toEqual({ max_upload_mb: 50, max_duration_s: 180 });
   });
 });
 
