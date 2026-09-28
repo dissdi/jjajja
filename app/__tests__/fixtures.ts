@@ -1,4 +1,4 @@
-// 계약 문서(v1) 응답 예시 그대로
+// 계약 문서(v1.2) 응답 예시 그대로
 export const SAMPLE = {
   request_id: 'uuid',
   platform: 'youtube',
@@ -16,13 +16,14 @@ export const SAMPLE = {
       weight: 1.0,
       evidence_ko: "유튜브에 'AI로 만든 콘텐츠' 표시가 있어요",
       via: 'api',
+      present: true,
     },
   ],
   cached: false,
   analyzed_at: '2026-09-28T12:00:00Z',
 };
 
-// 실제 서버 응답 (QA 2026-09-28, uvicorn CPU, JJAJJA_FETCH_ENABLED=0) — 계약 v1.1 회귀용.
+// 실제 서버 응답 (v1.2 이전 서버 — present 필드 없음. 구버전 호환 회귀용) (QA 2026-09-28, uvicorn CPU, JJAJJA_FETCH_ENABLED=0) — 계약 v1.1 회귀용.
 // URL: 규칙(C2PA) decisive + 영상 확보 불가 → 모델 신호 unavailable, score=null, partial=true
 export const SERVER_URL_PARTIAL = {
   "request_id": "0c722c44-9583-4a2d-b6e6-8979f53e2aaa",

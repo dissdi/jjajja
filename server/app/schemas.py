@@ -1,4 +1,4 @@
-"""Pydantic models that mirror .claude/skills/detect-api-contract/SKILL.md (v1.1).
+"""Pydantic models that mirror .claude/skills/detect-api-contract/SKILL.md (v1.2).
 
 Do not add/rename fields here without updating the contract first.
 """
@@ -30,6 +30,9 @@ class Signal(BaseModel):
     weight: float = Field(default=1.0, ge=0.0)
     evidence_ko: str = ""
     via: Literal["api", "oembed", "html", "model"]
+    # v1.2 (#2): rule signals only -- mark found (true) / looked, not found (false) / not checked
+    # (null, whenever status != "ok"). Model signals are always null. Always serialized.
+    present: Optional[bool] = None
 
 
 class DetectResponse(BaseModel):

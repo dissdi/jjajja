@@ -48,7 +48,7 @@ def create_app(settings: Optional[Settings] = None, pipeline: Optional[Pipeline]
         yield
         await pipe.stop()
 
-    app = FastAPI(title="jjajja detect API", version="1.1", lifespan=lifespan)
+    app = FastAPI(title="jjajja detect API", version="1.2", lifespan=lifespan)
     install_handlers(app)
     if settings.cors_origins:  # web demo only (Expo web on another port); apps don't need CORS
         app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,

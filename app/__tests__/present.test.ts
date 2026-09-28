@@ -1,4 +1,4 @@
-import type { DetectResponse, Signal } from '../src/api/contract';
+import { parseDetectResponse, type DetectResponse, type Signal } from '../src/api/contract';
 import { copy } from '../src/ux/copy';
 import {
   buildShareText,
@@ -22,6 +22,7 @@ const sig = (o: Partial<Signal>): Signal => ({
   weight: 1,
   evidence_ko: '근거',
   via: 'html',
+  present: null,
   ...o,
 });
 
@@ -235,11 +236,11 @@ describe('resultModeFor (D1, 명세 §3.1a)', () => {
 
 describe('detailRowsFor — 자세히 보기 (§2.3a)', () => {
   const commfor = (o: Partial<Signal> = {}) =>
-    sig({ id: 'commfor_224', kind: 'model', via: 'model', score: 0.05, weight: 0.25,
+    sig({ id: 'commfor_224', kind: 'model', via: 'model', present: null, score: 0.05, weight: 0.25,
       evidence_ko: '화면 속 장면에서 AI 흔적은 찾지 못했어요', ...o });
   const d3 = sig({ id: 'd3', kind: 'model', via: 'model', score: 0.5, weight: 0, evidence_ko: '화면 움직임만으로는 판단하기 어려워요' });
-  const noLabel = sig({ id: 'yt_no_ai_label', score: 0.5, weight: 0, evidence_ko: '유튜브에 AI로 만들었다는 표시는 없어요' });
-  const creator = sig({ id: 'yt_creator_ai_disclosure', score: 0.95, weight: 3, evidence_ko: "올린 사람이 유튜브에 'AI로 만든 영상'이라고 밝혔어요" });
+  const noLabel = sig({ id: 'yt_no_ai_label', score: 0.5, weight: 0, present: false, evidence_ko: '유튜브에 AI로 만들었다는 표시는 없어요' });
+  const creator = sig({ id: 'yt_creator_ai_disclosure', score: 0.95, weight: 3, present: true, evidence_ko: "올린 사람이 유튜브에 'AI로 만든 영상'이라고 밝혔어요" });
 
   it('모델 ok + weight>0 → 이름, AI 가능성 %, 참고용 경고 (모델 줄이 먼저)', () => {
     const rows = detailRowsFor(res({ verdict: 'uncertain', signals: [noLabel, commfor()] }));
@@ -266,9 +267,9 @@ describe('detailRowsFor — 자세히 보기 (§2.3a)', () => {
   });
 
   it('규칙 신호에는 숫자가 없다 (있음/없음 + evidence)', () => {
-    const selfYes = sig({ id: 'yt_self_report_ai', score: 0.85, evidence_ko: '영상 제목에 AI로 만들었다는 표시가 있어요' });
-    const selfNo = sig({ id: 'yt_self_report_ai', score: 0.5, weight: 0, evidence_ko: '영상 제목과 설명에 AI 표시는 없어요' });
-    const cam = sig({ id: 'yt_c2pa_camera', score: 0.15, evidence_ko: '영상에 남은 제작 기록에 카메라로 찍었다고 나와요' });
+    const selfYes = sig({ id: 'yt_self_report_ai', score: 0.85, present: true, evidence_ko: '영상 제목에 AI로 만들었다는 표시가 있어요' });
+    const selfNo = sig({ id: 'yt_self_report_ai', score: 0.5, weight: 0, present: false, evidence_ko: '영상 제목과 설명에 AI 표시는 없어요' });
+    const cam = sig({ id: 'yt_c2pa_camera', score: 0.15, present: true, evidence_ko: '영상에 남은 제작 기록에 카메라로 찍었다고 나와요' });
     const rows = detailRowsFor(res({ verdict: 'likely_ai', signals: [creator, selfYes, selfNo, cam] }));
     expect(rows.map((r) => [r.name, r.value])).toEqual([
       ['유튜브 AI 표시', '있음'],
@@ -277,6 +278,46 @@ describe('detailRowsFor — 자세히 보기 (§2.3a)', () => {
       ['카메라 촬영 기록', '있음'],
     ]);
     for (const r of rows) expect(`${r.value} ${r.detail}`).not.toMatch(/\d/);
+  });
+
+  describe('규칙 있음/없음은 present로만 결정 (계약 v1.2, #2)', () => {
+    const rule = (o: Partial<Signal>) => sig({ id: 'yt_self_report_ai', ...o });
+    it.each([
+      [true, '있음'],
+      [false, '없음'],
+    ])('present=%p → %p', (present, value) => {
+      const rows = detailRowsFor(res({ signals: [rule({ present, evidence_ko: '근거 문장' })] }));
+      expect(rows).toEqual([{ key: 'yt_self_report_ai-0', kind: 'rule', name: '제목·설명의 AI 표시', value, detail: '근거 문장', caution: null }]);
+    });
+
+    it('present=null → 있음/없음 없이 evidence만', () => {
+      const rows = detailRowsFor(res({ signals: [rule({ present: null, evidence_ko: '영상 제목과 설명에 AI 표시는 없어요' })] }));
+      expect(rows).toEqual([{ key: 'yt_self_report_ai-0', kind: 'rule', name: '제목·설명의 AI 표시', value: null,
+        detail: '영상 제목과 설명에 AI 표시는 없어요', caution: null }]);
+    });
+
+    it('present 필드가 없는 구버전 응답(파서 경유) → evidence만', () => {
+      const { present: _omit, ...old } = rule({ evidence_ko: '영상 제목에 AI로 만들었다는 표시가 있어요' });
+      const parsed = parseDetectResponse(res({ signals: [old as Signal] }));
+      expect(parsed).not.toBeNull();
+      const rows = detailRowsFor(parsed!);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ kind: 'rule', value: null, detail: '영상 제목에 AI로 만들었다는 표시가 있어요' });
+    });
+
+    it('문장 끝을 해석하지 않는다: "...없어요"로 끝나도 present=true면 있음, "...있어요"여도 present=false면 없음', () => {
+      const rows = detailRowsFor(res({ signals: [
+        rule({ present: true, evidence_ko: '영상 제목과 설명에 AI 표시는 없어요' }),
+        rule({ id: 'yt_c2pa_camera', present: false, evidence_ko: '카메라로 찍었다는 기록이 있어요' }),
+      ] }));
+      expect(rows.map((r) => r.value)).toEqual(['있음', '없음']);
+    });
+
+    it('present.ts 소스에 evidence_ko 문장 끝 파싱이 남아 있지 않다', () => {
+      const src = require('fs').readFileSync(require('path').join(__dirname, '../src/ux/present.ts'), 'utf8') as string;
+      expect(src).not.toMatch(/없어요/);
+      expect(src).not.toMatch(/있어요/);
+    });
   });
 
   it('모르는 id → 이름·값 없이 evidence만', () => {

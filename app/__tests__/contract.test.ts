@@ -26,7 +26,8 @@ describe('parseDetectResponse', () => {
     expect(parseDetectResponse(bad)).toBeNull();
   });
 
-  it.each(Object.keys(SAMPLE.signals[0]))('signal 필드 %s 누락 시 null', (k) => {
+  // present(v1.2)는 누락 허용 → 아래 'present' describe 참조
+  it.each(Object.keys(SAMPLE.signals[0]).filter((k) => k !== 'present'))('signal 필드 %s 누락 시 null', (k) => {
     const sig: Record<string, unknown> = { ...SAMPLE.signals[0] };
     delete sig[k];
     expect(parseDetectResponse({ ...SAMPLE, signals: [sig] })).toBeNull();
@@ -56,12 +57,39 @@ describe('parseDetectResponse', () => {
     expect(r?.signals.filter((s) => s.score === null)).toHaveLength(2);
   });
 
-  it('실제 서버 응답 (업로드) 파싱', () => {
-    expect(parseDetectResponse(SERVER_UPLOAD)).toEqual(SERVER_UPLOAD);
+  it('실제 서버 응답 (업로드) 파싱 — present 없는 구버전 응답은 null로 채움', () => {
+    expect(parseDetectResponse(SERVER_UPLOAD)).toEqual({
+      ...SERVER_UPLOAD,
+      signals: SERVER_UPLOAD.signals.map((s) => ({ ...s, present: null })),
+    });
   });
 
   it('score가 문자열이면 거부', () => {
     expect(parseDetectResponse({ ...SAMPLE, signals: [{ ...SAMPLE.signals[0], score: '1' }] })).toBeNull();
+  });
+});
+
+describe('signals[].present (v1.2, #2)', () => {
+  const withPresent = (present: unknown) => ({ ...SAMPLE, signals: [{ ...SAMPLE.signals[0], present }] });
+
+  it.each([true, false, null])('present=%p 그대로 파싱', (present) => {
+    expect(parseDetectResponse(withPresent(present))?.signals[0].present).toBe(present);
+  });
+
+  it('present 필드가 없으면(구버전 서버) 에러가 아니라 null', () => {
+    const { present: _omit, ...old } = SAMPLE.signals[0];
+    const r = parseDetectResponse({ ...SAMPLE, signals: [old] });
+    expect(r).not.toBeNull();
+    expect(r?.signals[0].present).toBeNull();
+  });
+
+  it('구버전 URL partial 응답도 결과로 파싱 (present 전부 null)', () => {
+    const r = parseDetectResponse(SERVER_URL_PARTIAL);
+    expect(r?.signals.map((s) => s.present)).toEqual([null, null, null, null]);
+  });
+
+  it.each(['yes', 1, 0, {}])('present 형식이 틀리면(%p) 거부', (present) => {
+    expect(parseDetectResponse(withPresent(present))).toBeNull();
   });
 });
 

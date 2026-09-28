@@ -214,22 +214,30 @@ def label_signals(p: Parsed, via: str) -> list[RuleSignal]:
         who = _signer_ko(c2pa_ai.attribution)
         ev = (f"영상에 남은 제작 기록에 {who} AI로 만들었다고 나와요" if who
               else "영상에 남은 제작 기록에 AI로 만들었다고 나와요")
-        out.append(RuleSignal(id="yt_c2pa_ai_label", evidence_ko=ev, via=via, **W["c2pa_ai"]))
+        # present=True: a C2PA "made with AI" record is on the video.
+        out.append(RuleSignal(id="yt_c2pa_ai_label", evidence_ko=ev, via=via, present=True,
+                              **W["c2pa_ai"]))
     elif ai or p.ai_badge:
         out.append(RuleSignal(id="yt_creator_ai_disclosure",
                               evidence_ko="올린 사람이 유튜브에 'AI로 만든 영상'이라고 밝혔어요",
-                              via=via, **W["creator_ai"]))
+                              via=via, present=True,  # creator's AI label is shown
+                              **W["creator_ai"]))
     if cam:
         key = "c2pa_camera" if any(s.attribution for s in cam) else "camera_noattr"
         out.append(RuleSignal(id="yt_c2pa_camera",
                               evidence_ko="영상에 남은 제작 기록에 카메라로 찍었다고 나와요",
-                              via=via, **W[key]))
+                              # present=True means a CAMERA-capture record was found
+                              # (points toward real footage, not toward AI).
+                              via=via, present=True, **W[key]))
     if not out:
         # Absence of a label is NOT evidence of a real video (YouTube does not require
         # labels for clearly unrealistic content, and many AI shorts are unlabeled).
+        # NOTE the negated name: `present` here still answers "is a YouTube AI label on the
+        # video?" -- this signal exists only when it is not, so present is always False.
+        # (It never means "the absence was found = True".)
         out.append(RuleSignal(id="yt_no_ai_label",
                               evidence_ko="유튜브에 AI로 만들었다는 표시는 없어요",
-                              via=via, **W["no_label"]))
+                              via=via, present=False, **W["no_label"]))
     return out
 
 
@@ -297,13 +305,15 @@ def self_report_signals(title: str, description: str, via: str, has_description:
     if hit is None:
         ev = ("영상 제목과 설명에 AI 표시는 없어요" if has_description
               else "영상 제목에 AI 표시는 없어요")
-        return [RuleSignal(id="yt_self_report_ai", evidence_ko=ev, via=via, **W["self_none"])]
+        # present answers "does the title/description say it was made with AI?"
+        return [RuleSignal(id="yt_self_report_ai", evidence_ko=ev, via=via, present=False,
+                           **W["self_none"])]
     level, fld = hit
     where = "제목" if fld == "title" else "설명"
     key = {"strong": "self_strong", "weak": "self_weak", "tutorial": "self_tutorial"}[level]
     return [RuleSignal(id="yt_self_report_ai",
                        evidence_ko=f"영상 {where}에 AI로 만들었다는 표시가 있어요",
-                       via=via, **W[key])]
+                       via=via, present=True, **W[key])]
 
 
 # --------------------------------------------------------------------------- network

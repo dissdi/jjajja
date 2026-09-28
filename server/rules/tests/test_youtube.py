@@ -52,6 +52,14 @@ def assert_contract(sigs):
         if s.status == "ok":
             assert s.evidence_ko.strip(), s  # UX: evidence even for negative signals
             assert s.score is not None and 0.0 <= s.score <= 1.0
+            assert isinstance(s.present, bool), s  # contract v1.2: ok rule -> True/False
+        else:
+            assert s.present is None, s
+        assert "present" in s.to_dict()
+
+
+def presence(sigs):
+    return {s.id: s.present for s in sigs}
 
 
 # ---------------------------------------------------------------- fixture-based extraction
@@ -66,6 +74,7 @@ async def test_c2pa_ai_label_is_decisive():
     assert "yt_no_ai_label" not in s
     assert s["yt_self_report_ai"].score > 0.5  # "AI Veo 3 Kids Shorts"
     assert calls == ["/youtubei/v1/next"]
+    assert presence(sigs) == {"yt_c2pa_ai_label": True, "yt_self_report_ai": True}
 
 
 @pytest.mark.asyncio
@@ -78,6 +87,7 @@ async def test_creator_disclosure_strong_not_decisive():
     assert "yt_c2pa_ai_label" not in s
     assert s["yt_self_report_ai"].score > 0.5  # title "... #ai동물 #shorts"
     assert "제목" in s["yt_self_report_ai"].evidence_ko
+    assert presence(sigs) == {"yt_creator_ai_disclosure": True, "yt_self_report_ai": True}
 
 
 @pytest.mark.asyncio
@@ -90,6 +100,8 @@ async def test_camera_capture_points_to_real():
     assert "카메라" in cam.evidence_ko
     assert not any(x.decisive for x in sigs)
     assert s["yt_self_report_ai"].weight == 0.0
+    # camera record found (present=True) is NOT an AI mark; self-report absent
+    assert presence(sigs) == {"yt_c2pa_camera": True, "yt_self_report_ai": False}
 
 
 @pytest.mark.asyncio
@@ -102,6 +114,9 @@ async def test_auto_dub_is_not_ai():
     assert s["yt_no_ai_label"].weight == 0.0
     # title is an "AI 영상 만드는 법" tutorial -> must not count as strong self report
     assert s["yt_self_report_ai"].score < 0.85 or s["yt_self_report_ai"].weight <= 0.5
+    # auto-dub section is not an AI label -> no_label present=False; tutorial title still
+    # contains an AI self-report phrase -> present=True (weight keeps it weak)
+    assert presence(sigs) == {"yt_no_ai_label": False, "yt_self_report_ai": True}
 
 
 @pytest.mark.asyncio
@@ -114,6 +129,8 @@ async def test_no_label_negative_evidence():
     assert s["yt_no_ai_label"].weight == 0.0
     assert s["yt_self_report_ai"].weight == 0.0
     assert "없어요" in s["yt_self_report_ai"].evidence_ko
+    # yt_no_ai_label.present answers "is there an AI label?" -> False (not "absence found")
+    assert presence(sigs) == {"yt_no_ai_label": False, "yt_self_report_ai": False}
 
 
 def test_parser_reads_answer_ids():
@@ -177,6 +194,7 @@ async def test_blocked_falls_back_to_oembed_title():
     assert s["yt_ai_label"].status == "unavailable"
     assert s["yt_self_report_ai"].via == "oembed" and s["yt_self_report_ai"].score > 0.5
     assert "제목" in s["yt_self_report_ai"].evidence_ko
+    assert presence(sigs) == {"yt_ai_label": None, "yt_self_report_ai": True}
     assert calls == ["/youtubei/v1/next", "/watch", "/oembed", "/oembed"]
 
 
@@ -207,6 +225,18 @@ async def test_never_raises_on_errors():
         sigs = await extract_signals(normalize("https://youtu.be/jzE0Rcb2hY4"), c)
     assert {s.status for s in sigs} == {"unavailable"}
     assert {s.id for s in sigs} == {"yt_ai_label", "yt_self_report_ai"}
+    assert presence(sigs) == {"yt_ai_label": None, "yt_self_report_ai": None}
+
+
+def test_present_forced_none_when_not_ok():
+    assert RuleSignal(id="x", status="unavailable", present=True).present is None
+    assert RuleSignal(id="x", status="error", present=False).present is None
+    assert RuleSignal(id="x", present=False).to_dict()["present"] is False
+
+
+def test_oembed_title_without_ai_mark_is_present_false():
+    s = yt.self_report_signals("짱절미 산책", "", "oembed", has_description=False)[0]
+    assert s.present is False and s.status == "ok"
 
 
 @pytest.mark.asyncio

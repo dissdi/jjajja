@@ -143,7 +143,8 @@ def test_url_fetched_runs_models(tmp_path, monkeypatch, sample_video):
     assert b["ai_probability"] == 0.4 and b["verdict"] == "uncertain"
     mock = next(s for s in b["signals"] if s["id"] == "mock")
     assert mock == {"id": "mock", "kind": "model", "status": "ok", "decisive": False, "score": 0.2,
-                    "weight": 1.0, "evidence_ko": mock["evidence_ko"], "via": "model"}
+                    "weight": 1.0, "evidence_ko": mock["evidence_ko"], "via": "model",
+                    "present": None}
 
 
 def test_url_cache_hit(tmp_path, monkeypatch):
@@ -214,3 +215,75 @@ def test_openapi_lists_endpoints(tmp_path, monkeypatch):
     with client(tmp_path, monkeypatch) as c:
         paths = c.get("/openapi.json").json()["paths"]
     assert "/v1/detect" in paths and "/v1/health" in paths
+
+
+# ---------------------------------------------------------------- contract v1.2: present (#2)
+CONTRACT_MD = Path(__file__).resolve().parents[2] / ".claude/skills/detect-api-contract/SKILL.md"
+
+
+def _contract_example() -> dict:
+    import json
+    import re
+    text = CONTRACT_MD.read_text(encoding="utf-8")
+    block = re.search(r"응답 `200`:\s*```json\n(.*?)```", text, re.S).group(1)
+    # the example uses "a | b" placeholders inside strings only, so it is valid JSON
+    return json.loads(block)
+
+
+@pytest.mark.skipif(not CONTRACT_MD.exists(), reason="contract skill not in this checkout")
+def test_contract_example_keys_match_schema():
+    from app.schemas import DetectResponse, Signal
+    from tests.helpers import CONTRACT_RESPONSE_KEYS, CONTRACT_SIGNAL_KEYS
+    ex = _contract_example()
+    assert set(ex) == CONTRACT_RESPONSE_KEYS == set(DetectResponse.model_fields)
+    assert set(ex["signals"][0]) == CONTRACT_SIGNAL_KEYS == set(Signal.model_fields)
+
+
+def _with_present(sig: RuleSignal, present):
+    """RuleSignal may or may not carry `present` yet (rules/ is owned by source-rule-engineer);
+    the pipeline reads it with getattr, so attach it either way."""
+    import copy
+    s = copy.copy(sig)
+    object.__setattr__(s, "present", present)
+    return s
+
+
+def test_rule_present_passthrough(tmp_path, monkeypatch):
+    label_on = _with_present(RuleSignal(id="yt_ai_label", decisive=True, score=1.0, weight=1.0,
+                                        evidence_ko="유튜브에 'AI로 만든 콘텐츠' 표시가 있어요"), True)
+    self_off = _with_present(NO_SELF, False)
+    unchecked = _with_present(RuleSignal(id="yt_c2pa_ai_label", status="unavailable", score=None),
+                              True)  # a rule bug: claims presence without checking
+    plain = copy_without_present(NO_LABEL)
+    with client(tmp_path, monkeypatch, rules=[label_on, self_off, unchecked, plain]) as c:
+        r = c.post("/v1/detect", json={"url": URL})
+    assert r.status_code == 200, r.text
+    b = r.json()
+    assert_contract_body(b)
+    by = {s["id"]: s for s in b["signals"]}
+    assert by["yt_ai_label"]["present"] is True
+    assert by["yt_self_report_ai"]["present"] is False
+    assert by["yt_c2pa_ai_label"]["present"] is None   # status != ok -> null
+    assert by["yt_no_ai_label"]["present"] is None     # rule did not say -> null
+    assert by["mock"]["present"] is None               # models: always null
+
+
+def copy_without_present(sig: RuleSignal):
+    import copy
+    s = copy.copy(sig)
+    if "present" in getattr(s, "__dict__", {}):
+        object.__setattr__(s, "present", None)
+    return s
+
+
+def test_present_key_serialized_even_from_old_cache_entries(tmp_path, monkeypatch):
+    """Bodies cached before v1.2 have no `present`; the response must still carry it (null)."""
+    with client(tmp_path, monkeypatch, rules=[CREATOR]) as c:
+        c.post("/v1/detect", json={"url": URL})
+        for k, (exp, body) in list(c.pipe.cache._mem.items()):
+            for s in body["signals"]:
+                s.pop("present", None)
+        b = c.post("/v1/detect", json={"url": URL}).json()
+    assert b["cached"] is True
+    assert all(s["present"] is None for s in b["signals"])
+    assert_contract_body(b)

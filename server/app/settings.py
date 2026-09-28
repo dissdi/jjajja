@@ -10,9 +10,11 @@
 | JJAJJA_MAX_UPLOAD_MB | 50 | upload limit -> 413 file_too_large |
 | JJAJJA_FETCH_ENABLED | 1 | 0 -> never call yt-dlp (rules-only, partial=true) |
 | JJAJJA_FETCH_COOLDOWN_S | 1800 | after a bot-block, skip yt-dlp for this long |
-| JJAJJA_FETCH_TIMEOUT_S | 60 | whole yt-dlp download budget |
-| JJAJJA_RULES_TIMEOUT_S | 20 | rules.extract_signals budget |
-| JJAJJA_DETECTOR_TIMEOUT_S | 120 | per-detector inference budget |
+| JJAJJA_URL_BUDGET_S | 40 | whole URL request (rules + download + models) must answer within this; leftovers -> partial (contract v1.2, app waits 45 s) |
+| JJAJJA_UPLOAD_BUDGET_S | 110 | upload processing after the file is received (contract v1.2, app waits 120 s) |
+| JJAJJA_FETCH_TIMEOUT_S | 60 | whole yt-dlp download budget (effective: min with the URL budget left) |
+| JJAJJA_RULES_TIMEOUT_S | 20 | rules.extract_signals budget (effective: min with the URL budget left) |
+| JJAJJA_DETECTOR_TIMEOUT_S | 120 | per-detector inference budget (effective: min with the request budget left) |
 | JJAJJA_CACHE_DIR | server/.cache | result cache + temp media |
 | JJAJJA_CACHE_TTL_S | 604800 | full result TTL (7 days) |
 | JJAJJA_PARTIAL_TTL_S | 21600 | partial result TTL (6 hours) |
@@ -54,6 +56,8 @@ class Settings:
     max_upload_bytes: int = 50 * 1024 * 1024
     fetch_enabled: bool = True
     fetch_cooldown_s: float = 1800.0
+    url_budget_s: float = 40.0
+    upload_budget_s: float = 110.0
     fetch_timeout_s: float = 60.0
     rules_timeout_s: float = 20.0
     detector_timeout_s: float = 120.0
@@ -80,6 +84,8 @@ class Settings:
         s.max_upload_bytes = int(_env_float("JJAJJA_MAX_UPLOAD_MB", 50) * 1024 * 1024)
         s.fetch_enabled = _env_bool("JJAJJA_FETCH_ENABLED", True)
         s.fetch_cooldown_s = _env_float("JJAJJA_FETCH_COOLDOWN_S", 1800)
+        s.url_budget_s = _env_float("JJAJJA_URL_BUDGET_S", s.url_budget_s)
+        s.upload_budget_s = _env_float("JJAJJA_UPLOAD_BUDGET_S", s.upload_budget_s)
         s.fetch_timeout_s = _env_float("JJAJJA_FETCH_TIMEOUT_S", 60)
         s.rules_timeout_s = _env_float("JJAJJA_RULES_TIMEOUT_S", 20)
         s.detector_timeout_s = _env_float("JJAJJA_DETECTOR_TIMEOUT_S", 120)

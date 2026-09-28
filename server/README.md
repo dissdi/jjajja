@@ -1,6 +1,6 @@
 # jjajja 탐지 서버 (FastAPI)
 
-AI로 만든 쇼츠인지 확인하는 백엔드. 응답 형식은 **`.claude/skills/detect-api-contract/SKILL.md` (v1.1)** 가 단일 기준이다.
+AI로 만든 쇼츠인지 확인하는 백엔드. 응답 형식은 **`.claude/skills/detect-api-contract/SKILL.md` (v1.2)** 가 단일 기준이다.
 
 > **약관·법무 리스크 (출시 전 법무 검토 필수)**
 > - URL 방식은 `yt-dlp`로 플랫폼 영상을 내려받는다. YouTube·TikTok·Instagram 약관은 다운로드를 제한한다. **연구/프로토타입 용도**로만 둔다.
@@ -51,10 +51,18 @@ CUDA_VISIBLE_DEVICES=<빈 GPU> JJAJJA_DEVICE=cuda uvicorn app.main:app --port 80
 | `JJAJJA_DETECTORS` | `d3,commfor_224` | 로드할 모델 탐지기 |
 | `JJAJJA_ENABLE_MOCK` / `JJAJJA_MOCK_SCORE` | `0` / - | 테스트용 `mock` 탐지기 |
 | `JJAJJA_MAX_UPLOAD_MB` | `50` | 업로드 한도(413). 길이 한도 180초는 계약 고정값 |
+| `JJAJJA_URL_BUDGET_S` | `40` | URL 요청 전체(규칙 + 다운로드 + 모델) 응답 보장 시간. 넘으면 기다리지 않고 그때까지의 신호로 `200 + partial`(못 끝낸 모델은 `unavailable`). 앱 제한 45초보다 짧아야 함(테스트로 검증) |
+| `JJAJJA_UPLOAD_BUDGET_S` | `110` | 업로드 처리(전송 제외) 보장 시간. 앱 제한 120초보다 짧아야 함 |
 | `JJAJJA_FETCH_ENABLED` | `1` | `0`이면 yt-dlp를 아예 부르지 않음 |
+| `JJAJJA_FETCH_TIMEOUT_S` / `JJAJJA_RULES_TIMEOUT_S` / `JJAJJA_DETECTOR_TIMEOUT_S` | `60` / `20` / `120` | 단계별 상한. 실제로는 남은 예산과 둘 중 짧은 값 |
 | `JJAJJA_RATE_LIMIT_PER_MIN` | `30` | IP당 분당 요청(429) |
 | `JJAJJA_CACHE_DIR` | `server/.cache` | 결과 캐시(7일, partial 6시간) |
 | `JJAJJA_CORS_ORIGINS` | (꺼짐) | 웹 시연용 브라우저 origin, 예: `http://localhost:8081` |
+
+응답 시간 보장(계약 v1.2, #1): 규칙 조회와 영상 다운로드는 병렬로 돌고, 각 단계 timeout은 남은 예산으로 잘린다.
+예산이 끝나 버려진 yt-dlp/ffmpeg 스레드는 `media/workdir.py`의 `WorkDir`가 관리한다 — 마지막 스레드가 끝날 때 임시 폴더를
+지우고, 종료 후 시작하려는 작업은 실행하지 않는다. 스레드는 캐시에 쓰지 않으며, 예산 때문에 잘린 응답은 캐시하지 않는다
+(다음 요청이 다시 시도). 버려진 모델 추론 스레드는 끝날 때까지 CPU를 쓴다(파이썬 스레드는 강제 종료 불가).
 
 API 키가 필요한 탐지기(상용)는 키를 **환경변수로만** 받는다. 현재 1차 MVP에는 상용 API가 없다(무료 OSS 우선).
 
@@ -62,7 +70,7 @@ API 키가 필요한 탐지기(상용)는 키를 **환경변수로만** 받는�
 ```
 app/        main.py(엔드포인트) pipeline.py ensemble.py cache.py schemas.py(계약 pydantic) errors.py settings.py
 detectors/  base.py(어댑터 인터페이스) __init__.py(레지스트리) mock.py d3.py commfor.py
-media/      fetch.py(yt-dlp, 차단 시 쿨다운) ffmpeg.py(프로브·프레임 샘플링)
+media/      fetch.py(yt-dlp, 차단 시 쿨다운) ffmpeg.py(프로브·프레임 샘플링) workdir.py(예산 초과 스레드용 임시 폴더 정리)
 config/weights.yaml   앙상블 가중치·구간·캘리브레이션 (코드 상수 아님)
 rules/      출처별 규칙 (source-rule-engineer 담당)
 tools/score_file.py   로컬 영상의 탐지기 원점수 출력 (QA 캘리브레이션용)
@@ -72,7 +80,7 @@ tools/score_file.py   로컬 영상의 탐지기 원점수 출력 (QA 캘리브�
 ## 테스트
 ```sh
 cd server
-conda run -n jjajja python -m pytest -q                       # 계약·앙상블·미디어·규칙 통합 (네트워크 없음)
+conda run -n jjajja python -m pytest -q                       # 계약·앙상블·미디어·응답 예산·규칙 통합 (네트워크 없음)
 JJAJJA_TEST_MODELS=1 conda run -n jjajja python -m pytest -q tests/test_models.py   # 실제 모델 (CPU)
 ```
 테스트 영상은 ffmpeg로 합성한다(`*.mp4`는 gitignore). YouTube에는 요청하지 않는다(규칙 쪽은 innertube fixture).

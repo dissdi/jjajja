@@ -18,9 +18,9 @@ import type { ErrorCode } from '../ux/copy';
 
 export const API_BASE: string = (process.env.EXPO_PUBLIC_API_BASE ?? 'http://localhost:8000').replace(/\/+$/, '');
 
-/** UX 명세 A6: URL 확인 45초 */
+/** 계약 v1.2 "응답 시간" 표: URL 앱 제한 45초 (서버 보장 40초 이내, #1). 바꾸려면 계약 표를 먼저 고친다 */
 export const URL_TIMEOUT_MS = 45_000;
-/** 영상 파일은 전송 시간이 더해지므로 더 길게 (03_mobile_notes.md 참조) */
+/** 계약 v1.2 "응답 시간" 표: 업로드 앱 제한 120초 (서버 처리 110초 이내 + 전송 시간). 바꾸려면 계약 표를 먼저 고친다 */
 export const UPLOAD_TIMEOUT_MS = 120_000;
 
 export type DetectOutcome =

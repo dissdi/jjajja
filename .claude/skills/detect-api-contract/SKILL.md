@@ -40,7 +40,8 @@ URL 또는 업로드 영상 하나를 탐지한다.
       "score": 1.0,
       "weight": 1.0,
       "evidence_ko": "유튜브에 'AI로 만든 콘텐츠' 표시가 있어요",
-      "via": "api | oembed | html | model"
+      "via": "api | oembed | html | model",
+      "present": true
     }
   ],
   "cached": false,
@@ -63,6 +64,7 @@ URL 또는 업로드 영상 하나를 탐지한다.
 | `signals[].evidence_ko` (상태별) | `status=="ok"`인 신호는 판정 방향과 무관하게(음성 포함, 모델 포함) 항상 채운다. `unavailable/error`도 가능하면 채운다(예: "영상을 받아오지 못해 화면은 확인하지 못했어요"). 규칙 쪽 `unavailable`은 빈 문자열일 수 있다 |
 | `signals[].score` | 0.0~1.0 float 또는 **`null`**. `status`가 `unavailable`/`error`면 `null`(점수 없음). 앱 타입은 `number \| null` (v1.1 명시 — 서버는 v1부터 null을 보냈음) |
 | `signals[].weight` | 앙상블에 실제로 쓴 가중치. `0`이면 설명용 신호(가중 평균 제외, 화면 표시는 가능) |
+| `signals[].present` | (v1.2) **규칙 신호 전용.** 이 신호가 가리키는 표시·기록을 찾았으면 `true`, 찾아봤는데 없으면 `false`, 확인 못 했으면(`status`≠ok) `null`. 모델 신호는 항상 `null`. 앱의 "있음/없음" 표시는 이 값만 쓴다 — `evidence_ko` 문장을 파싱하지 않는다 (#2) |
 | `signals[].decisive` | `true`면 이 신호 하나로 verdict가 결정됨 (예: 공식 AI 라벨, C2PA 생성 기록) |
 | 이름 규칙 | JSON은 snake_case. 앱 TS 타입도 snake_case 그대로 쓴다 (변환 레이어로 인한 누락 방지) |
 
@@ -91,6 +93,15 @@ URL 또는 업로드 영상 하나를 탐지한다.
 | 400 | `invalid_file` | (v1.1) 업로드 파일이 없거나 영상으로 열 수 없음 |
 | 503 | `detectors_down` | 모든 탐지기 실패 (업로드 경로에서 모델 신호가 하나도 ok가 아님, 또는 서버 내부 오류) |
 
+## 응답 시간 (v1.2)
+
+| 경로 | 서버 보장 | 앱 제한 시간 |
+|------|----------|-------------|
+| URL (`POST /v1/detect` JSON) | **40초 이내 응답** (`JJAJJA_URL_BUDGET_S`, 기본 40) | 45초 |
+| 업로드 (multipart) | 전송 제외 처리 110초 이내 | 120초 |
+
+서버는 URL 요청의 전체 예산을 넘기지 않는다. 영상 확보·모델이 예산 안에 끝나지 않으면 기다리지 않고 그때까지 모인 신호로 `200 + partial: true`를 준다(끝나지 않은 모델 신호는 `status: "unavailable"`). 서버 예산은 항상 앱 제한 시간보다 짧아야 하며, 바꿀 때 이 표를 먼저 고친다 (#1).
+
 URL 방식에서 영상 확보가 막혀도(봇 차단 등) 에러가 아니라 `200 + partial: true`로 응답한다. 규칙 신호도 없으면 `ai_probability: null, verdict: "unknown"`. 404 `video_unavailable`은 영상이 비공개/삭제/지역 제한으로 확인되고 쓸 수 있는 규칙 신호도 없을 때만 쓴다.
 
 ## 앱 측 TS 타입 위치
@@ -101,4 +112,5 @@ URL 방식에서 영상 확보가 막혀도(봇 차단 등) 에러가 아니라 
 |------|------|------|------|
 | v1 | 2026-09-28 | 초기 계약 | - |
 | v1.1 | 2026-09-28 | (추가만, 기존 필드 불변) 에러 `invalid_file`(400) 추가 / 업로드 한도 50MB·180초 명시 + `/v1/health`에 `limits` 추가 / `partial` 정의 명시(모델 ok 신호 없음) / 상태별 `evidence_ko`·`weight=0` 규칙 명시 | 업로드 경로 구현(detection-engineer), mobile-engineer 요청 (1)(2)(3) |
+| v1.2 | 2026-09-28 | (추가만) `signals[].present` 추가(규칙 신호 있음/없음) / 응답 시간 보장 표 추가: URL 40초·업로드 110초 | #2 앱이 문장 끝으로 있음/없음 판단, #1 URL 지연이 앱 45초 초과 가능 |
 | v1.1 (QA 보완) | 2026-09-28 | `signals[].score` nullable 명시(필드 규칙 표). 동작 변경 없음 — 서버는 이미 unavailable 신호에 `null`을 보냈고 앱 v1 파서가 이를 거부해 URL partial 결과가 전부 에러 화면이 되던 경계면 버그를 문서로 고정 | qa-integrator (04_qa_report) |

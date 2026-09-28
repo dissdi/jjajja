@@ -67,3 +67,5 @@ def band(score: float, high: str, mid: str, low: str) -> str:
 EVIDENCE_NO_VIDEO = "영상을 받아오지 못해 화면은 확인하지 못했어요"
 EVIDENCE_DOWN = "지금은 화면 확인 기능을 쓸 수 없어요"
 EVIDENCE_ERROR = "화면을 확인하다가 문제가 생겼어요"
+# response-time budget ran out before this check finished (contract v1.2 "응답 시간", #1)
+EVIDENCE_TIMEOUT = "시간이 오래 걸려서 이번에는 화면을 확인하지 못했어요"

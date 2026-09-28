@@ -56,5 +56,6 @@ ytInitialData.contents.twoColumnWatchNextResults.results.results.contents[0]
 ## 구현 상태 (2026-09-28, T1)
 - 코드: `server/rules/youtube.py`, 규칙 id·가중치·오탐 주의는 `_workspace/02_rules_spec.md` §3~§7
 - 신호 id: `yt_c2pa_ai_label`(decisive) / `yt_creator_ai_disclosure` / `yt_c2pa_camera` / `yt_no_ai_label`(weight 0, 설명용) / `yt_self_report_ai` / 실패 시 `yt_ai_label`(unavailable)
+- `present`(계약 v1.2): c2pa_ai·creator·camera=true, no_ai_label=false("AI 표시가 있나" 기준), self_report=매치 여부, unavailable=null. 의미표는 `_workspace/02_rules_spec.md` §3
 - 회귀 fixture: `server/rules/tests/fixtures/next_*.json` (innertube 원본, hl=ko)
 - 오탐 사례 기록: 자동 더빙 영상 배지 label이 "자동 더빙"으로 AI 배지와 같은 `metadataBadgeRenderer`에 온다 → label == "AI"만 인정

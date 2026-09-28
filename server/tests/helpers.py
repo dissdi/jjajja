@@ -14,7 +14,8 @@ FFMPEG = find_ffmpeg()
 
 CONTRACT_RESPONSE_KEYS = {"request_id", "platform", "video_id", "ai_probability", "verdict",
                           "partial", "signals", "cached", "analyzed_at"}
-CONTRACT_SIGNAL_KEYS = {"id", "kind", "status", "decisive", "score", "weight", "evidence_ko", "via"}
+CONTRACT_SIGNAL_KEYS = {"id", "kind", "status", "decisive", "score", "weight", "evidence_ko", "via",
+                        "present"}  # present: contract v1.2 (#2)
 
 
 def make_video(path: Path, seconds: float = 4, size: str = "360x640", rate: int = 24,
@@ -69,6 +70,10 @@ def assert_contract_body(body: dict) -> None:
         if s["status"] == "ok":
             assert s["evidence_ko"].strip(), s  # UX: evidence for every ok signal (neg. too)
             assert s["score"] is not None
+        # present (v1.2): model -> always null; not checked (status != ok) -> null
+        assert s["present"] in (True, False, None)
+        if s["kind"] == "model" or s["status"] != "ok":
+            assert s["present"] is None, s
     # partial <=> no ok model signal (contract v1.1)
     assert body["partial"] == (not any(s["kind"] == "model" and s["status"] == "ok"
                                        for s in body["signals"]))

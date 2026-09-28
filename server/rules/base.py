@@ -38,6 +38,15 @@ class RuleSignal:
     weight: float = 1.0
     evidence_ko: str = ""
     via: Literal["api", "oembed", "html"] = "api"
+    # Contract v1.2 (#2): did we find the mark/record this signal is about?
+    #   True  = found, False = looked and it is not there, None = could not check (status != ok).
+    # What "the mark" is differs per signal id; see the present column in
+    # _workspace/02_rules_spec.md section 3. The app shows 있음/없음 from this field only.
+    present: Optional[bool] = None
+
+    def __post_init__(self) -> None:
+        if self.status != "ok":
+            self.present = None  # contract: unchecked signals never claim presence/absence
 
     def to_dict(self) -> dict:
         return asdict(self)

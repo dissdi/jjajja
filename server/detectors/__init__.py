@@ -11,8 +11,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
-from .base import (EVIDENCE_DOWN, EVIDENCE_ERROR, EVIDENCE_NO_VIDEO, Detector, DetectorResult,
-                   MediaBundle)
+from .base import (EVIDENCE_DOWN, EVIDENCE_ERROR, EVIDENCE_NO_VIDEO, EVIDENCE_TIMEOUT, Detector,
+                   DetectorResult, MediaBundle)
 
 log = logging.getLogger(__name__)
 
@@ -86,7 +86,8 @@ class Registry:
     def _signal(h: Handle, r: DetectorResult) -> dict:
         return {"id": h.id, "kind": "model", "status": r.status, "decisive": False,
                 "score": None if r.score is None else round(float(r.score), 4),
-                "weight": h.weight, "evidence_ko": r.evidence_ko, "via": "model"}
+                "weight": h.weight, "evidence_ko": r.evidence_ko, "via": "model",
+                "present": None}  # contract v1.2: `present` is rule-only; models always null
 
     def unavailable_signals(self, evidence: str = EVIDENCE_NO_VIDEO) -> list[dict]:
         out = []
@@ -95,19 +96,39 @@ class Registry:
             out.append(self._signal(h, DetectorResult(None, "unavailable", ev)))
         return out
 
-    async def run_all(self, media: MediaBundle, timeout_s: float) -> list[dict]:
+    async def run_all(self, media: MediaBundle, timeout_s: float,
+                      deadline: Optional[float] = None) -> list[dict]:
+        """Run every detector concurrently.
+
+        `deadline` is a `time.monotonic()` instant (the request's response budget, #1). Each
+        attempt's timeout is cut to what is left of it; a detector still running at the deadline
+        becomes status="unavailable" with EVIDENCE_TIMEOUT (its thread is abandoned, not awaited).
+        """
+        def left() -> Optional[float]:
+            return None if deadline is None else deadline - time.monotonic()
+
+        def budget_out() -> DetectorResult:
+            return DetectorResult(None, "unavailable", EVIDENCE_TIMEOUT)
+
         async def one(h: Handle) -> dict:
             if not h.ok or h.detector is None:
                 return self._signal(h, DetectorResult(None, "unavailable", EVIDENCE_DOWN))
             retries = int(h.extra.get("retries", 0))  # remote APIs: 1; local models: 0
             for attempt in range(retries + 1):
+                rem = left()
+                if rem is not None and rem <= 0:
+                    return self._signal(h, budget_out())
+                t = timeout_s if rem is None else min(timeout_s, rem)
                 t0 = time.perf_counter()
                 try:
-                    r = await asyncio.wait_for(asyncio.to_thread(h.detector.infer, media), timeout_s)
+                    r = await asyncio.wait_for(asyncio.to_thread(h.detector.infer, media), t)
                     h.last_infer_s = time.perf_counter() - t0
                     log.info("detector %s score=%s raw=%s %.2fs", h.id, r.score, r.raw, h.last_infer_s)
                     return self._signal(h, r)
                 except asyncio.TimeoutError:
+                    if rem is not None and rem <= timeout_s:  # cut by the response budget
+                        log.warning("detector %s: response budget exhausted", h.id)
+                        return self._signal(h, budget_out())
                     log.warning("detector %s timeout (attempt %d)", h.id, attempt + 1)
                 except Exception:
                     log.exception("detector %s failed", h.id)

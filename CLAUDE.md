@@ -15,3 +15,4 @@ AI 슬롭(AI 생성) 쇼츠를 판별해, 구분하지 못하고 공유하는 50
 | 2026-09-28 | 계약 v1.1 (invalid_file, limits, partial 정의, score nullable) | skills/detect-api-contract | 업로드 경로 구현, 앱 요청, QA가 null score 버그 발견 |
 | 2026-09-28 | check_contract에 타입 검사, eval_detect에 --sleep/--stop-if-unavailable | skills/detection-qa/scripts | 키만 비교해 null 버그 누락, 유튜브 봇 차단 방지 |
 | 2026-09-28 | file_too_large·invalid_file 문구 | skills/senior-ux-korean | 실제 한도(180초)와 문구 불일치 |
+| 2026-09-28 | 계약 v1.2 (signals[].present, 응답 시간 보장 URL 40초·업로드 110초) | skills/detect-api-contract | GitHub #1, #2 |

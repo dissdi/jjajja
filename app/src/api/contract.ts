@@ -1,4 +1,4 @@
-// source: .claude/skills/detect-api-contract/SKILL.md (v1.1)
+// source: .claude/skills/detect-api-contract/SKILL.md (v1.2)
 //
 // 이 파일은 계약 문서의 스키마를 그대로 옮긴 것이다. 필드명은 snake_case 그대로 쓴다
 // (변환 레이어 금지). 필드를 바꾸려면 계약 문서를 먼저 고치고 이 파일을 맞춘다.
@@ -33,6 +33,13 @@ export interface Signal {
   weight: number;
   evidence_ko: string;
   via: SignalVia;
+  /**
+   * (v1.2) 규칙 신호 전용. 표시·기록을 찾았으면 true, 찾아봤는데 없으면 false,
+   * 확인 못 했으면(status≠ok) null. 모델 신호는 항상 null.
+   * 앱의 "있음/없음"은 이 값만 쓴다 — evidence_ko 문장을 파싱하지 않는다 (#2).
+   * 필드가 없는 응답(v1.2 이전 서버)은 파서가 null로 채운다.
+   */
+  present: boolean | null;
 }
 
 /** POST /v1/detect 응답 200 */
@@ -114,6 +121,8 @@ function parseSignal(v: unknown): Signal | null {
   if (!(v.score === null || typeof v.score === 'number') || typeof v.weight !== 'number') return null;
   if (typeof v.evidence_ko !== 'string') return null;
   if (typeof v.via !== 'string') return null;
+  // present: v1.2 추가. 없으면(구버전 서버) null — 에러로 보내지 않는다. 있는데 형식이 틀리면 거부.
+  if (!(v.present === undefined || v.present === null || typeof v.present === 'boolean')) return null;
   return {
     id: v.id,
     kind: v.kind,
@@ -123,6 +132,7 @@ function parseSignal(v: unknown): Signal | null {
     weight: v.weight,
     evidence_ko: v.evidence_ko,
     via: v.via as SignalVia,
+    present: typeof v.present === 'boolean' ? v.present : null,
   };
 }
 
