@@ -68,8 +68,12 @@ JJAJJA_CORS_ORIGINS=http://localhost:8081 uvicorn app.main:app --host 127.0.0.1 
 conda activate jjajja
 cd app
 npm install             # 처음 한 번
-EXPO_PUBLIC_API_BASE=http://localhost:8000 npx expo start --web --port 8081
+# 공용 서버에서는 Metro 캐시를 프로젝트 안에 둔다 (/tmp/metro-cache는 다른 사용자와 공유돼 권한 오류가 난다)
+mkdir -p .expo/tmp
+TMPDIR=$PWD/.expo/tmp EXPO_PUBLIC_API_BASE=http://localhost:8000 npx expo start --web --port 8081
 ```
+
+`CI=1`을 붙이지 않는다 — 파일 감시가 꺼져서 코드를 고쳐도 새로고침에 반영되지 않는다.
 
 1. VS Code 아래쪽 **PORTS** 탭에서 **8000**, **8081**을 포워딩한다(자동으로 잡히면 생략).
 2. PC 브라우저에서 **http://localhost:8081** 을 연다. 개발자 도구의 모바일 보기(Ctrl+Shift+M)를 켜면 휴대폰 화면처럼 보인다.
