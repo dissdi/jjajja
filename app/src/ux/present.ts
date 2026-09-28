@@ -111,3 +111,61 @@ export function buildShareText(res: DetectResponse, url: string | null): string 
     footer: fill(copy.share.footer, { appName: copy.app.name }),
   });
 }
+
+/**
+ * 자세히 보기 한 줄 (명세 §2.3a). 기본 화면은 그대로, 접힌 섹션을 펼치면 신호별로 보여준다.
+ * - model: 이름 + 'AI 가능성 n%'(percentOf 규칙 재사용) + evidence + 참고용 경고
+ * - modelUnavailable: 이름 + '화면 속 장면은 확인하지 못했어요'
+ * - rule: 이름 + 있음/없음 + evidence. 규칙 점수 숫자는 보여주지 않는다(0.5 같은 설명용 값이 오해를 줌)
+ * name=null이면 모르는 id → evidence만 보여준다.
+ */
+export interface DetailRow {
+  key: string;
+  kind: 'model' | 'modelUnavailable' | 'rule';
+  name: string | null;
+  /** model: 'AI 가능성 n%', rule: '있음'/'없음', 그 외 null */
+  value: string | null;
+  /** 한 문장 설명 (evidence_ko 또는 modelUnavailable 문구). 없으면 null */
+  detail: string | null;
+  /** model 행에만: 참고용 경고 */
+  caution: string | null;
+}
+
+/** 규칙 신호 결과 — evidence_ko 기반. '...없어요'면 없음, 그 외는 있음 */
+function ruleValue(evidence: string): string {
+  return /없어요\.?$/.test(evidence) ? copy.result.details.valueNo : copy.result.details.valueYes;
+}
+
+export function detailRowsFor(res: DetectResponse): DetailRow[] {
+  if (resultModeFor(res) === 'linkOnly') return []; // D1: 보여줄 게 없음
+  const d = copy.result.details;
+  const rows: DetailRow[] = [];
+  res.signals.forEach((s, i) => {
+    const key = `${s.id}-${i}`;
+    const name = Object.prototype.hasOwnProperty.call(d.names, s.id) ? d.names[s.id] : null;
+    const ev = s.evidence_ko.trim() || null;
+    if (s.kind === 'model') {
+      if (!(s.weight > 0)) return; // 가중치 0(꺼진 모델, 예: d3)은 숨김
+      const pct = s.status === 'ok' ? percentLabel(s.score) : null;
+      if (pct === null) {
+        rows.push({ key, kind: 'modelUnavailable', name, value: null, detail: d.modelUnavailable, caution: null });
+      } else {
+        rows.push({ key, kind: 'model', name, value: pct, detail: ev, caution: d.modelCaution });
+      }
+      return;
+    }
+    if (s.status !== 'ok' || ev === null) return; // 규칙 unavailable/error는 보여줄 결과가 없음
+    rows.push({ key, kind: 'rule', name, value: name === null ? null : ruleValue(ev), detail: ev, caution: null });
+  });
+  // unknown이면 모델 점수가 있을 때만 의미가 있다
+  if (res.verdict === 'unknown' && !rows.some((r) => r.kind === 'model')) return [];
+  // 화면 속 장면(모델) 줄을 먼저, 그다음 규칙 줄 (각각 서버 순서 유지). 같은 줄은 중복 제거
+  const seen = new Set<string>();
+  const rank = (r: DetailRow) => (r.kind === 'rule' ? 1 : 0);
+  return [...rows].sort((a, b) => rank(a) - rank(b)).filter((r) => {
+    const k = `${r.kind}|${r.name}|${r.value}|${r.detail}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}

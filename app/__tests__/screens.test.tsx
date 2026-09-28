@@ -88,6 +88,21 @@ describe('S3 결과', () => {
     expect(screen.queryByText(copy.result.linkOnly.headline)).toBeNull();
   });
 
+  it('자세히 보기: 기본 접힘 → 누르면 모델 점수·경고 표시', () => {
+    const signals = [
+      { id: 'commfor_224', kind: 'model', status: 'ok', decisive: false, score: 0.05, weight: 0.25,
+        evidence_ko: '화면 속 장면에서 AI 흔적은 찾지 못했어요', via: 'model' },
+    ] as DetectResponse['signals'];
+    render(<ResultScreen data={data({ verdict: 'uncertain', signals })} url="https://youtu.be/x" onRetry={noop} onAgain={noop} onSubmitVideo={noop} />);
+    expect(screen.queryByText('AI 가능성 5%')).toBeNull();
+    fireEvent.press(screen.getByText(copy.result.details.toggle));
+    expect(screen.getByText('화면 속 장면 확인')).toBeTruthy();
+    expect(screen.getByText('AI 가능성 5%')).toBeTruthy();
+    expect(screen.getByText(copy.result.details.modelCaution)).toBeTruthy();
+    fireEvent.press(screen.getByText(copy.result.details.toggle));
+    expect(screen.queryByText('AI 가능성 5%')).toBeNull();
+  });
+
   it('근거 0개 → evidenceEmpty', () => {
     render(<ResultScreen data={data({ verdict: 'likely_real', signals: [] })} url={null} onRetry={noop} onAgain={noop} onSubmitVideo={noop} />);
     expect(screen.getByText(copy.result.evidenceEmpty)).toBeTruthy();

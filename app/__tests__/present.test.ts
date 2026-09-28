@@ -2,6 +2,7 @@ import type { DetectResponse, Signal } from '../src/api/contract';
 import { copy } from '../src/ux/copy';
 import {
   buildShareText,
+  detailRowsFor,
   extractUrl,
   headlineFor,
   resultModeFor,
@@ -228,5 +229,85 @@ describe('resultModeFor (D1, 명세 §3.1a)', () => {
     expect(resultModeFor(r)).toBe('normal');
     expect(headlineFor(r)).toEqual(copy.result.verdict.likely_ai);
     expect(partialNoteFor(r, false)).toBe(copy.result.partialNoVideo);
+  });
+});
+
+
+describe('detailRowsFor — 자세히 보기 (§2.3a)', () => {
+  const commfor = (o: Partial<Signal> = {}) =>
+    sig({ id: 'commfor_224', kind: 'model', via: 'model', score: 0.05, weight: 0.25,
+      evidence_ko: '화면 속 장면에서 AI 흔적은 찾지 못했어요', ...o });
+  const d3 = sig({ id: 'd3', kind: 'model', via: 'model', score: 0.5, weight: 0, evidence_ko: '화면 움직임만으로는 판단하기 어려워요' });
+  const noLabel = sig({ id: 'yt_no_ai_label', score: 0.5, weight: 0, evidence_ko: '유튜브에 AI로 만들었다는 표시는 없어요' });
+  const creator = sig({ id: 'yt_creator_ai_disclosure', score: 0.95, weight: 3, evidence_ko: "올린 사람이 유튜브에 'AI로 만든 영상'이라고 밝혔어요" });
+
+  it('모델 ok + weight>0 → 이름, AI 가능성 %, 참고용 경고 (모델 줄이 먼저)', () => {
+    const rows = detailRowsFor(res({ verdict: 'uncertain', signals: [noLabel, commfor()] }));
+    expect(rows[0]).toMatchObject({
+      kind: 'model', name: '화면 속 장면 확인', value: 'AI 가능성 5%',
+      detail: '화면 속 장면에서 AI 흔적은 찾지 못했어요', caution: copy.result.details.modelCaution,
+    });
+    expect(rows[1]).toMatchObject({ kind: 'rule', name: '유튜브 AI 표시', value: '없음' });
+  });
+
+  it('가중치 0 모델(d3)은 숨김', () => {
+    const rows = detailRowsFor(res({ verdict: 'uncertain', signals: [d3, commfor()] }));
+    expect(rows.map((r) => r.key)).toEqual(['commfor_224-1']);
+  });
+
+  it('모델 unavailable/error → 확인하지 못했어요 한 줄, 숫자 없음', () => {
+    for (const status of ['unavailable', 'error'] as const) {
+      const rows = detailRowsFor(res({ verdict: 'likely_ai', signals: [commfor({ status, score: null }), creator] }));
+      expect(rows[0]).toEqual({
+        key: 'commfor_224-0', kind: 'modelUnavailable', name: '화면 속 장면 확인', value: null,
+        detail: copy.result.details.modelUnavailable, caution: null,
+      });
+    }
+  });
+
+  it('규칙 신호에는 숫자가 없다 (있음/없음 + evidence)', () => {
+    const selfYes = sig({ id: 'yt_self_report_ai', score: 0.85, evidence_ko: '영상 제목에 AI로 만들었다는 표시가 있어요' });
+    const selfNo = sig({ id: 'yt_self_report_ai', score: 0.5, weight: 0, evidence_ko: '영상 제목과 설명에 AI 표시는 없어요' });
+    const cam = sig({ id: 'yt_c2pa_camera', score: 0.15, evidence_ko: '영상에 남은 제작 기록에 카메라로 찍었다고 나와요' });
+    const rows = detailRowsFor(res({ verdict: 'likely_ai', signals: [creator, selfYes, selfNo, cam] }));
+    expect(rows.map((r) => [r.name, r.value])).toEqual([
+      ['유튜브 AI 표시', '있음'],
+      ['제목·설명의 AI 표시', '있음'],
+      ['제목·설명의 AI 표시', '없음'],
+      ['카메라 촬영 기록', '있음'],
+    ]);
+    for (const r of rows) expect(`${r.value} ${r.detail}`).not.toMatch(/\d/);
+  });
+
+  it('모르는 id → 이름·값 없이 evidence만', () => {
+    const rows = detailRowsFor(res({ signals: [sig({ id: 'tt_new_rule', evidence_ko: '새 규칙 근거' })] }));
+    expect(rows).toEqual([{ key: 'tt_new_rule-0', kind: 'rule', name: null, value: null, detail: '새 규칙 근거', caution: null }]);
+  });
+
+  it('규칙 unavailable/빈 evidence는 숨김', () => {
+    const rows = detailRowsFor(res({ signals: [sig({ status: 'unavailable', score: null, evidence_ko: '' }), sig({ evidence_ko: ' ' })] }));
+    expect(rows).toEqual([]);
+  });
+
+  it.each([
+    [0, 'AI 가능성 1%'],
+    [0.004, 'AI 가능성 1%'],
+    [0.996, 'AI 가능성 99%'],
+    [1, 'AI 가능성 99%'],
+  ])('모델 점수 %p → %p (clamp 1~99)', (score, label) => {
+    expect(detailRowsFor(res({ signals: [commfor({ score })] }))[0].value).toBe(label);
+  });
+
+  it('D1 linkOnly 화면에서는 숨김', () => {
+    const r = res({ verdict: 'unknown', ai_probability: null, partial: true,
+      signals: [commfor({ status: 'unavailable', score: null }), sig({ status: 'unavailable', score: null, evidence_ko: '' })] });
+    expect(resultModeFor(r)).toBe('linkOnly');
+    expect(detailRowsFor(r)).toEqual([]);
+  });
+
+  it('unknown이어도 모델 ok면 보여줌, 모델 ok 없으면 숨김', () => {
+    expect(detailRowsFor(res({ verdict: 'unknown', ai_probability: null, signals: [commfor()] }))).toHaveLength(1);
+    expect(detailRowsFor(res({ platform: 'upload', verdict: 'unknown', ai_probability: null, partial: true,
+      signals: [commfor({ status: 'error', score: null })] }))).toEqual([]);
   });
 });

@@ -87,6 +87,28 @@ export const copy = {
       saveHint: "카카오톡으로 받은 영상은 영상을 연 뒤 '저장'을 누르면 휴대폰에 저장돼요",
       uploadButton: '영상 파일로 확인하기', // = home.uploadButton (같은 흐름, 같은 이름)
     },
+    // [추가·자세히 보기] 근거 목록 아래 접힌 섹션 (명세 §2.3a). 기본은 접힘.
+    details: {
+      toggle: '자세히 보기',
+      toggleOpenA11yHint: '눌러서 신호별 확인 결과를 펼쳐요',
+      toggleCloseA11yHint: '눌러서 접어요',
+      // 모델 신호(kind=model, ok, weight>0) 점수 줄 = result.percentLabel 재사용 ('AI 가능성 {pct}%')
+      modelCaution: '참고용 숫자예요. 아직 정확도를 맞추는 중이라 이 숫자만으로 판단하지는 말아 주세요',
+      modelUnavailable: '화면 속 장면은 확인하지 못했어요',
+      valueYes: '있음',
+      valueNo: '없음',
+      /** 신호 id → 사람이 읽을 이름. 모르는 id는 이름 없이 evidence_ko만 보여준다 */
+      names: {
+        commfor_224: '화면 속 장면 확인',
+        d3: '화면 움직임 확인',
+        mock: '시험용 확인',
+        yt_creator_ai_disclosure: '유튜브 AI 표시',
+        yt_no_ai_label: '유튜브 AI 표시',
+        yt_c2pa_ai_label: 'AI 제작 기록',
+        yt_c2pa_camera: '카메라 촬영 기록',
+        yt_self_report_ai: '제목·설명의 AI 표시',
+      } as Record<string, string>,
+    },
     disclaimer: '자동으로 확인한 결과라 틀릴 수 있어요',
     shareButton: '가족에게 결과 보내기',
     shareHint: '카카오톡 등으로 보낼 수 있어요',

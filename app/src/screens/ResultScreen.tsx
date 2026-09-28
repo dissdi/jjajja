@@ -2,13 +2,13 @@
 // verdict는 서버 값을 그대로 쓴다 — ai_probability로 재계산하지 않는다.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import type { PickedVideo } from '../api/client';
 import type { DetectResponse } from '../api/contract';
 import { Button, T } from '../components/ui';
 import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
-import { buildShareText, headlineFor, partialNoteFor, percentLabel, resultModeFor, selectEvidence } from '../ux/present';
+import { buildShareText, detailRowsFor, headlineFor, partialNoteFor, percentLabel, resultModeFor, selectEvidence } from '../ux/present';
 import { border, color, font, radius, size, space, verdictColor, verdictIcon } from '../ux/theme';
 
 interface Props {
@@ -32,6 +32,8 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo }: Pro
   const pl = isUnknown ? null : percentLabel(data.ai_probability);
   const evidence = selectEvidence(v, data.signals);
   const partial = partialNoteFor(data, url === null);
+  const detailRows = detailRowsFor(data);
+  const [detailsOpen, setDetailsOpen] = useState(false); // 기본 접힘 (명세 §2.3a)
 
   const cardLabel = [vCopy.headline, pl, vCopy.sub].filter(Boolean).join('. ');
 
@@ -102,6 +104,49 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo }: Pro
         </View>
       )}
 
+      {detailRows.length > 0 && (
+        <View style={{ marginTop: 20 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copy.result.details.toggle}
+            accessibilityHint={detailsOpen ? copy.result.details.toggleCloseA11yHint : copy.result.details.toggleOpenA11yHint}
+            accessibilityState={{ expanded: detailsOpen }}
+            onPress={() => setDetailsOpen((o) => !o)}
+            style={({ pressed }) => [styles.detailsToggle, pressed && { backgroundColor: color.surface }]}
+          >
+            <T style={[font.subhead, styles.primaryText, { flex: 1 }]}>{copy.result.details.toggle}</T>
+            <MaterialCommunityIcons
+              name={detailsOpen ? 'chevron-up' : 'chevron-down'}
+              size={28}
+              color={color.textPrimary}
+              accessibilityElementsHidden
+              importantForAccessibility="no"
+            />
+          </Pressable>
+          {detailsOpen &&
+            detailRows.map((r) => (
+              <View key={r.key} style={styles.detailRow} accessible>
+                {r.kind === 'rule'
+                  ? r.name !== null && (
+                      <T style={[font.body, styles.primaryText, { fontWeight: '700' }]}>
+                        {r.value !== null ? `${r.name}: ${r.value}` : r.name}
+                      </T>
+                    )
+                  : (
+                      <>
+                        {r.name !== null && <T style={[font.body, styles.primaryText, { fontWeight: '700' }]}>{r.name}</T>}
+                        {r.value !== null && <T style={[font.subhead, styles.primaryText]}>{r.value}</T>}
+                      </>
+                    )}
+                {r.detail !== null && <T style={[font.body, styles.primaryText, { marginTop: 2 }]}>{r.detail}</T>}
+                {r.caution !== null && (
+                  <T style={[font.caption, styles.secondaryText, { marginTop: 4 }]}>{r.caution}</T>
+                )}
+              </View>
+            ))}
+        </View>
+      )}
+
       {partial && (
         <View style={[styles.note, { marginTop: 20 }]}>
           <MaterialCommunityIcons name="information" size={20} color={color.textSecondary} style={{ marginTop: 2 }} />
@@ -158,6 +203,17 @@ const styles = StyleSheet.create({
   bullet: { flexDirection: 'row', gap: 8, marginTop: space.item },
   evidenceText: { fontSize: 20, fontWeight: '400', lineHeight: 30, color: color.textPrimary },
   note: { flexDirection: 'row', gap: 6 },
+  detailsToggle: {
+    minHeight: size.touchMin,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: border.outline,
+    borderColor: color.border,
+    borderRadius: radius.button,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  detailRow: { marginTop: space.item, paddingBottom: space.item, borderBottomWidth: 1, borderBottomColor: color.surface },
   primaryText: { color: color.textPrimary },
   secondaryText: { color: color.textSecondary },
 });

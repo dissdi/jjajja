@@ -14,7 +14,8 @@ AI 영상을 구분하기 어려워 단톡방 등에 그대로 공유하는 50~6
 | 유튜브 쇼츠 URL 붙여넣기 → AI 가능성 | ✅ |
 | 영상 파일 직접 올려서 확인 | ✅ |
 | 유튜브 자체 AI 표시(C2PA·제작자 공개) 규칙 신호 | ✅ |
-| 오픈소스 탐지 모델(D3, Community Forensics) | ✅ 동작, **보정 전** |
+| 오픈소스 탐지 모델(Community Forensics) | ⚠️ 동작하지만 판별력 약함 (참고용, 아래 한계 참고) |
+| 결과 화면 "자세히 보기" — 모델별 점수 | ✅ |
 | 공유하기로 확인 / 복사만 해도 확인 | ⏳ 다음 단계 |
 | 틱톡·인스타 릴스 | ⏳ 다음 단계 |
 
@@ -53,16 +54,46 @@ curl localhost:8000/v1/health
 
 모델 가중치는 첫 실행 때 Hugging Face에서 받는다(약 0.9GB). 기본은 CPU로 돈다. 설정·GPU 사용법은 [`server/README.md`](server/README.md).
 
-### 3. 앱
+### 3-A. 웹으로 시연 (가장 간단)
+
+원격 서버(VS Code Remote)에서 띄우고 PC 브라우저로 본다. 터미널 두 개:
+
+```sh
+# 터미널 1: 서버 — 웹 앱(8081)에서 부를 수 있게 CORS를 켠다
+conda activate jjajja
+cd server
+JJAJJA_CORS_ORIGINS=http://localhost:8081 uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# 터미널 2: 웹 앱
+conda activate jjajja
+cd app
+npm install             # 처음 한 번
+EXPO_PUBLIC_API_BASE=http://localhost:8000 npx expo start --web --port 8081
+```
+
+1. VS Code 아래쪽 **PORTS** 탭에서 **8000**, **8081**을 포워딩한다(자동으로 잡히면 생략).
+2. PC 브라우저에서 **http://localhost:8081** 을 연다. 개발자 도구의 모바일 보기(Ctrl+Shift+M)를 켜면 휴대폰 화면처럼 보인다.
+
+시연용 링크:
+
+| 링크 | 예상 결과 |
+|---|---|
+| `https://youtube.com/shorts/kaVmpWPnE5s` | 🔴 AI 가능성 높음 — 올린 사람이 AI 영상이라고 밝힘 |
+| `https://youtube.com/shorts/gfjgRHtDa38` | 🟢 AI 흔적 없음 — 제작 기록에 카메라 촬영 |
+| 유튜브 AI 표시가 없는 일반 쇼츠 | 🟡 확실하지 않아요 — 결과 아래 "자세히 보기"에서 모델 점수 확인 |
+
+유튜브가 서버 IP를 봇으로 막으면 영상 다운로드가 실패한다. 그때는 서버를 `JJAJJA_FETCH_ENABLED=0`으로 띄워 유튜브 표시만으로 판정하거나, 앱의 **영상 파일로 확인하기**로 mp4를 올린다. 같은 링크를 반복 요청하지 말 것(결과는 캐시된다).
+
+### 3-B. 휴대폰으로 실행 (Expo Go)
 
 ```sh
 cd app
 npm install
-cp .env.example .env    # EXPO_PUBLIC_API_BASE=http://<PC 와이파이 IP>:8000
+cp .env.example .env    # EXPO_PUBLIC_API_BASE=http://<휴대폰에서 접속 가능한 서버 IP>:8000
 npx expo start          # 휴대폰 Expo Go로 QR 스캔
 ```
 
-자세한 내용은 [`app/README.md`](app/README.md).
+서버는 `--host 0.0.0.0`으로 띄우고, 휴대폰이 서버의 8000번 포트에 접속할 수 있어야 한다(같은 와이파이 또는 방화벽 허용). 자세한 내용은 [`app/README.md`](app/README.md).
 
 ### 테스트
 
@@ -73,14 +104,14 @@ cd app && npx jest && npx tsc --noEmit
 
 ## 알려진 한계
 
-- **탐지 모델은 아직 보정 전이다.** 최신 생성기(Veo, Sora 등)로 학습된 공개 모델이 없어, `eval/` 데이터셋으로 보정해야 확률을 믿을 수 있다. 보정 전까지 모델 신호만으로는 "가능성 높음"이 나오지 않도록 막아 두었다.
-- **URL 방식은 영상 자체를 못 볼 수 있다.** 플랫폼이 서버의 영상 다운로드를 막으면 유튜브 AI 표시만으로 판정하고, 결과 화면에 그 사실을 알린다. 영상 파일 올리기로 모델 판정을 받을 수 있다.
+- **공개 탐지 모델의 판별력이 약하다.** 평가셋 22개(AI 14, 실제 8)로 잰 결과 D3는 AUC 0.44(무작위 수준)라 껐고, Community Forensics는 0.70이지만 신뢰구간이 0.5를 포함해 비중을 낮춰 참고용으로만 쓴다(재현: `server/tools/collect_eval_scores.py`, `server/tools/calibrate_loo.py`). 그래서 유튜브 AI 표시·촬영 기록이 없는 영상은 **최선이 "확실하지 않아요"** 다. 모델만으로 "AI 가능성 높음"이나 "AI 흔적 없음"이 나오지 않도록 막아 두었다.
+- **URL 방식은 영상 자체를 못 볼 수 있다.** 플랫폼이 서버의 영상 다운로드를 막으면 유튜브 AI 표시만으로 판정하고, 판단 근거가 없으면 영상 파일로 확인하도록 안내한다.
 - **약관 리스크**: URL 방식의 영상 다운로드(yt-dlp)와 유튜브 비공식 API 사용은 연구/프로토타입 용도다. 출시 전 법무 검토가 필요하다.
 - 카카오톡·bit.ly 단축 링크는 아직 인식하지 못한다.
 
 ## 로드맵
 
 1. **1차** — 쇼츠 URL 붙여넣기 → AI 가능성 (현재)
-2. **base** — 영상 직접 올리기 (구현됨), 모델 보정
+2. **base** — 영상 직접 올리기 (구현됨), 탐지 모델 개선(상용 API 비교, ReStraV 학습, 평가셋 100개 이상)
 3. **branch** — 배포 환경별 진입점: 공유하기로 확인(iOS Share Extension, Android 공유), 복사 후 앱을 열면 확인 제안
 4. 플랫폼 확장 — 틱톡, 인스타 릴스
