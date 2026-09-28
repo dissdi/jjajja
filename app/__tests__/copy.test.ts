@@ -72,3 +72,13 @@ describe('fill', () => {
     expect(fill('{a}{b}', { a: 1 })).toBe('1{b}');
   });
 });
+
+describe('D1 linkOnly 문구', () => {
+  it('버튼 이름 = 홈 업로드 버튼 (같은 흐름)', () => {
+    expect(copy.result.linkOnly.uploadButton).toBe(copy.home.uploadButton);
+  });
+  it('헤드라인 25자 안팎, 다시 시도 문구 없음', () => {
+    expect(copy.result.linkOnly.headline.length).toBeLessThanOrEqual(27);
+    Object.values(copy.result.linkOnly).forEach((t) => expect(t).not.toContain('다시 시도'));
+  });
+});

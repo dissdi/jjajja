@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
 from .errors import ApiError, install_handlers
@@ -49,6 +50,9 @@ def create_app(settings: Optional[Settings] = None, pipeline: Optional[Pipeline]
 
     app = FastAPI(title="jjajja detect API", version="1.1", lifespan=lifespan)
     install_handlers(app)
+    if settings.cors_origins:  # web demo only (Expo web on another port); apps don't need CORS
+        app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
+                           allow_methods=["GET", "POST"], allow_headers=["*"])
     limiter = RateLimiter(settings.rate_limit_per_min)
     errs = {c: {"model": ErrorResponse} for c in (400, 404, 413, 422, 429, 503)}
 

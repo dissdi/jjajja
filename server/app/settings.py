@@ -19,6 +19,7 @@
 | JJAJJA_RATE_LIMIT_PER_MIN | 30 | per client IP; 0 disables |
 | JJAJJA_WEIGHTS | server/config/weights.yaml | ensemble config |
 | JJAJJA_FFMPEG / JJAJJA_FFPROBE | PATH lookup | ffmpeg binaries (conda env provides them) |
+| JJAJJA_CORS_ORIGINS | (off) | comma list of browser origins for the web demo, e.g. http://localhost:8081 |
 """
 from __future__ import annotations
 
@@ -63,6 +64,7 @@ class Settings:
     weights_path: Path = SERVER_DIR / "config" / "weights.yaml"
     ffmpeg: str | None = None
     ffprobe: str | None = None
+    cors_origins: list[str] = field(default_factory=list)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -90,6 +92,7 @@ class Settings:
             s.weights_path = Path(os.environ["JJAJJA_WEIGHTS"])
         s.ffmpeg = os.environ.get("JJAJJA_FFMPEG") or None
         s.ffprobe = os.environ.get("JJAJJA_FFPROBE") or None
+        s.cors_origins = [o.strip() for o in os.environ.get("JJAJJA_CORS_ORIGINS", "").split(",") if o.strip()]
         return s
 
     def resolved_device(self) -> str:

@@ -3,6 +3,8 @@ import { copy } from '../src/ux/copy';
 import {
   buildShareText,
   extractUrl,
+  headlineFor,
+  resultModeFor,
   looksLikeUrl,
   partialNoteFor,
   percentLabel,
@@ -196,6 +198,35 @@ describe('score=null 신호 (계약 v1.1, QA 회귀)', () => {
       ],
     });
     expect(selectEvidence('likely_ai', r.signals)).toEqual(['제작 기록']);
+    expect(partialNoteFor(r, false)).toBe(copy.result.partialNoVideo);
+  });
+});
+
+describe('resultModeFor (D1, 명세 §3.1a)', () => {
+  it('주소 + unknown + partial → linkOnly, 새 헤드라인·보조 문장, partial 안내 숨김', () => {
+    const r = res({ platform: 'youtube', verdict: 'unknown', ai_probability: null, partial: true });
+    expect(resultModeFor(r)).toBe('linkOnly');
+    expect(headlineFor(r)).toEqual({ headline: copy.result.linkOnly.headline, sub: copy.result.linkOnly.sub });
+    expect(headlineFor(r).sub).not.toContain('다시 시도');
+    expect(partialNoteFor(r, false)).toBeNull();
+  });
+  it('platform=unknown(주소 경로)도 linkOnly', () => {
+    expect(resultModeFor(res({ platform: 'unknown', verdict: 'unknown', ai_probability: null, partial: true }))).toBe('linkOnly');
+  });
+  it('업로드 unknown → 기존', () => {
+    const r = res({ platform: 'upload', verdict: 'unknown', ai_probability: null, partial: true });
+    expect(resultModeFor(r)).toBe('normal');
+    expect(headlineFor(r)).toEqual(copy.result.verdict.unknown);
+  });
+  it('주소 + unknown + partial=false → 기존', () => {
+    const r = res({ platform: 'youtube', verdict: 'unknown', ai_probability: null, partial: false });
+    expect(resultModeFor(r)).toBe('normal');
+    expect(headlineFor(r)).toEqual(copy.result.verdict.unknown);
+  });
+  it('주소 + likely_ai + partial → 기존 (partialNoVideo 유지)', () => {
+    const r = res({ platform: 'youtube', verdict: 'likely_ai', partial: true });
+    expect(resultModeFor(r)).toBe('normal');
+    expect(headlineFor(r)).toEqual(copy.result.verdict.likely_ai);
     expect(partialNoteFor(r, false)).toBe(copy.result.partialNoVideo);
   });
 });

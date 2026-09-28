@@ -1,12 +1,14 @@
-// S3 결과 (UX 명세 §2.3, §3, §4, §5.6)
+// S3 결과 (UX 명세 §2.3, §3, §3.1a(D1), §4, §5.6)
 // verdict는 서버 값을 그대로 쓴다 — ai_probability로 재계산하지 않는다.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
+import type { PickedVideo } from '../api/client';
 import type { DetectResponse } from '../api/contract';
 import { Button, T } from '../components/ui';
+import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
-import { buildShareText, partialNoteFor, percentLabel, selectEvidence } from '../ux/present';
+import { buildShareText, headlineFor, partialNoteFor, percentLabel, resultModeFor, selectEvidence } from '../ux/present';
 import { border, color, font, radius, size, space, verdictColor, verdictIcon } from '../ux/theme';
 
 interface Props {
@@ -15,13 +17,17 @@ interface Props {
   url: string | null;
   onRetry: () => void;
   onAgain: () => void;
+  /** D1: 저장한 영상을 골랐을 때 — 홈의 업로드 흐름과 같은 App.run({ kind: 'upload' }) */
+  onSubmitVideo: (video: PickedVideo) => void;
 }
 
-export function ResultScreen({ data, url, onRetry, onAgain }: Props) {
+export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo }: Props) {
   const [shareError, setShareError] = useState(false);
+  const [pickerFailed, setPickerFailed] = useState(false);
   const v = data.verdict;
   const vc = verdictColor[v];
-  const vCopy = copy.result.verdict[v];
+  const vCopy = headlineFor(data);
+  const linkOnly = resultModeFor(data) === 'linkOnly';
   const isUnknown = v === 'unknown';
   const pl = isUnknown ? null : percentLabel(data.ai_probability);
   const evidence = selectEvidence(v, data.signals);
@@ -38,6 +44,13 @@ export function ResultScreen({ data, url, onRetry, onAgain }: Props) {
     } catch {
       setShareError(true);
     }
+  };
+
+  const onPickVideo = async () => {
+    setPickerFailed(false);
+    const out = await pickVideo();
+    if (out.kind === 'failed') setPickerFailed(true);
+    else if (out.kind === 'picked') onSubmitVideo(out.video);
   };
 
   return (
@@ -61,6 +74,13 @@ export function ResultScreen({ data, url, onRetry, onAgain }: Props) {
         {pl !== null && <T style={[font.body, { color: color.textSecondary, marginTop: 4 }]}>{pl}</T>}
         <T style={[font.subhead, { color: color.textPrimary, marginTop: 8 }]}>{vCopy.sub}</T>
       </View>
+
+      {linkOnly && (
+        <View style={[styles.note, { marginTop: 20 }]}>
+          <MaterialCommunityIcons name="information" size={20} color={color.textSecondary} style={{ marginTop: 2 }} />
+          <T style={[font.caption, styles.secondaryText, { flex: 1 }]}>{copy.result.linkOnly.saveHint}</T>
+        </View>
+      )}
 
       {!isUnknown && (
         <View style={styles.section}>
@@ -92,7 +112,16 @@ export function ResultScreen({ data, url, onRetry, onAgain }: Props) {
       <T style={[font.caption, styles.secondaryText, { marginTop: 16 }]}>{copy.result.disclaimer}</T>
 
       <View style={styles.section}>
-        {isUnknown ? (
+        {linkOnly ? (
+          <>
+            <Button label={copy.result.linkOnly.uploadButton} onPress={onPickVideo} />
+            {pickerFailed && (
+              <T style={[font.body, { color: color.danger, marginTop: 6 }]} accessibilityLiveRegion="polite">
+                {copy.home.inlineError.pickerFailed}
+              </T>
+            )}
+          </>
+        ) : isUnknown ? (
           <Button label={copy.result.retryButton} onPress={onRetry} />
         ) : (
           <>

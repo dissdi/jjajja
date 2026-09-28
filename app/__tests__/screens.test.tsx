@@ -20,7 +20,7 @@ const noop = () => {};
 
 describe('S3 결과', () => {
   it.each<Verdict>(['likely_ai', 'uncertain', 'likely_real'])('%s: 헤드라인·퍼센트·근거·공유 버튼', (v) => {
-    render(<ResultScreen data={data({ verdict: v })} url="https://youtu.be/x" onRetry={noop} onAgain={noop} />);
+    render(<ResultScreen data={data({ verdict: v })} url="https://youtu.be/x" onRetry={noop} onAgain={noop} onSubmitVideo={noop} />);
     expect(screen.getByText(copy.result.verdict[v].headline)).toBeTruthy();
     expect(screen.getByText('AI 가능성 87%')).toBeTruthy();
     expect(screen.getByText(copy.result.evidenceTitle)).toBeTruthy();
@@ -30,7 +30,7 @@ describe('S3 결과', () => {
 
   it('unknown: 퍼센트·근거·공유 숨김, 다시 확인하기', () => {
     render(
-      <ResultScreen data={data({ verdict: 'unknown', ai_probability: null })} url="https://youtu.be/x" onRetry={noop} onAgain={noop} />,
+      <ResultScreen data={data({ verdict: 'unknown', ai_probability: null })} url="https://youtu.be/x" onRetry={noop} onAgain={noop} onSubmitVideo={noop} />,
     );
     expect(screen.getByText(copy.result.verdict.unknown.headline)).toBeTruthy();
     expect(screen.queryByText(/AI 가능성/)).toBeNull();
@@ -40,12 +40,56 @@ describe('S3 결과', () => {
   });
 
   it('partial + 영상 확인 실패 → partialNoVideo 한 줄', () => {
-    render(<ResultScreen data={data({ partial: true })} url="https://youtu.be/x" onRetry={noop} onAgain={noop} />);
+    render(<ResultScreen data={data({ partial: true })} url="https://youtu.be/x" onRetry={noop} onAgain={noop} onSubmitVideo={noop} />);
     expect(screen.getByText(copy.result.partialNoVideo)).toBeTruthy();
   });
 
+  it('D1: 주소로 확인 + unknown + partial → 저장한 영상으로 확인 안내, 다시 시도 문구 없음', async () => {
+    const picker = require('expo-image-picker').launchImageLibraryAsync as jest.Mock;
+    picker.mockResolvedValueOnce({ canceled: false, assets: [{ uri: 'file:///v.mp4', fileName: 'v.mp4', mimeType: 'video/mp4' }] });
+    const onSubmitVideo = jest.fn();
+    const onRetry = jest.fn();
+    render(
+      <ResultScreen
+        data={data({ verdict: 'unknown', ai_probability: null, partial: true, platform: 'youtube' })}
+        url="https://youtu.be/x"
+        onRetry={onRetry}
+        onAgain={noop}
+        onSubmitVideo={onSubmitVideo}
+      />,
+    );
+    expect(screen.getByText(copy.result.linkOnly.headline)).toBeTruthy();
+    expect(screen.getByText(copy.result.linkOnly.sub)).toBeTruthy();
+    expect(screen.getByText(copy.result.linkOnly.saveHint)).toBeTruthy();
+    expect(screen.queryByText(copy.result.verdict.unknown.sub)).toBeNull();
+    expect(screen.queryByText(copy.result.retryButton)).toBeNull();
+    expect(screen.queryByText(copy.result.partialNoVideo)).toBeNull();
+    expect(screen.queryByText(/AI 가능성/)).toBeNull();
+    expect(screen.queryByText(copy.result.evidenceTitle)).toBeNull();
+    expect(screen.queryByText(copy.result.shareButton)).toBeNull();
+    expect(screen.getByText(copy.result.againButton)).toBeTruthy();
+    fireEvent.press(screen.getByText(copy.result.linkOnly.uploadButton));
+    await waitFor(() => expect(onSubmitVideo).toHaveBeenCalledWith(expect.objectContaining({ uri: 'file:///v.mp4' })));
+    expect(onRetry).not.toHaveBeenCalled();
+  });
+
+  it('D1: 업로드 unknown → 기존 문구', () => {
+    render(
+      <ResultScreen
+        data={data({ verdict: 'unknown', ai_probability: null, partial: true, platform: 'upload' })}
+        url={null}
+        onRetry={noop}
+        onAgain={noop}
+        onSubmitVideo={noop}
+      />,
+    );
+    expect(screen.getByText(copy.result.verdict.unknown.headline)).toBeTruthy();
+    expect(screen.getByText(copy.result.retryButton)).toBeTruthy();
+    expect(screen.queryByText(copy.result.linkOnly.headline)).toBeNull();
+  });
+
   it('근거 0개 → evidenceEmpty', () => {
-    render(<ResultScreen data={data({ verdict: 'likely_real', signals: [] })} url={null} onRetry={noop} onAgain={noop} />);
+    render(<ResultScreen data={data({ verdict: 'likely_real', signals: [] })} url={null} onRetry={noop} onAgain={noop} onSubmitVideo={noop} />);
     expect(screen.getByText(copy.result.evidenceEmpty)).toBeTruthy();
   });
 });

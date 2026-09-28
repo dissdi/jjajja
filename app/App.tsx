@@ -95,6 +95,7 @@ export default function App() {
             url={screen.job.kind === 'url' ? screen.job.url : null}
             onRetry={() => run(screen.job)}
             onAgain={() => goHome()}
+            onSubmitVideo={(video) => run({ kind: 'upload', video })}
           />
         )}
         {screen.name === 'error' && (

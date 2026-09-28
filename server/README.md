@@ -54,6 +54,7 @@ CUDA_VISIBLE_DEVICES=<빈 GPU> JJAJJA_DEVICE=cuda uvicorn app.main:app --port 80
 | `JJAJJA_FETCH_ENABLED` | `1` | `0`이면 yt-dlp를 아예 부르지 않음 |
 | `JJAJJA_RATE_LIMIT_PER_MIN` | `30` | IP당 분당 요청(429) |
 | `JJAJJA_CACHE_DIR` | `server/.cache` | 결과 캐시(7일, partial 6시간) |
+| `JJAJJA_CORS_ORIGINS` | (꺼짐) | 웹 시연용 브라우저 origin, 예: `http://localhost:8081` |
 
 API 키가 필요한 탐지기(상용)는 키를 **환경변수로만** 받는다. 현재 1차 MVP에는 상용 API가 없다(무료 OSS 우선).
 

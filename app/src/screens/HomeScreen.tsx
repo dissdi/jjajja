@@ -1,11 +1,11 @@
 // S1 홈 (UX 명세 §2.1) + [추가] 영상 파일로 확인하기 보조 버튼
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import type { PickedVideo } from '../api/client';
 import { Button, T } from '../components/ui';
+import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
 import { extractUrl } from '../ux/present';
 import { border, color, font, MAX_FONT_SCALE, radius, size, space } from '../ux/theme';
@@ -58,27 +58,9 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
 
   const onPickVideo = async () => {
     setInlineError(null);
-    let res: ImagePicker.ImagePickerResult;
-    try {
-      res = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['videos'],
-        allowsEditing: false,
-        quality: 1,
-      });
-    } catch {
-      setInlineError('pickerFailed');
-      return;
-    }
-    if (res.canceled || !res.assets?.[0]) return; // 사용자가 닫음 → 아무 일 없음
-    const a = res.assets[0];
-    onSubmitVideo({
-      uri: a.uri,
-      name: a.fileName ?? 'video.mp4',
-      mimeType: a.mimeType ?? 'video/mp4',
-      file: a.file,
-      sizeBytes: typeof a.fileSize === 'number' ? a.fileSize : undefined,
-      durationMs: typeof a.duration === 'number' ? a.duration : undefined,
-    });
+    const out = await pickVideo();
+    if (out.kind === 'failed') setInlineError('pickerFailed');
+    else if (out.kind === 'picked') onSubmitVideo(out.video);
   };
 
   const hasText = text.trim().length > 0;

@@ -60,12 +60,33 @@ export function selectEvidence(verdict: Verdict, signals: Signal[]): string[] {
 }
 
 /**
+ * 결과 화면 모드 (D1, 명세 §3.1a).
+ * - 'linkOnly': 주소로 확인(platform != "upload") && verdict == "unknown" && partial == true
+ *   → 영상을 받지 못했고 규칙 신호도 없어 다시 해도 같은 결과. 저장한 영상으로 확인하도록 안내.
+ * - 'normal': 그 외 전부 (업로드 unknown, partial 아닌 unknown, 다른 verdict 포함) — 기존 표시 그대로.
+ */
+export type ResultMode = 'normal' | 'linkOnly';
+export function resultModeFor(res: DetectResponse): ResultMode {
+  return res.platform !== 'upload' && res.verdict === 'unknown' && res.partial ? 'linkOnly' : 'normal';
+}
+
+/** 결과 카드의 헤드라인/보조 문장 */
+export function headlineFor(res: DetectResponse): { headline: string; sub: string } {
+  if (resultModeFor(res) === 'linkOnly') {
+    const { headline, sub } = copy.result.linkOnly;
+    return { headline, sub };
+  }
+  return copy.result.verdict[res.verdict];
+}
+
+/**
  * partial 안내 문구. partial=false면 null.
  * URL로 확인했고 영상 화면 확인(kind=model) 신호가 하나도 ok가 아니면 partialNoVideo,
  * 그 외에는 명세의 partialNote.
  */
 export function partialNoteFor(res: DetectResponse, fromUpload: boolean): string | null {
   if (!res.partial) return null;
+  if (resultModeFor(res) === 'linkOnly') return null; // 카드가 이미 같은 내용을 안내함
   const modelOk = res.signals.some((s) => s.kind === 'model' && s.status === 'ok');
   if (!fromUpload && !modelOk) return copy.result.partialNoVideo;
   return copy.result.partialNote;
