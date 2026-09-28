@@ -9,7 +9,7 @@
 ## Android
 - **공유 인텐트**: `AndroidManifest`에 `ACTION_SEND` + `text/plain` intent-filter (config plugin). 유튜브 앱 공유 시 `EXTRA_TEXT`에 URL과 함께 제목 텍스트가 섞여 올 수 있다 → 정규식으로 URL 추출.
 - **클립보드**: Android 10+는 포그라운드(또는 기본 IME)만 클립보드 읽기 가능. Android 12+는 읽을 때 토스트 알림 표시.
-- 텍스트 선택 메뉴(`PROCESS_TEXT`)로 "jjajja로 확인"(앱 표시명 확정 시 교체) 항목 추가 가능 — 복사 대신 선택만으로 진입하는 대안.
+- 텍스트 선택 메뉴(`PROCESS_TEXT`)로 "jjajja로 확인" 항목 추가 가능 — 복사 대신 선택만으로 진입하는 대안.
 
 ## 공통
 - 카카오톡 인앱 브라우저에서 연 링크 → 공유 시 카카오 자체 공유 시트가 먼저 뜨는 경우 있음 → 실기기 테스트 필수

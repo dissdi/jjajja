@@ -19,6 +19,8 @@ URL 또는 업로드 영상 하나를 탐지한다.
 - `source`: `"paste" | "share" | "clipboard" | "upload"` — 어떤 진입 경로인지 (분석·통계용, 판정에 영향 없음)
 
 요청 (multipart, 직접 영상): `file` 필드 + `source=upload`
+- 한도(v1.1): 파일 **50MB** 이하, 길이 **180초** 이하. 넘으면 413 `file_too_large`. 현재 값은 `GET /v1/health`의 `limits`로도 내려준다 (앱은 업로드 전에 이 값으로 거른다)
+- 업로드 응답: `platform: "upload"`, `video_id: null`. 캐시는 파일 sha256 기준
 
 응답 `200`:
 ```json
@@ -47,7 +49,8 @@ URL 또는 업로드 영상 하나를 탐지한다.
 ```
 
 ### `GET /v1/health`
-`{ "status": "ok", "detectors": { "<id>": "ok|down" } }`
+`{ "status": "ok", "detectors": { "<id>": "ok|down" }, "limits": { "max_upload_mb": 50, "max_duration_s": 180 } }`
+- `limits`는 v1.1 추가(선택 필드). 없으면 앱은 기본값 50MB/180초를 쓴다
 
 ## 필드 규칙
 
@@ -56,6 +59,9 @@ URL 또는 업로드 영상 하나를 탐지한다.
 | `ai_probability` | 0.0~1.0 float. `partial=true`여도 채운다. 계산 불가 시에만 `null` |
 | `verdict` | 아래 구간표로 **서버가** 결정. 앱은 확률로 구간을 재계산하지 않는다 (경계값 불일치 방지) |
 | `signals[].evidence_ko` | 사용자에게 그대로 보여줄 수 있는 쉬운 한국어. 전문용어 금지 (`senior-ux-korean` 참조) |
+| `partial` | **`true` ⇔ `kind=="model"` 이고 `status=="ok"`인 신호가 하나도 없음** (영상 자체를 보지 못함 — 예: 영상 확보 차단, 모델 전부 실패). 이때도 규칙 신호로 `ai_probability`를 채울 수 있다 (v1.1 명시) |
+| `signals[].evidence_ko` (상태별) | `status=="ok"`인 신호는 판정 방향과 무관하게(음성 포함, 모델 포함) 항상 채운다. `unavailable/error`도 가능하면 채운다(예: "영상을 받아오지 못해 화면은 확인하지 못했어요"). 규칙 쪽 `unavailable`은 빈 문자열일 수 있다 |
+| `signals[].weight` | 앙상블에 실제로 쓴 가중치. `0`이면 설명용 신호(가중 평균 제외, 화면 표시는 가능) |
 | `signals[].decisive` | `true`면 이 신호 하나로 verdict가 결정됨 (예: 공식 AI 라벨, C2PA 생성 기록) |
 | 이름 규칙 | JSON은 snake_case. 앱 TS 타입도 snake_case 그대로 쓴다 (변환 레이어로 인한 누락 방지) |
 
@@ -81,7 +87,10 @@ URL 또는 업로드 영상 하나를 탐지한다.
 | 404 | `video_unavailable` | 비공개/삭제/지역 제한 |
 | 413 | `file_too_large` | 업로드 한도 초과 |
 | 429 | `rate_limited` | 요청 과다 |
-| 503 | `detectors_down` | 모든 탐지기 실패 |
+| 400 | `invalid_file` | (v1.1) 업로드 파일이 없거나 영상으로 열 수 없음 |
+| 503 | `detectors_down` | 모든 탐지기 실패 (업로드 경로에서 모델 신호가 하나도 ok가 아님, 또는 서버 내부 오류) |
+
+URL 방식에서 영상 확보가 막혀도(봇 차단 등) 에러가 아니라 `200 + partial: true`로 응답한다. 규칙 신호도 없으면 `ai_probability: null, verdict: "unknown"`. 404 `video_unavailable`은 영상이 비공개/삭제/지역 제한으로 확인되고 쓸 수 있는 규칙 신호도 없을 때만 쓴다.
 
 ## 앱 측 TS 타입 위치
 `app/src/api/contract.ts` — 파일 상단에 `// source: .claude/skills/detect-api-contract/SKILL.md (vN)` 주석 필수.
@@ -90,3 +99,4 @@ URL 또는 업로드 영상 하나를 탐지한다.
 | 버전 | 날짜 | 변경 | 사유 |
 |------|------|------|------|
 | v1 | 2026-09-28 | 초기 계약 | - |
+| v1.1 | 2026-09-28 | (추가만, 기존 필드 불변) 에러 `invalid_file`(400) 추가 / 업로드 한도 50MB·180초 명시 + `/v1/health`에 `limits` 추가 / `partial` 정의 명시(모델 ok 신호 없음) / 상태별 `evidence_ko`·`weight=0` 규칙 명시 | 업로드 경로 구현(detection-engineer), mobile-engineer 요청 (1)(2)(3) |

@@ -1,0 +1,19 @@
+httpx
+pytest
+pytest-asyncio
+# --- detection server (detection-engineer) ---
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+python-multipart>=0.0.9
+pyyaml>=6.0
+yt-dlp>=2026.8.19
+pillow>=10.1
+numpy>=1.26
+# models (CPU/GPU). GPU wheel: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+torch>=2.4
+torchvision>=0.19
+transformers>=4.45,<5
+timm>=1.0
+huggingface-hub>=0.24
+safetensors>=0.4

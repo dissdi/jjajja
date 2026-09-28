@@ -1,0 +1,47 @@
+# Ensemble config. Tuned from detection-qa results (eval/dataset.csv); keep code free of constants.
+# Changing this file changes the cache version -> old cached verdicts are ignored.
+version: 1
+
+# verdict bands (must equal the table in .claude/skills/detect-api-contract/SKILL.md)
+thresholds:
+  likely_ai: 0.75
+  uncertain: 0.40
+
+ensemble:
+  # decisive positive rule (e.g. C2PA "made with AI" signed by Google/OpenAI) -> p = max(p, floor)
+  decisive_floor: 0.95
+  # Unless a *strong* signal points to AI, p is capped here so that weak/uncalibrated evidence
+  # alone (hashtags, uncalibrated models) can never produce likely_ai (source-rules request).
+  cap_without_strong: 0.74
+  strong_signals:
+    - yt_creator_ai_disclosure
+    - yt_c2pa_ai_label
+  # models with `calibrated: true` below are added to strong_signals automatically
+
+rules:
+  # rule signals keep the weight they report (02_rules_spec §4); override per id here.
+  # weight 0 signals (yt_no_ai_label, self-report none) are shown but never averaged.
+  overrides: {}
+
+detectors:
+  mock:
+    weight: 1.0
+    calibrated: false
+  d3:
+    # training-free temporal detector (ICCV'25). raw = std of 2nd-order diff of XCLIP-16
+    # frame-embedding L2 distances; larger = more AI. NOT calibrated yet:
+    # p = sigmoid(a * (raw - b)); a,b are provisional until Platt fit on eval/dataset.csv.
+    weight: 0.5
+    calibrated: false
+    encoder: microsoft/xclip-base-patch16
+    frames: 16
+    fps: 8
+    calibration: {a: 1.5, b: 2.5}
+  commfor_224:
+    # Community Forensics ViT-S/16 224 image detector (CVPR'25), per-frame sigmoid prob.
+    weight: 0.5
+    calibrated: false
+    hf_repo: OwensLab/commfor-model-224
+    frames: 16
+    aggregate: mean        # mean | top25 (mean of top 25% frames)
+    calibration: null      # null = use raw probability

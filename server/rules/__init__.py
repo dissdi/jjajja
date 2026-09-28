@@ -1,0 +1,57 @@
+"""Source (platform) rule engine.
+
+Public interface (imported by the detection server — keep stable):
+    normalize(url) -> Normalized            raises InvalidUrl / UnsupportedPlatform
+    await extract_signals(n, client) -> list[RuleSignal]   never raises
+
+Adding a platform: drop a module `server/rules/<platform>.py` that exposes `RULESET`
+(see base.RuleSet). It is discovered automatically; no edit here is needed.
+"""
+from __future__ import annotations
+
+import importlib
+import logging
+import pkgutil
+from typing import TYPE_CHECKING
+
+from .base import InvalidUrl, Normalized, RuleSet, RuleSignal, UnsupportedPlatform
+from .normalize import normalize_with
+
+if TYPE_CHECKING:  # pragma: no cover
+    import httpx
+
+__all__ = ["RuleSignal", "Normalized", "InvalidUrl", "UnsupportedPlatform",
+           "normalize", "extract_signals", "REGISTRY"]
+
+log = logging.getLogger(__name__)
+_SKIP = {"base", "normalize", "tests"}
+
+
+def _discover() -> dict[str, RuleSet]:
+    reg: dict[str, RuleSet] = {}
+    for mod in pkgutil.iter_modules(__path__):
+        if mod.name in _SKIP or mod.name.startswith("_"):
+            continue
+        m = importlib.import_module(f"{__name__}.{mod.name}")
+        rs = getattr(m, "RULESET", None)
+        if rs is not None:
+            reg[rs.platform] = rs
+    return reg
+
+
+REGISTRY: dict[str, RuleSet] = _discover()
+
+
+def normalize(url: str) -> Normalized:
+    return normalize_with(url, REGISTRY.values())
+
+
+async def extract_signals(n: Normalized, client: "httpx.AsyncClient") -> list[RuleSignal]:
+    rs = REGISTRY.get(n.platform)
+    if rs is None:
+        return []
+    try:
+        return await rs.extract(n, client)
+    except Exception:  # RuleSet.extract should never raise; belt and braces
+        log.exception("extract_signals failed for %s", n)
+        return []
