@@ -59,3 +59,8 @@ ytInitialData.contents.twoColumnWatchNextResults.results.results.contents[0]
 - `present`(계약 v1.2): c2pa_ai·creator·camera=true, no_ai_label=false("AI 표시가 있나" 기준), self_report=매치 여부, unavailable=null. 의미표는 `_workspace/02_rules_spec.md` §3
 - 회귀 fixture: `server/rules/tests/fixtures/next_*.json` (innertube 원본, hl=ko)
 - 오탐 사례 기록: 자동 더빙 영상 배지 label이 "자동 더빙"으로 AI 배지와 같은 `metadataBadgeRenderer`에 온다 → label == "AI"만 인정
+
+## 운영 (#9, 2026-09-29)
+- **innertube 클라이언트 버전**: 기본값은 `youtube.INNERTUBE_CLIENT_VERSION`. 유튜브가 바꾸면 재배포 없이 `JJAJJA_INNERTUBE_CLIENT_VERSION`으로 덮어쓴다(요청마다 읽음). 최신 값은 watch 페이지 HTML의 `INNERTUBE_CONTEXT_CLIENT_VERSION`.
+- **실패율 경고**: `youtube.MONITOR`가 경로(innertube/html/oembed)별 최근 20회 실제 호출을 본다. 200인데 파서가 못 읽는 응답·비200·네트워크 오류 = 실패. 봇 차단(429/403/캡차)은 IP 문제라 제외(기존 cooldown 경고). 10회 이상 중 50% 이상 실패하면 WARNING 로그(경로별 10분에 한 번). innertube 경고가 뜨면 먼저 클라이언트 버전을 확인한다.
+- 남은 한계: 신호 캐시·차단 cooldown은 여전히 프로세스 메모리(재시작 시 사라짐, 워커 간 비공유). 최종 판정 결과는 `app/cache.py`가 파일로 저장해 재시작 후에도 재요청하지 않는다. 채널 업로드 이력 신호는 Data API 키 필요(#8).

@@ -20,5 +20,7 @@ def _reset_fetcher():
     from rules import youtube
     youtube.FETCHER.clear()
     youtube.FETCHER.min_interval = 0.0
+    youtube.MONITOR.clear()
     yield
     youtube.FETCHER.clear()
+    youtube.MONITOR.clear()

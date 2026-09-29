@@ -245,6 +245,102 @@ async def test_unknown_platform_returns_empty():
         assert await extract_signals(Normalized("unknown", "x", "x"), c) == []
 
 
+# ---------------------------------------------------------------- client version / monitor (#9)
+def vids(n):
+    return [f"vid{i:08d}" for i in range(n)]  # distinct 11-char ids -> no cache hits
+
+
+async def extract_many(handler, ids):
+    async with mock_client(handler) as c:
+        for v in ids:
+            await extract_signals(Normalized("youtube", v, yt.canonical_url(v)), c)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("env,expected", [
+    (None, yt.INNERTUBE_CLIENT_VERSION),
+    ("", yt.INNERTUBE_CLIENT_VERSION),
+    ("  2.20261101.01.00 ", "2.20261101.01.00"),
+])
+async def test_innertube_client_version_from_env(monkeypatch, env, expected):
+    if env is None:
+        monkeypatch.delenv("JJAJJA_INNERTUBE_CLIENT_VERSION", raising=False)
+    else:
+        monkeypatch.setenv("JJAJJA_INNERTUBE_CLIENT_VERSION", env)
+    sent = []
+
+    def handler(req):
+        if req.url.path == "/youtubei/v1/next":
+            sent.append(json.loads(req.content)["context"]["client"]["clientVersion"])
+            return httpx.Response(200, json=load_fixture(FX["c2pa_ai"][0]))
+        return httpx.Response(404)
+
+    await extract_many(handler, ["jzE0Rcb2hY4"])
+    assert sent == [expected]
+
+
+@pytest.mark.asyncio
+async def test_monitor_warns_once_on_unrecognized_payloads(caplog):
+    # stale client version symptom: innertube keeps answering 200 with a payload we can't read
+    def handler(req):
+        if req.url.path == "/youtubei/v1/next":
+            return httpx.Response(200, json={"responseContext": {}})
+        return httpx.Response(404)
+
+    with caplog.at_level("WARNING", logger="rules.youtube"):
+        await extract_many(handler, vids(15))
+    assert yt.MONITOR.warnings["innertube"] == 1  # rate-limited, not once per call
+    assert yt.MONITOR.snapshot()["innertube"] == {"calls": 15, "failures": 15}
+    msgs = [r.getMessage() for r in caplog.records if "innertube failing" in r.getMessage()]
+    assert len(msgs) == 1 and "JJAJJA_INNERTUBE_CLIENT_VERSION" in msgs[0]
+
+
+@pytest.mark.asyncio
+async def test_monitor_quiet_when_healthy_or_few_failures():
+    fx = load_fixture(FX["no_label"][0])
+    state = {"n": 0}
+
+    def handler(req):
+        if req.url.path == "/youtubei/v1/next":
+            state["n"] += 1
+            return httpx.Response(500 if state["n"] % 4 == 0 else 200, json=fx)  # 25% failing
+        return httpx.Response(404)
+
+    await extract_many(handler, vids(20))
+    snap = yt.MONITOR.snapshot()["innertube"]
+    assert snap["failures"] == 5 and "innertube" not in yt.MONITOR.warnings
+
+
+@pytest.mark.asyncio
+async def test_monitor_counts_errors_but_not_bot_blocks():
+    def blocked(req):
+        return httpx.Response(429)
+
+    await extract_many(blocked, vids(3))
+    assert "innertube" not in yt.MONITOR.snapshot()  # IP block: separate cooldown warning
+
+    yt.FETCHER.clear()
+
+    def down(req):
+        raise httpx.ConnectTimeout("boom")
+
+    await extract_many(down, vids(12))
+    assert yt.MONITOR.snapshot()["innertube"] == {"calls": 12, "failures": 12}
+    assert yt.MONITOR.warnings["innertube"] == 1
+
+
+def test_monitor_window_recovers():
+    m = yt._Monitor(window=4, min_calls=4, threshold=0.5, every=0.0)
+    for ok in (False, False, False, False):
+        m.record("innertube", ok)
+    assert m.warnings == {"innertube": 1}
+    for ok in (True, True, True):
+        m.record("innertube", ok)
+    m.record("innertube", False)  # 1/4 failing now -> no warning
+    assert m.warnings == {"innertube": 1}
+    assert m.snapshot()["innertube"] == {"calls": 4, "failures": 1}
+
+
 # ---------------------------------------------------------------- self-report text rules
 @pytest.mark.parametrize("title,desc,level", [
     ("AI로 제작한 고양이 춤추기", "", "strong"),
