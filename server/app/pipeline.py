@@ -92,6 +92,8 @@ class Pipeline:
 
     # ------------------------------------------------------------------ lifecycle
     async def start(self) -> None:
+        from rules import use_store  # rule caches survive restarts, shared by workers (#9)
+        use_store(Path(self.s.cache_dir) / "rules.sqlite3")
         self.http = httpx.AsyncClient(timeout=10.0, follow_redirects=False)
         await asyncio.to_thread(self.registry.load_all)
         self._version = hashlib.sha1(

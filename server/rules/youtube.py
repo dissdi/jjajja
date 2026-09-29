@@ -29,6 +29,7 @@ from typing import Any, Iterator, Optional
 from urllib.parse import parse_qs, urlsplit, SplitResult
 
 from .base import InvalidUrl, Normalized, RuleSignal
+from .store import SqliteStore
 
 log = logging.getLogger(__name__)
 
@@ -381,7 +382,12 @@ MONITOR = _Monitor()
 
 
 class _Fetcher:
-    """Cache + global min interval + cooldown for all YouTube calls from this process."""
+    """Cache + global min interval + cooldown for all YouTube calls from this process.
+
+    With a store (`use_store`, set by the server at startup) bot-block cooldowns and finished
+    signals also persist across restarts and are shared by workers on the host (#9). The
+    payload cache and the min interval stay per process.
+    """
 
     def __init__(self, min_interval: float = 1.5, timeout: float = 5.0,
                  ttl: float = 6 * 3600, neg_ttl: float = 120, cooldown: float = 600,
@@ -398,11 +404,43 @@ class _Fetcher:
         self._lock: Optional[asyncio.Lock] = None
         self._lock_loop = None
         self.calls = 0  # network calls made (for tests/metrics)
+        self.store: Optional[SqliteStore] = None
 
     def clear(self) -> None:
         self._cache.clear()
         self._blocked_until.clear()
         self._last = 0.0
+        self.store = None
+
+    def _is_blocked(self, endpoint: str) -> bool:
+        if self._blocked_until.get(endpoint, 0) > time.monotonic():
+            return True
+        if self.store is not None:
+            left = self.store.ttl_left(f"{PLATFORM}:blocked:{endpoint}")
+            if left > 0:  # another worker (or before a restart) got blocked
+                self._blocked_until[endpoint] = time.monotonic() + left
+                return True
+        return False
+
+    def _block(self, endpoint: str) -> None:
+        self._blocked_until[endpoint] = time.monotonic() + self.cooldown
+        if self.store is not None:
+            self.store.set(f"{PLATFORM}:blocked:{endpoint}", True, self.cooldown)
+
+    def load_signals(self, video_id: str) -> Optional[list[RuleSignal]]:
+        raw = self.store.get(f"{PLATFORM}:signals:{video_id}") if self.store else None
+        if not isinstance(raw, list):
+            return None
+        try:
+            return [RuleSignal(**d) for d in raw]
+        except TypeError:  # stored by an incompatible version
+            return None
+
+    def save_signals(self, video_id: str, sigs: list[RuleSignal]) -> None:
+        # only complete answers; an unavailable signal should be retried soon, not in 6 h
+        if self.store is not None and sigs and all(s.status == "ok" for s in sigs):
+            self.store.set(f"{PLATFORM}:signals:{video_id}", [s.to_dict() for s in sigs],
+                           self.ttl)
 
     def _get_lock(self) -> asyncio.Lock:
         loop = asyncio.get_running_loop()
@@ -429,7 +467,7 @@ class _Fetcher:
         ok, val = self._cached(key)
         if ok:
             return val
-        if self._blocked_until.get(endpoint, 0) > time.monotonic():
+        if self._is_blocked(endpoint):
             return None
         parse = kw.pop("parse")
         usable = kw.pop("usable", None)  # optional check that a parsed 200 is really usable
@@ -448,7 +486,7 @@ class _Fetcher:
                 if resp.status_code in (429, 403) or (
                         resp.status_code in (302, 303) and "sorry" in resp.headers.get("location", "")):
                     log.warning("youtube %s blocked (%s); cooling down", endpoint, resp.status_code)
-                    self._blocked_until[endpoint] = time.monotonic() + self.cooldown
+                    self._block(endpoint)
                 elif resp.status_code == 200:
                     result = parse(resp)
                     ok = result is not None and (usable is None or usable(result))
@@ -519,9 +557,17 @@ class YouTubeRules:
     def canonical_url(self, video_id: str) -> str:
         return canonical_url(video_id)
 
+    def use_store(self, store: SqliteStore) -> None:
+        FETCHER.store = store
+
     async def extract(self, n: Normalized, client) -> list[RuleSignal]:
         try:
-            return await self._extract(n, client)
+            cached = FETCHER.load_signals(n.video_id)
+            if cached is not None:
+                return cached
+            sigs = await self._extract(n, client)
+            FETCHER.save_signals(n.video_id, sigs)
+            return sigs
         except Exception as e:  # last line of defence: never raise
             log.exception("youtube extract crashed: %r", e)
             return [RuleSignal(id="yt_ai_label", status="unavailable", via="api"),

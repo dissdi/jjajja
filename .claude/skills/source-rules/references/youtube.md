@@ -63,4 +63,5 @@ ytInitialData.contents.twoColumnWatchNextResults.results.results.contents[0]
 ## 운영 (#9, 2026-09-29)
 - **innertube 클라이언트 버전**: 기본값은 `youtube.INNERTUBE_CLIENT_VERSION`. 유튜브가 바꾸면 재배포 없이 `JJAJJA_INNERTUBE_CLIENT_VERSION`으로 덮어쓴다(요청마다 읽음). 최신 값은 watch 페이지 HTML의 `INNERTUBE_CONTEXT_CLIENT_VERSION`.
 - **실패율 경고**: `youtube.MONITOR`가 경로(innertube/html/oembed)별 최근 20회 실제 호출을 본다. 200인데 파서가 못 읽는 응답·비200·네트워크 오류 = 실패. 봇 차단(429/403/캡차)은 IP 문제라 제외(기존 cooldown 경고). 10회 이상 중 50% 이상 실패하면 WARNING 로그(경로별 10분에 한 번). innertube 경고가 뜨면 먼저 클라이언트 버전을 확인한다.
-- 남은 한계: 신호 캐시·차단 cooldown은 여전히 프로세스 메모리(재시작 시 사라짐, 워커 간 비공유). 최종 판정 결과는 `app/cache.py`가 파일로 저장해 재시작 후에도 재요청하지 않는다. 채널 업로드 이력 신호는 Data API 키 필요(#8).
+- **영속 캐시**: 서버 시작 시 `rules.use_store(<cache_dir>/rules.sqlite3)`. 저장 대상은 ① 영상별 완성된 규칙 신호(전부 `ok`일 때만, 6시간), ② 봇 차단 cooldown(한 워커가 막히면 같은 호스트의 다른 워커도 쉰다). 재시작·다른 워커·`weights.yaml` 변경(결과 캐시 버전이 바뀜) 뒤에도 같은 영상으로 유튜브를 다시 부르지 않는다. 원본 응답(수백 KB)과 최소 요청 간격은 여전히 프로세스별. 파일 오류 시 메모리만 쓰고 요청은 실패하지 않는다. 테스트·도구는 `use_store`를 부르지 않으면 메모리만 쓴다.
+- 남은 한계: 서버를 여러 대로 늘리면 SQLite 대신 네트워크 저장소(Redis 등)가 필요하다(`SqliteStore`의 get/set/ttl_left만 맞추면 교체 가능). 채널 업로드 이력 신호는 Data API 키 필요(#8).
