@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.main import create_app
 from app.pipeline import Pipeline
-from rules import youtube as yt
+from rules import shorturl, youtube as yt
 from tests.helpers import FakeFetcher, assert_contract_body, base_settings
 
 FIX = Path(__file__).resolve().parents[1] / "rules" / "tests" / "fixtures"
@@ -23,6 +23,12 @@ FX = {"jzE0Rcb2hY4": "next_c2pa_ai_jzE0Rcb2hY4.json",
 
 
 def handler(req: httpx.Request):
+    if req.url.host == "bit.ly":  # short links (#7)
+        if req.url.path == "/kakao-c2pa":
+            return httpx.Response(301, headers={"location": "https://youtu.be/jzE0Rcb2hY4?si=k"})
+        if req.url.path == "/news":
+            return httpx.Response(301, headers={"location": "https://n.news.naver.com/a/1"})
+        return httpx.Response(404)
     if req.url.path == "/youtubei/v1/next":
         vid = json.loads(req.content)["videoId"]
         if vid in FX:
@@ -34,16 +40,22 @@ def handler(req: httpx.Request):
 def _reset_fetcher():
     yt.FETCHER.clear()
     yt.FETCHER.min_interval = 0.0
+    shorturl.clear_cache()
     yield
     yt.FETCHER.clear()
+    shorturl.clear_cache()
 
 
-def run(tmp_path, vid, fetch="blocked", **kw):
+def post(tmp_path, url, fetch="blocked", **kw):
     s = base_settings(tmp_path, **kw)
     pipe = Pipeline(s, fetcher=FakeFetcher(fetch))
     with TestClient(create_app(s, pipe)) as c:
         pipe.http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        r = c.post("/v1/detect", json={"url": f"https://youtube.com/shorts/{vid}?si=x"})
+        return c.post("/v1/detect", json={"url": url})
+
+
+def run(tmp_path, vid, fetch="blocked", **kw):
+    r = post(tmp_path, f"https://youtube.com/shorts/{vid}?si=x", fetch, **kw)
     assert r.status_code == 200, r.text
     b = r.json()
     assert_contract_body(b)
@@ -67,3 +79,20 @@ def test_rules_plus_model(tmp_path, sample_video):
     # no strong negative signal -> uncalibrated model can't reach likely_real (floor 0.40)
     assert b["partial"] is False and b["verdict"] == "uncertain" and b["ai_probability"] == 0.4
     assert {s["kind"] for s in b["signals"]} == {"rule", "model"}
+
+
+def test_short_link_from_kakao(tmp_path):
+    r = post(tmp_path, "[YouTube] 고양이 영상\nhttps://bit.ly/kakao-c2pa")
+    assert r.status_code == 200, r.text
+    b = r.json()
+    assert_contract_body(b)
+    assert b["video_id"] == "jzE0Rcb2hY4" and b["verdict"] == "likely_ai"
+
+
+@pytest.mark.parametrize("path,status,code", [
+    ("/dead", 404, "video_unavailable"),
+    ("/news", 422, "unsupported_platform"),
+])
+def test_short_link_errors(tmp_path, path, status, code):
+    r = post(tmp_path, f"https://bit.ly{path}")
+    assert r.status_code == status and r.json()["error"]["code"] == code, r.text

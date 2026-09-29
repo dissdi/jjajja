@@ -2,6 +2,9 @@
 
 Public interface (imported by the detection server — keep stable):
     normalize(url) -> Normalized            raises InvalidUrl / UnsupportedPlatform
+    await resolve(url, client, timeout) -> Normalized
+                                            normalize + short-link redirects (#7);
+                                            also raises LinkUnresolved
     await extract_signals(n, client) -> list[RuleSignal]   never raises
 
 Adding a platform: drop a module `server/rules/<platform>.py` that exposes `RULESET`
@@ -14,17 +17,19 @@ import logging
 import pkgutil
 from typing import TYPE_CHECKING
 
-from .base import InvalidUrl, Normalized, RuleSet, RuleSignal, UnsupportedPlatform
+from .base import (InvalidUrl, LinkUnresolved, Normalized, RuleSet, RuleSignal,
+                   UnsupportedPlatform)
 from .normalize import normalize_with
+from .shorturl import resolve_with
 
 if TYPE_CHECKING:  # pragma: no cover
     import httpx
 
-__all__ = ["RuleSignal", "Normalized", "InvalidUrl", "UnsupportedPlatform",
-           "normalize", "extract_signals", "REGISTRY"]
+__all__ = ["RuleSignal", "Normalized", "InvalidUrl", "UnsupportedPlatform", "LinkUnresolved",
+           "normalize", "resolve", "extract_signals", "REGISTRY"]
 
 log = logging.getLogger(__name__)
-_SKIP = {"base", "normalize", "tests"}
+_SKIP = {"base", "normalize", "shorturl", "tests"}
 
 
 def _discover() -> dict[str, RuleSet]:
@@ -44,6 +49,10 @@ REGISTRY: dict[str, RuleSet] = _discover()
 
 def normalize(url: str) -> Normalized:
     return normalize_with(url, REGISTRY.values())
+
+
+async def resolve(url: str, client: "httpx.AsyncClient | None", timeout: float) -> Normalized:
+    return await resolve_with(url, REGISTRY.values(), client, timeout)
 
 
 async def extract_signals(n: Normalized, client: "httpx.AsyncClient") -> list[RuleSignal]:
