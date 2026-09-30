@@ -46,7 +46,8 @@ def boot_ci(y, s, B=5000, seed=0) -> tuple[float, float]:
 
 def cfg_for(w: dict, hive_strong_pos: bool, hive_strong_neg: bool) -> EnsembleConfig:
     base = EnsembleConfig.from_weights({**w, "detectors": {}})  # models never strong by default
-    sp, sn = set(base.strong_signals), set(base.strong_negative_signals)
+    # hive strength is set by the policy only, never inherited from weights.yaml (v3 lists it)
+    sp, sn = set(base.strong_signals) - {"hive"}, set(base.strong_negative_signals) - {"hive"}
     if hive_strong_pos:
         sp.add("hive")
     if hive_strong_neg:

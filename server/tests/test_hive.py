@@ -222,3 +222,27 @@ def test_env_file_disabled_in_tests():
     from app.settings import load_env_file
     assert os.environ.get("JJAJJA_ENV_FILE") == ""
     assert load_env_file() == []
+
+
+# ------------------------------------------------------------------ weights.yaml v3 policy
+def test_weights_v3_hive_strong_positive_only():
+    import yaml
+    from app.ensemble import EnsembleConfig, combine
+    from app.settings import Settings
+    w = yaml.safe_load(Path(Settings().weights_path).read_text())
+    cfg = EnsembleConfig.from_weights(w)
+    assert w["detectors"]["hive"]["calibrated"] is False
+    assert "hive" in cfg.strong_signals and "hive" not in cfg.strong_negative_signals
+    hw, cw = w["detectors"]["hive"]["weight"], w["detectors"]["commfor_224"]["weight"]
+
+    def sig(i, s, wt):
+        return {"id": i, "status": "ok", "score": s, "weight": wt, "decisive": False}
+    # upload path, Hive sure it is AI -> cap released -> likely_ai
+    p, v = combine([sig("hive", 0.99, hw), sig("commfor_224", 0.3, cw)], cfg)
+    assert v == "likely_ai" and p > 0.74
+    # Hive sure it is real -> floor kept (never "AI 흔적 없음" from models alone)
+    p, v = combine([sig("hive", 0.01, hw), sig("commfor_224", 0.05, cw)], cfg)
+    assert (p, v) == (0.4, "uncertain")
+    # CommFor alone high -> still capped
+    p, v = combine([sig("commfor_224", 0.99, cw)], cfg)
+    assert v == "uncertain" and p == 0.74
