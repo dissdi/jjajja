@@ -20,13 +20,16 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Iterator, Optional
 from urllib.parse import parse_qs, urlsplit, SplitResult
 
 from .base import InvalidUrl, Normalized, RuleSignal
+from .store import SqliteStore
 
 log = logging.getLogger(__name__)
 
@@ -318,14 +321,73 @@ def self_report_signals(title: str, description: str, via: str, has_description:
 
 # --------------------------------------------------------------------------- network
 INNERTUBE_URL = "https://www.youtube.com/youtubei/v1/next?prettyPrint=false"
+# Default WEB client version. YouTube may reject or reshape answers for old versions, which
+# would silently turn every label signal "unavailable" (#9): override it without a deploy via
+# JJAJJA_INNERTUBE_CLIENT_VERSION (copy INNERTUBE_CONTEXT_CLIENT_VERSION from a watch page).
 INNERTUBE_CLIENT_VERSION = "2.20260925.00.00"
-UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+UA =("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/140.0 Safari/537.36")
 _YTID_RE = re.compile(r"(?:var\s+ytInitialData|window\[\"ytInitialData\"\])\s*=\s*")
 
 
+def innertube_client_version() -> str:
+    return os.environ.get("JJAJJA_INNERTUBE_CLIENT_VERSION", "").strip() or INNERTUBE_CLIENT_VERSION
+
+
+class _Monitor:
+    """Rolling success rate of real network calls per endpoint (#9).
+
+    A call counts as a failure when it was not answered usably: non-200 status, network error,
+    or a 200 whose payload the parser does not recognize (the typical symptom of a stale
+    innertube client version). Bot-blocks (429/403/captcha) are not counted -- they are an IP
+    problem with their own cooldown warning. When the failure rate over the last `window`
+    calls reaches `threshold`, a WARNING is logged, at most once per `every` seconds.
+    """
+
+    HINTS = {"innertube": "check JJAJJA_INNERTUBE_CLIENT_VERSION (YouTube may have changed it)",
+             "html": "watch-page ytInitialData format may have changed"}
+
+    def __init__(self, window: int = 20, min_calls: int = 10, threshold: float = 0.5,
+                 every: float = 600.0):
+        self.window, self.min_calls, self.threshold, self.every = window, min_calls, threshold, every
+        self._hist: dict[str, deque] = {}
+        self._warned_at: dict[str, float] = {}
+        self.warnings: dict[str, int] = {}  # per endpoint, for tests/metrics
+
+    def clear(self) -> None:
+        self._hist.clear()
+        self._warned_at.clear()
+        self.warnings.clear()
+
+    def record(self, endpoint: str, ok: bool, detail: str = "") -> None:
+        h = self._hist.setdefault(endpoint, deque(maxlen=self.window))
+        h.append(ok)
+        if ok or len(h) < self.min_calls:
+            return
+        rate = h.count(False) / len(h)
+        now = time.monotonic()
+        last = self._warned_at.get(endpoint)
+        if rate >= self.threshold and (last is None or now - last >= self.every):
+            self._warned_at[endpoint] = now
+            self.warnings[endpoint] = self.warnings.get(endpoint, 0) + 1
+            log.warning("youtube %s failing: %d/%d recent calls unusable (last: %s); %s",
+                        endpoint, h.count(False), len(h), detail or "?",
+                        self.HINTS.get(endpoint, "label signals may be unavailable"))
+
+    def snapshot(self) -> dict[str, dict]:
+        return {ep: {"calls": len(h), "failures": h.count(False)} for ep, h in self._hist.items()}
+
+
+MONITOR = _Monitor()
+
+
 class _Fetcher:
-    """Cache + global min interval + cooldown for all YouTube calls from this process."""
+    """Cache + global min interval + cooldown for all YouTube calls from this process.
+
+    With a store (`use_store`, set by the server at startup) bot-block cooldowns and finished
+    signals also persist across restarts and are shared by workers on the host (#9). The
+    payload cache and the min interval stay per process.
+    """
 
     def __init__(self, min_interval: float = 1.5, timeout: float = 5.0,
                  ttl: float = 6 * 3600, neg_ttl: float = 120, cooldown: float = 600,
@@ -342,11 +404,43 @@ class _Fetcher:
         self._lock: Optional[asyncio.Lock] = None
         self._lock_loop = None
         self.calls = 0  # network calls made (for tests/metrics)
+        self.store: Optional[SqliteStore] = None
 
     def clear(self) -> None:
         self._cache.clear()
         self._blocked_until.clear()
         self._last = 0.0
+        self.store = None
+
+    def _is_blocked(self, endpoint: str) -> bool:
+        if self._blocked_until.get(endpoint, 0) > time.monotonic():
+            return True
+        if self.store is not None:
+            left = self.store.ttl_left(f"{PLATFORM}:blocked:{endpoint}")
+            if left > 0:  # another worker (or before a restart) got blocked
+                self._blocked_until[endpoint] = time.monotonic() + left
+                return True
+        return False
+
+    def _block(self, endpoint: str) -> None:
+        self._blocked_until[endpoint] = time.monotonic() + self.cooldown
+        if self.store is not None:
+            self.store.set(f"{PLATFORM}:blocked:{endpoint}", True, self.cooldown)
+
+    def load_signals(self, video_id: str) -> Optional[list[RuleSignal]]:
+        raw = self.store.get(f"{PLATFORM}:signals:{video_id}") if self.store else None
+        if not isinstance(raw, list):
+            return None
+        try:
+            return [RuleSignal(**d) for d in raw]
+        except TypeError:  # stored by an incompatible version
+            return None
+
+    def save_signals(self, video_id: str, sigs: list[RuleSignal]) -> None:
+        # only complete answers; an unavailable signal should be retried soon, not in 6 h
+        if self.store is not None and sigs and all(s.status == "ok" for s in sigs):
+            self.store.set(f"{PLATFORM}:signals:{video_id}", [s.to_dict() for s in sigs],
+                           self.ttl)
 
     def _get_lock(self) -> asyncio.Lock:
         loop = asyncio.get_running_loop()
@@ -373,9 +467,10 @@ class _Fetcher:
         ok, val = self._cached(key)
         if ok:
             return val
-        if self._blocked_until.get(endpoint, 0) > time.monotonic():
+        if self._is_blocked(endpoint):
             return None
         parse = kw.pop("parse")
+        usable = kw.pop("usable", None)  # optional check that a parsed 200 is really usable
         async with self._get_lock():
             ok, val = self._cached(key)
             if ok:
@@ -391,13 +486,17 @@ class _Fetcher:
                 if resp.status_code in (429, 403) or (
                         resp.status_code in (302, 303) and "sorry" in resp.headers.get("location", "")):
                     log.warning("youtube %s blocked (%s); cooling down", endpoint, resp.status_code)
-                    self._blocked_until[endpoint] = time.monotonic() + self.cooldown
+                    self._block(endpoint)
                 elif resp.status_code == 200:
                     result = parse(resp)
+                    ok = result is not None and (usable is None or usable(result))
+                    MONITOR.record(endpoint, ok, "" if ok else "unrecognized 200 payload")
                 else:
                     log.info("youtube %s status %s", endpoint, resp.status_code)
+                    MONITOR.record(endpoint, False, f"status {resp.status_code}")
             except Exception as e:  # network, timeout, JSON errors
                 log.info("youtube %s failed: %r", endpoint, e)
+                MONITOR.record(endpoint, False, type(e).__name__)
             finally:
                 self._last = time.monotonic()
             self._store(key, result)
@@ -411,6 +510,10 @@ def _parse_json(resp) -> Any:
     return resp.json()
 
 
+def _recognized(data: Any) -> bool:
+    return parse_initial_data(data) is not None
+
+
 def _parse_html_initial_data(resp) -> Any:
     html = resp.text
     m = _YTID_RE.search(html)
@@ -421,18 +524,20 @@ def _parse_html_initial_data(resp) -> Any:
 
 
 async def fetch_next(video_id: str, client) -> Any:
-    body = {"context": {"client": {"clientName": "WEB", "clientVersion": INNERTUBE_CLIENT_VERSION,
+    body = {"context": {"client": {"clientName": "WEB",
+                                   "clientVersion": innertube_client_version(),
                                    "hl": "ko", "gl": "KR"}},
             "videoId": video_id}
     return await FETCHER.fetch(f"next:{video_id}", "innertube", client, "POST", INNERTUBE_URL,
-                               json=body, headers={"User-Agent": UA}, parse=_parse_json)
+                               json=body, headers={"User-Agent": UA}, parse=_parse_json,
+                               usable=_recognized)
 
 
 async def fetch_html(video_id: str, client) -> Any:
     return await FETCHER.fetch(f"html:{video_id}", "html", client, "GET",
                                f"https://www.youtube.com/watch?v={video_id}&hl=ko",
                                headers={"User-Agent": UA, "Accept-Language": "ko-KR,ko;q=0.9"},
-                               parse=_parse_html_initial_data)
+                               parse=_parse_html_initial_data, usable=_recognized)
 
 
 async def fetch_oembed(video_id: str, client) -> Any:
@@ -452,9 +557,17 @@ class YouTubeRules:
     def canonical_url(self, video_id: str) -> str:
         return canonical_url(video_id)
 
+    def use_store(self, store: SqliteStore) -> None:
+        FETCHER.store = store
+
     async def extract(self, n: Normalized, client) -> list[RuleSignal]:
         try:
-            return await self._extract(n, client)
+            cached = FETCHER.load_signals(n.video_id)
+            if cached is not None:
+                return cached
+            sigs = await self._extract(n, client)
+            FETCHER.save_signals(n.video_id, sigs)
+            return sigs
         except Exception as e:  # last line of defence: never raise
             log.exception("youtube extract crashed: %r", e)
             return [RuleSignal(id="yt_ai_label", status="unavailable", via="api"),

@@ -64,3 +64,17 @@ async def extract_signals(n: Normalized, client: "httpx.AsyncClient") -> list[Ru
     except Exception:  # RuleSet.extract should never raise; belt and braces
         log.exception("extract_signals failed for %s", n)
         return []
+
+
+def use_store(path) -> None:
+    """Persist rule caches (finished signals, bot-block cooldowns) in an SQLite file so they
+    survive restarts and are shared by worker processes on this host (#9). Called once by the
+    server at startup; without it everything stays in memory. A RuleSet opts in by exposing
+    `use_store(store)`. Never raises."""
+    from .store import SqliteStore
+
+    store = SqliteStore(path)
+    for rs in REGISTRY.values():
+        hook = getattr(rs, "use_store", None)
+        if hook is not None:
+            hook(store)

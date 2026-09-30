@@ -23,6 +23,7 @@
 | JJAJJA_WEIGHTS | server/config/weights.yaml | ensemble config |
 | JJAJJA_FFMPEG / JJAJJA_FFPROBE | PATH lookup | ffmpeg binaries (conda env provides them) |
 | JJAJJA_CORS_ORIGINS | (off) | comma list of browser origins for the web demo, e.g. http://localhost:8081 |
+| JJAJJA_INNERTUBE_CLIENT_VERSION | (code default) | YouTube innertube WEB client version; read by rules/youtube.py per request (#9) |
 """
 from __future__ import annotations
 
