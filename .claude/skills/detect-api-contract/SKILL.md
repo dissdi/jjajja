@@ -87,7 +87,7 @@ URL 또는 업로드 영상 하나를 탐지한다.
 |------|------|------|
 | 400 | `invalid_url` | URL 형식 아님 |
 | 422 | `unsupported_platform` | 지원하지 않는 사이트 |
-| 404 | `video_unavailable` | 비공개/삭제/지역 제한 |
+| 404 | `video_unavailable` | 비공개/삭제/지역 제한. 단축 링크(bit.ly 등)가 끊겼거나 따라갈 수 없을 때도 (#7) |
 | 413 | `file_too_large` | 업로드 한도 초과 |
 | 429 | `rate_limited` | 요청 과다 |
 | 400 | `invalid_file` | (v1.1) 업로드 파일이 없거나 영상으로 열 수 없음 |

@@ -61,4 +61,12 @@ class RuleSignal:
 - 인스타그램 릴스: `references/instagram.md`
 - 카카오톡으로 전달된 링크는 대부분 위 플랫폼 URL을 그대로 담거나 단축 URL이다 → 단축 URL은 리다이렉트를 따라가 정규화한다.
 
+## 단축 URL (#7)
+`server/rules/shorturl.py` — `rules.resolve()`가 `normalize` 실패 시 단축 링크를 따라간다.
+- **허용 목록(`SHORTENERS`)의 호스트에만 요청한다.** 리다이렉트 대상은 먼저 정규화하고, 대상이 다시 단축 서비스일 때만 요청한다 → 사용자가 붙인 링크로 서버가 임의 주소(내부망 포함)를 부르지 않는다(SSRF 방지). 플랫폼 자체에도 요청하지 않는다.
+- GET(본문 미수신) + 최대 5홉 + 루프 감지 + 전체 타임아웃(`JJAJJA_RESOLVE_TIMEOUT_S`, 기본 8초, URL 예산에서 차감). 200 HTML 중간 페이지는 meta refresh → og:url 순으로 읽는다(64KB까지).
+- 결과: 지원 플랫폼 → 정상 판정 / 지원하지 않는 사이트 → `unsupported_platform` / 끊김·시간 초과·루프 → `video_unavailable`.
+- 새 단축 서비스는 `SHORTENERS`에 추가하고 `rules/tests/test_shorturl.py`에 케이스를 남긴다. 공유 인텐트 도메인 필터를 만들 때(#12) 이 목록도 포함해야 한다.
+- 미확인: 실제 카카오톡 공유 문자열(단축 링크 포함 여부·도메인) 샘플 검증.
+
 각 reference의 라벨/API 정보는 조사 시점 기준이다. 구현 전 detection-researcher 카탈로그로 재확인하라.

@@ -21,6 +21,11 @@ class UnsupportedPlatform(ValueError):
     """A URL was found but its site is not supported (HTTP 422 `unsupported_platform`)."""
 
 
+class LinkUnresolved(ValueError):
+    """A short link could not be followed: dead, timed out, looped or too many hops
+    (HTTP 404 `video_unavailable`, #7)."""
+
+
 @dataclass(frozen=True)
 class Normalized:
     platform: str

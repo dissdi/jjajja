@@ -43,7 +43,8 @@ from .settings import Settings
 log = logging.getLogger(__name__)
 
 # rules is implemented by source-rule-engineer; imported through its fixed public interface only.
-from rules import InvalidUrl, UnsupportedPlatform, extract_signals, normalize  # noqa: E402
+from rules import (InvalidUrl, LinkUnresolved, UnsupportedPlatform,  # noqa: E402
+                   extract_signals, resolve)
 
 MAX_DURATION_S = 180.0  # contract v1.1 limits.max_duration_s
 
@@ -189,11 +190,14 @@ class Pipeline:
     async def detect_url(self, url: str) -> dict:
         deadline = time.monotonic() + self.s.url_budget_s
         try:
-            n = normalize(url)
+            # short links (bit.ly, kko.to ...) are followed here and spend the URL budget (#7)
+            n = await resolve(url, self.http, min(self.s.resolve_timeout_s, _left(deadline)))
         except InvalidUrl as e:
             raise ApiError("invalid_url", str(e))
         except UnsupportedPlatform as e:
             raise ApiError("unsupported_platform", str(e))
+        except LinkUnresolved as e:
+            raise ApiError("video_unavailable", str(e))
 
         key = ResultCache.make_key(n.platform, n.video_id, self.version)
         hit = self.cache.get(key)

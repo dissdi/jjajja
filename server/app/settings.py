@@ -13,6 +13,7 @@
 | JJAJJA_URL_BUDGET_S | 40 | whole URL request (rules + download + models) must answer within this; leftovers -> partial (contract v1.2, app waits 45 s) |
 | JJAJJA_UPLOAD_BUDGET_S | 110 | upload processing after the file is received (contract v1.2, app waits 120 s) |
 | JJAJJA_FETCH_TIMEOUT_S | 60 | whole yt-dlp download budget (effective: min with the URL budget left) |
+| JJAJJA_RESOLVE_TIMEOUT_S | 8 | following a short link (bit.ly, kko.to ...) to the platform URL, all hops (#7) |
 | JJAJJA_RULES_TIMEOUT_S | 20 | rules.extract_signals budget (effective: min with the URL budget left) |
 | JJAJJA_DETECTOR_TIMEOUT_S | 120 | per-detector inference budget (effective: min with the request budget left) |
 | JJAJJA_CACHE_DIR | server/.cache | result cache + temp media |
@@ -59,6 +60,7 @@ class Settings:
     url_budget_s: float = 40.0
     upload_budget_s: float = 110.0
     fetch_timeout_s: float = 60.0
+    resolve_timeout_s: float = 8.0
     rules_timeout_s: float = 20.0
     detector_timeout_s: float = 120.0
     cache_dir: Path = SERVER_DIR / ".cache"
@@ -87,6 +89,7 @@ class Settings:
         s.url_budget_s = _env_float("JJAJJA_URL_BUDGET_S", s.url_budget_s)
         s.upload_budget_s = _env_float("JJAJJA_UPLOAD_BUDGET_S", s.upload_budget_s)
         s.fetch_timeout_s = _env_float("JJAJJA_FETCH_TIMEOUT_S", 60)
+        s.resolve_timeout_s = _env_float("JJAJJA_RESOLVE_TIMEOUT_S", s.resolve_timeout_s)
         s.rules_timeout_s = _env_float("JJAJJA_RULES_TIMEOUT_S", 20)
         s.detector_timeout_s = _env_float("JJAJJA_DETECTOR_TIMEOUT_S", 120)
         if os.environ.get("JJAJJA_CACHE_DIR"):
