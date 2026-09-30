@@ -32,10 +32,16 @@ def _commfor(cfg, device):
     return CommForDetector(cfg, device)
 
 
+def _hive(cfg, device):
+    from .hive import HiveDetector
+    return HiveDetector(cfg, device)
+
+
 FACTORIES: dict[str, Callable[[dict, str], Detector]] = {
     "mock": _mock,
     "d3": _d3,
     "commfor_224": _commfor,
+    "hive": _hive,   # commercial API; needs HIVE_API_KEY, else "down"
 }
 
 

@@ -23,6 +23,8 @@
 | JJAJJA_WEIGHTS | server/config/weights.yaml | ensemble config |
 | JJAJJA_FFMPEG / JJAJJA_FFPROBE | PATH lookup | ffmpeg binaries (conda env provides them) |
 | JJAJJA_CORS_ORIGINS | (off) | comma list of browser origins for the web demo, e.g. http://localhost:8081 |
+| JJAJJA_ENV_FILE | server/.env | KEY=VALUE file loaded at startup if it exists; never overrides variables already set. "" disables |
+| HIVE_API_KEY | (none) | Hive commercial detector key (detector `hive`). Missing -> `hive` is "down", server still starts |
 | JJAJJA_INNERTUBE_CLIENT_VERSION | (code default) | YouTube innertube WEB client version; read by rules/youtube.py per request (#9) |
 """
 from __future__ import annotations
@@ -32,6 +34,35 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 SERVER_DIR = Path(__file__).resolve().parents[1]
+
+
+def load_env_file(path: Path | None = None) -> list[str]:
+    """Load KEY=VALUE lines from `path` (default JJAJJA_ENV_FILE or server/.env) into os.environ
+    without overriding variables that are already set. Returns the names loaded (never values —
+    the file holds secrets such as HIVE_API_KEY; do not log its contents)."""
+    if path is None:
+        raw = os.environ.get("JJAJJA_ENV_FILE")
+        if raw is not None and not raw.strip():
+            return []
+        path = Path(raw) if raw else SERVER_DIR / ".env"
+    try:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    loaded = []
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k = k.strip().removeprefix("export ").strip()
+        v = v.strip()
+        if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+            v = v[1:-1]
+        if k and k not in os.environ:
+            os.environ[k] = v
+            loaded.append(k)
+    return loaded
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -75,6 +106,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        load_env_file()  # server/.env (gitignored, 600) -> os.environ, existing vars win
         s = cls()
         raw = os.environ.get("JJAJJA_DETECTORS")
         if raw is not None:

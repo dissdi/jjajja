@@ -100,6 +100,7 @@ export const copy = {
       /** 신호 id → 사람이 읽을 이름. 모르는 id는 이름 없이 evidence_ko만 보여준다 */
       names: {
         commfor_224: '화면 속 장면 확인',
+        hive: '전문 서비스 확인',
         d3: '화면 움직임 확인',
         mock: '시험용 확인',
         yt_creator_ai_disclosure: '유튜브 AI 표시',

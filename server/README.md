@@ -7,6 +7,7 @@ AI로 만든 쇼츠인지 확인하는 백엔드. 응답 형식은 **`.claude/sk
 > - 규칙 신호(`server/rules/`)는 비공식 innertube API·HTML을 읽는다. 사전 고지 없이 바뀌거나 약관 문제가 될 수 있다.
 > - 출시 대안: 사용자가 자기 기기에서 영상을 **직접 업로드**(multipart 경로, 이미 구현), 공식 API(YouTube Data API `containsSyntheticMedia`) 검토.
 > - 이 서버 IP는 현재 YouTube 봇 차단 상태라 URL 방식의 영상 확보는 **실패가 정상**이다. 그때는 규칙 신호만으로 `partial: true` 응답을 준다. 차단이 감지되면 30분간 yt-dlp를 다시 부르지 않는다(반복 요청 금지).
+> - **Hive(상용 API, 선택)**: 탐지기 `hive`를 켜면 영상 앞 20초를 제3자(Hive)에 전송한다. 개인정보·약관·데이터 처리 조건을 출시 전 법무 검토에 포함한다.
 > - 모델 가중치 라이선스: D3 코드 MIT, XCLIP(microsoft/xclip-base-patch16) MIT(카드 재확인 필요), Community Forensics MIT.
 
 ## 설치 (conda env `jjajja`)
@@ -64,12 +65,26 @@ CUDA_VISIBLE_DEVICES=<빈 GPU> JJAJJA_DEVICE=cuda uvicorn app.main:app --port 80
 지우고, 종료 후 시작하려는 작업은 실행하지 않는다. 스레드는 캐시에 쓰지 않으며, 예산 때문에 잘린 응답은 캐시하지 않는다
 (다음 요청이 다시 시도). 버려진 모델 추론 스레드는 끝날 때까지 CPU를 쓴다(파이썬 스레드는 강제 종료 불가).
 
-API 키가 필요한 탐지기(상용)는 키를 **환경변수로만** 받는다. 현재 1차 MVP에는 상용 API가 없다(무료 OSS 우선).
+API 키가 필요한 탐지기(상용)는 키를 **환경변수로만** 받는다. 키는 코드·로그·커밋·테스트 fixture에 남기지 않는다.
+
+### Hive 탐지기 (상용, 선택, #3)
+- 켜기: `JJAJJA_DETECTORS=d3,commfor_224,hive` + `HIVE_API_KEY`. 키가 없으면 `hive`는 `down`으로 뜨고 응답에는
+  `status: "unavailable"` 신호로만 나온다(서버는 정상 기동).
+- 키 넣는 법 (둘 중 하나):
+  1. `server/.env` (권한 600, gitignore됨)에 `HIVE_API_KEY=...` 한 줄. 서버는 시작할 때 이 파일을 **있으면** 읽는다
+     (`app/settings.py: load_env_file`, 이미 설정된 환경변수는 덮어쓰지 않음. 다른 파일은 `JJAJJA_ENV_FILE=경로`, 끄려면 `JJAJJA_ENV_FILE=`).
+  2. uvicorn 옵션: `uvicorn app.main:app --env-file .env --port 8000`
+- 비용: Hive는 1초당 1프레임을 과금한다(작성 시점 $6/1000프레임). 앞 **20초만** 보낸다(`weights.yaml hive.max_seconds`) → 영상 1편 최대 약 $0.12.
+  H.264·720p 이하면 스트림 복사로 자르고, 아니면 360p로 다시 인코딩한다. 결과는 영상 ID로 캐시한다(같은 영상 재요청 시 과금 없음).
+  호출마다 누적 프레임·추정 비용을 INFO 로그로 남긴다.
+- 실패: 429/5xx/네트워크/타임아웃 → 재시도 없이 `unavailable`(타임아웃 25초, 요청 예산 40초 안에서 더 잘림). 그 밖의 4xx·응답 이상 → `error`.
+- 평가 재현: `python -m tools.collect_hive_scores --out ../_workspace/06_hive_scores.csv` (요청 간 10초, 차단 징후 즉시 중단,
+  누적 $10 초과 전 중단, 영상 즉시 삭제) → `python -m tools.compare_hive_loo --raw ../_workspace/06_hive_scores.csv --rules ../_workspace/04_eval_results.csv`.
 
 ## 구조
 ```
 app/        main.py(엔드포인트) pipeline.py ensemble.py cache.py schemas.py(계약 pydantic) errors.py settings.py
-detectors/  base.py(어댑터 인터페이스) __init__.py(레지스트리) mock.py d3.py commfor.py
+detectors/  base.py(어댑터 인터페이스) __init__.py(레지스트리) mock.py d3.py commfor.py hive.py(상용 API)
 media/      fetch.py(yt-dlp, 차단 시 쿨다운) ffmpeg.py(프로브·프레임 샘플링) workdir.py(예산 초과 스레드용 임시 폴더 정리)
 config/weights.yaml   앙상블 가중치·구간·캘리브레이션 (코드 상수 아님)
 rules/      출처별 규칙 (source-rule-engineer 담당)

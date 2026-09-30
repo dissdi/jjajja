@@ -1,0 +1,3177 @@
+{
+"task_id": "fa16858b-bce7-11f1-8be4-1bbae1e1148d",
+"model": "hive/ai-generated-and-deepfake-content-detection",
+"version": "1",
+"output": [
+{
+"extra": [
+{
+"name": "frame_index",
+"value": 0
+},
+{
+"name": "timestamp",
+"value": 0.0
+}
+],
+"classes": [
+{
+"class": "not_ai_generated",
+"value": 2.998960815863541e-09
+},
+{
+"class": "ai_generated",
+"value": 0.9999999970010393
+},
+{
+"class": "sora",
+"value": 1.7123511754966555e-08
+},
+{
+"class": "pika",
+"value": 6.068093903355347e-11
+},
+{
+"class": "haiper",
+"value": 2.9365660999270837e-19
+},
+{
+"class": "kling",
+"value": 1.997736871389389e-09
+},
+{
+"class": "luma",
+"value": 3.815333454339346e-12
+},
+{
+"class": "hedra",
+"value": 1.6551933793446006e-13
+},
+{
+"class": "runway",
+"value": 2.655740117591608e-12
+},
+{
+"class": "hailuo",
+"value": 1.9588047064151892e-10
+},
+{
+"class": "mochi",
+"value": 1.3346115018700514e-11
+},
+{
+"class": "flux",
+"value": 5.7732769545508333e-11
+},
+{
+"class": "hallo",
+"value": 5.799803847178836e-13
+},
+{
+"class": "hunyuan",
+"value": 1.559113487610986e-08
+},
+{
+"class": "recraft",
+"value": 1.039847530927735e-13
+},
+{
+"class": "leonardo",
+"value": 2.761532776922404e-12
+},
+{
+"class": "luminagpt",
+"value": 2.4220830648630683e-14
+},
+{
+"class": "var",
+"value": 7.927391949689781e-13
+},
+{
+"class": "liveportrait",
+"value": 3.6140493535347027e-12
+},
+{
+"class": "mcnet",
+"value": 6.8465499188306855e-12
+},
+{
+"class": "pyramidflows",
+"value": 5.519669437806238e-11
+},
+{
+"class": "sadtalker",
+"value": 6.7999069373834856e-12
+},
+{
+"class": "aniportrait",
+"value": 3.215491899959194e-13
+},
+{
+"class": "cogvideos",
+"value": 1.0712421023633611e-10
+},
+{
+"class": "makeittalk",
+"value": 3.278911794991345e-13
+},
+{
+"class": "sdxlinpaint",
+"value": 1.335190659191204e-13
+},
+{
+"class": "stablediffusioninpaint",
+"value": 5.437780452350804e-13
+},
+{
+"class": "other_image_generators",
+"value": 2.2952370606028305e-08
+},
+{
+"class": "bingimagecreator",
+"value": 2.417717945474152e-13
+},
+{
+"class": "adobefirefly",
+"value": 6.014994734554458e-11
+},
+{
+"class": "lcm",
+"value": 1.426865881194393e-13
+},
+{
+"class": "dalle",
+"value": 3.86465595108561e-11
+},
+{
+"class": "pixart",
+"value": 9.035700677724145e-13
+},
+{
+"class": "glide",
+"value": 1.894268512037218e-12
+},
+{
+"class": "stablediffusion",
+"value": 2.2239559477958718e-10
+},
+{
+"class": "imagen",
+"value": 8.774822994035188e-13
+},
+{
+"class": "amused",
+"value": 9.41401086893628e-13
+},
+{
+"class": "stablecascade",
+"value": 1.4213030583079214e-13
+},
+{
+"class": "midjourney",
+"value": 3.933189941312483e-11
+},
+{
+"class": "deepfloyd",
+"value": 1.2495920393626192e-12
+},
+{
+"class": "gan",
+"value": 2.1845522322928472e-12
+},
+{
+"class": "stablediffusionxl",
+"value": 5.4713692855885676e-11
+},
+{
+"class": "vqdiffusion",
+"value": 3.5731554949384977e-13
+},
+{
+"class": "kandinsky",
+"value": 3.7093514000096545e-11
+},
+{
+"class": "wuerstchen",
+"value": 2.904954848588596e-13
+},
+{
+"class": "titan",
+"value": 9.6184533038777e-13
+},
+{
+"class": "ideogram",
+"value": 1.703247501962285e-11
+},
+{
+"class": "sana",
+"value": 2.084203144960898e-13
+},
+{
+"class": "emu3",
+"value": 3.5656511591408225e-14
+},
+{
+"class": "omnigen",
+"value": 3.6907324785840906e-12
+},
+{
+"class": "cosmos",
+"value": 2.3909779720006358e-09
+},
+{
+"class": "dmd2",
+"value": 2.2535609227988137e-13
+},
+{
+"class": "flashvideo",
+"value": 6.638514951157891e-11
+},
+{
+"class": "janus",
+"value": 9.845078547971609e-14
+},
+{
+"class": "switti",
+"value": 3.5379030416779546e-14
+},
+{
+"class": "transpixar",
+"value": 2.1457598998144113e-11
+},
+{
+"class": "4o",
+"value": 1.4490608113893594e-11
+},
+{
+"class": "grok",
+"value": 3.3277929851222738e-12
+},
+{
+"class": "wan",
+"value": 1.3232024310792732e-08
+},
+{
+"class": "infinity",
+"value": 3.976583869626269e-16
+},
+{
+"class": "veo3",
+"value": 2.141573052559072e-11
+},
+{
+"class": "imagen4",
+"value": 3.184243440581757e-13
+},
+{
+"class": "krea",
+"value": 1.0440732288054313e-12
+},
+{
+"class": "moonvalley",
+"value": 3.96285498982629e-13
+},
+{
+"class": "higgsfield",
+"value": 2.3035325098763903e-10
+},
+{
+"class": "gemini",
+"value": 1.9011147801730156e-14
+},
+{
+"class": "reve",
+"value": 1.5879888869616352e-11
+},
+{
+"class": "heygen",
+"value": 1.6551933793446006e-13
+},
+{
+"class": "sora2",
+"value": 7.161801801212988e-13
+},
+{
+"class": "seedream",
+"value": 8.93043157625499e-13
+},
+{
+"class": "seedance",
+"value": 4.782256797953096e-10
+},
+{
+"class": "grokimagine",
+"value": 2.3505587527803428e-12
+},
+{
+"class": "gemini3",
+"value": 6.366124958164711e-12
+},
+{
+"class": "mai",
+"value": 3.184243440581757e-13
+},
+{
+"class": "lucid",
+"value": 2.670948018574185e-13
+},
+{
+"class": "sanavideo",
+"value": 5.591024636806473e-10
+},
+{
+"class": "flux2",
+"value": 8.022034993537639e-12
+},
+{
+"class": "qwen",
+"value": 4.8710911821548593e-11
+},
+{
+"class": "zimage",
+"value": 1.2516106667787639e-11
+},
+{
+"class": "viduq2",
+"value": 2.4097306446535126e-09
+},
+{
+"class": "bria",
+"value": 3.272513920350036e-13
+},
+{
+"class": "blip3o",
+"value": 2.7020289142150848e-14
+},
+{
+"class": "pixverse",
+"value": 5.261764419863116e-11
+},
+{
+"class": "ovis",
+"value": 2.865508933264342e-13
+},
+{
+"class": "longcat",
+"value": 4.3542943653163997e-10
+},
+{
+"class": "cogview",
+"value": 3.2092177714152337e-13
+},
+{
+"class": "bagel",
+"value": 1.2230316734555854e-12
+},
+{
+"class": "ray3",
+"value": 2.475052474288328e-13
+},
+{
+"class": "gptimage1_5",
+"value": 7.1053941775798486e-12
+},
+{
+"class": "hidream",
+"value": 6.584887314054054e-13
+},
+{
+"class": "steadydancer",
+"value": 3.376394663270193e-13
+},
+{
+"class": "ltx",
+"value": 0.999999138606335
+},
+{
+"class": "personalive",
+"value": 2.0475811927192532e-14
+},
+{
+"class": "dreamid",
+"value": 7.34487609748179e-14
+},
+{
+"class": "scail",
+"value": 3.5442906226578784e-15
+},
+{
+"class": "meta",
+"value": 4.4056214094189293e-10
+},
+{
+"class": "vibe",
+"value": 4.674644266108887e-12
+},
+{
+"class": "imagineart",
+"value": 2.781945584655021e-15
+},
+{
+"class": "seedance2",
+"value": 1.4307229594400137e-08
+},
+{
+"class": "ernie",
+"value": 6.5027891966249855e-12
+},
+{
+"class": "gptimage2",
+"value": 1.632961527865112e-12
+},
+{
+"class": "happyhorse",
+"value": 7.630529878162504e-07
+},
+{
+"class": "minimax",
+"value": 4.736489386552321e-09
+},
+{
+"class": "flux3",
+"value": 1.799939297140461e-14
+},
+{
+"class": "none",
+"value": 1.5136469590043868e-10
+},
+{
+"class": "inconclusive",
+"value": 0.0
+},
+{
+"class": "inconclusive_video",
+"value": 0.0
+},
+{
+"class": "deepfake",
+"value": 0.0
+},
+{
+"class": "not_ai_generated_audio",
+"value": 0.9999190256106052
+},
+{
+"class": "ai_generated_audio",
+"value": 8.097438939491663e-05
+}
+]
+},
+{
+"extra": [
+{
+"name": "frame_index",
+"value": 1
+},
+{
+"name": "timestamp",
+"value": 1.0
+}
+],
+"classes": [
+{
+"class": "not_ai_generated",
+"value": 2.3125502726886988e-10
+},
+{
+"class": "ai_generated",
+"value": 0.999999999768745
+},
+{
+"class": "sora",
+"value": 3.088581220066963e-08
+},
+{
+"class": "pika",
+"value": 1.8264270809346488e-11
+},
+{
+"class": "haiper",
+"value": 4.851772069280911e-18
+},
+{
+"class": "kling",
+"value": 1.8189613954874935e-09
+},
+{
+"class": "luma",
+"value": 5.2661228666249266e-12
+},
+{
+"class": "hedra",
+"value": 1.5581838671768153e-12
+},
+{
+"class": "runway",
+"value": 8.259304833148435e-13
+},
+{
+"class": "hailuo",
+"value": 5.6893278471668255e-11
+},
+{
+"class": "mochi",
+"value": 6.657996908787688e-11
+},
+{
+"class": "flux",
+"value": 1.0618688872589784e-10
+},
+{
+"class": "hallo",
+"value": 9.67642805261687e-12
+},
+{
+"class": "hunyuan",
+"value": 8.643948030133911e-09
+},
+{
+"class": "recraft",
+"value": 7.133885581678556e-13
+},
+{
+"class": "leonardo",
+"value": 4.808927471525502e-12
+},
+{
+"class": "luminagpt",
+"value": 1.8354412050946407e-14
+},
+{
+"class": "var",
+"value": 1.954400419023326e-12
+},
+{
+"class": "liveportrait",
+"value": 1.2262051344422747e-11
+},
+{
+"class": "mcnet",
+"value": 1.1226528710431724e-10
+},
+{
+"class": "pyramidflows",
+"value": 1.441514820536899e-10
+},
+{
+"class": "sadtalker",
+"value": 1.2305871268210434e-10
+},
+{
+"class": "aniportrait",
+"value": 2.2804671911197604e-12
+},
+{
+"class": "cogvideos",
+"value": 1.3202272678253774e-10
+},
+{
+"class": "makeittalk",
+"value": 3.153771632869802e-12
+},
+{
+"class": "sdxlinpaint",
+"value": 6.941461189228784e-13
+},
+{
+"class": "stablediffusioninpaint",
+"value": 5.666301319959728e-12
+},
+{
+"class": "other_image_generators",
+"value": 1.4195899799235772e-08
+},
+{
+"class": "bingimagecreator",
+"value": 2.9391995969671505e-13
+},
+{
+"class": "adobefirefly",
+"value": 1.2771113494506301e-10
+},
+{
+"class": "lcm",
+"value": 3.228079241747772e-13
+},
+{
+"class": "dalle",
+"value": 4.5983681353354586e-11
+},
+{
+"class": "pixart",
+"value": 3.5040468672989453e-13
+},
+{
+"class": "glide",
+"value": 3.796751965703698e-12
+},
+{
+"class": "stablediffusion",
+"value": 2.773170898987974e-10
+},
+{
+"class": "imagen",
+"value": 2.854765506363921e-12
+},
+{
+"class": "amused",
+"value": 7.282783535164004e-12
+},
+{
+"class": "stablecascade",
+"value": 2.6145685157404128e-12
+},
+{
+"class": "midjourney",
+"value": 1.3513338103616639e-11
+},
+{
+"class": "deepfloyd",
+"value": 5.903540202950201e-12
+},
+{
+"class": "gan",
+"value": 3.209699135084889e-12
+},
+{
+"class": "stablediffusionxl",
+"value": 2.0807590132526537e-11
+},
+{
+"class": "vqdiffusion",
+"value": 2.7611224956070445e-13
+},
+{
+"class": "kandinsky",
+"value": 2.5062005811083008e-11
+},
+{
+"class": "wuerstchen",
+"value": 6.198027203018741e-13
+},
+{
+"class": "titan",
+"value": 5.7443022780004415e-12
+},
+{
+"class": "ideogram",
+"value": 1.6739790222749325e-11
+},
+{
+"class": "sana",
+"value": 4.64210788366927e-13
+},
+{
+"class": "emu3",
+"value": 1.5488493468167288e-13
+},
+{
+"class": "omnigen",
+"value": 8.930437834943333e-13
+},
+{
+"class": "cosmos",
+"value": 1.0323723707821568e-09
+},
+{
+"class": "dmd2",
+"value": 4.499285238876903e-13
+},
+{
+"class": "flashvideo",
+"value": 2.4243532035247457e-11
+},
+{
+"class": "janus",
+"value": 3.7154964321557283e-13
+},
+{
+"class": "switti",
+"value": 2.059922886484413e-13
+},
+{
+"class": "transpixar",
+"value": 4.3920805748781605e-11
+},
+{
+"class": "4o",
+"value": 8.724866833721968e-12
+},
+{
+"class": "grok",
+"value": 1.739813040112586e-11
+},
+{
+"class": "wan",
+"value": 1.9514607142428814e-09
+},
+{
+"class": "infinity",
+"value": 7.605421341039243e-16
+},
+{
+"class": "veo3",
+"value": 1.7590325798170226e-11
+},
+{
+"class": "imagen4",
+"value": 1.2062450841605028e-13
+},
+{
+"class": "krea",
+"value": 1.5858159667159137e-12
+},
+{
+"class": "moonvalley",
+"value": 3.643632225842039e-13
+},
+{
+"class": "higgsfield",
+"value": 1.2758647791743928e-10
+},
+{
+"class": "gemini",
+"value": 3.3365626867105733e-14
+},
+{
+"class": "reve",
+"value": 1.4120427641918856e-11
+},
+{
+"class": "heygen",
+"value": 5.058682370769283e-13
+},
+{
+"class": "sora2",
+"value": 2.509499812411123e-12
+},
+{
+"class": "seedream",
+"value": 1.304456632314058e-12
+},
+{
+"class": "seedance",
+"value": 6.237243072035645e-10
+},
+{
+"class": "grokimagine",
+"value": 1.1900433146914037e-12
+},
+{
+"class": "gemini3",
+"value": 1.1569863783209102e-11
+},
+{
+"class": "mai",
+"value": 1.2374492510426653e-12
+},
+{
+"class": "lucid",
+"value": 5.555875677353064e-13
+},
+{
+"class": "sanavideo",
+"value": 7.567763977616524e-10
+},
+{
+"class": "flux2",
+"value": 1.8371602161363083e-11
+},
+{
+"class": "qwen",
+"value": 3.0789186278775524e-11
+},
+{
+"class": "zimage",
+"value": 1.2522228316186216e-11
+},
+{
+"class": "viduq2",
+"value": 5.022313461145617e-09
+},
+{
+"class": "bria",
+"value": 6.559219868211374e-13
+},
+{
+"class": "blip3o",
+"value": 8.355415498650087e-14
+},
+{
+"class": "pixverse",
+"value": 2.2992575190004168e-11
+},
+{
+"class": "ovis",
+"value": 8.72356446531185e-13
+},
+{
+"class": "longcat",
+"value": 1.131626865559753e-09
+},
+{
+"class": "cogview",
+"value": 1.2158872781548493e-12
+},
+{
+"class": "bagel",
+"value": 1.0178979885147289e-12
+},
+{
+"class": "ray3",
+"value": 7.713569482638075e-13
+},
+{
+"class": "gptimage1_5",
+"value": 9.13911838573953e-12
+},
+{
+"class": "hidream",
+"value": 2.589159887575411e-12
+},
+{
+"class": "steadydancer",
+"value": 8.115390319697079e-13
+},
+{
+"class": "ltx",
+"value": 0.999999839432818
+},
+{
+"class": "personalive",
+"value": 3.657892999163621e-13
+},
+{
+"class": "dreamid",
+"value": 6.820509483259538e-13
+},
+{
+"class": "scail",
+"value": 3.1589940595992655e-14
+},
+{
+"class": "meta",
+"value": 4.4228676237453085e-10
+},
+{
+"class": "vibe",
+"value": 5.018363231908282e-11
+},
+{
+"class": "imagineart",
+"value": 6.993815330779972e-15
+},
+{
+"class": "seedance2",
+"value": 1.1541184818372318e-08
+},
+{
+"class": "ernie",
+"value": 1.2007280124329567e-11
+},
+{
+"class": "gptimage2",
+"value": 3.712423945511076e-12
+},
+{
+"class": "happyhorse",
+"value": 7.79508247836033e-08
+},
+{
+"class": "minimax",
+"value": 2.709334889063324e-09
+},
+{
+"class": "flux3",
+"value": 4.234318487686044e-14
+},
+{
+"class": "none",
+"value": 4.5983681353354586e-11
+},
+{
+"class": "inconclusive",
+"value": 0.0
+},
+{
+"class": "inconclusive_video",
+"value": 0.0
+},
+{
+"class": "deepfake",
+"value": 0.0
+},
+{
+"class": "not_ai_generated_audio",
+"value": 0.9999190256106052
+},
+{
+"class": "ai_generated_audio",
+"value": 8.097438939491663e-05
+}
+]
+},
+{
+"extra": [
+{
+"name": "frame_index",
+"value": 2
+},
+{
+"name": "timestamp",
+"value": 2.0
+}
+],
+"classes": [
+{
+"class": "not_ai_generated",
+"value": 1.6918979223288786e-10
+},
+{
+"class": "ai_generated",
+"value": 0.9999999998308102
+},
+{
+"class": "sora",
+"value": 4.983229456334718e-09
+},
+{
+"class": "pika",
+"value": 6.4996192697457166e-12
+},
+{
+"class": "haiper",
+"value": 9.934281924204618e-19
+},
+{
+"class": "kling",
+"value": 1.643294660702755e-09
+},
+{
+"class": "luma",
+"value": 1.1289131097270204e-12
+},
+{
+"class": "hedra",
+"value": 4.706009989623513e-13
+},
+{
+"class": "runway",
+"value": 4.259837602368294e-13
+},
+{
+"class": "hailuo",
+"value": 9.58005233034716e-12
+},
+{
+"class": "mochi",
+"value": 2.7525228284820508e-11
+},
+{
+"class": "flux",
+"value": 6.328336557880072e-11
+},
+{
+"class": "hallo",
+"value": 1.1993769277221722e-12
+},
+{
+"class": "hunyuan",
+"value": 1.2898367578562084e-09
+},
+{
+"class": "recraft",
+"value": 3.6793888427342385e-13
+},
+{
+"class": "leonardo",
+"value": 2.3805916995744453e-12
+},
+{
+"class": "luminagpt",
+"value": 2.3845337940476848e-14
+},
+{
+"class": "var",
+"value": 6.927916807583979e-13
+},
+{
+"class": "liveportrait",
+"value": 9.778546632557664e-12
+},
+{
+"class": "mcnet",
+"value": 1.2622325385403006e-10
+},
+{
+"class": "pyramidflows",
+"value": 3.102309361762331e-11
+},
+{
+"class": "sadtalker",
+"value": 3.694892560778128e-11
+},
+{
+"class": "aniportrait",
+"value": 7.189837265624138e-13
+},
+{
+"class": "cogvideos",
+"value": 3.039335715969833e-11
+},
+{
+"class": "makeittalk",
+"value": 2.1381205490721034e-12
+},
+{
+"class": "sdxlinpaint",
+"value": 1.7346289659397854e-13
+},
+{
+"class": "stablediffusioninpaint",
+"value": 1.5206028720186289e-12
+},
+{
+"class": "other_image_generators",
+"value": 5.2839393897425775e-09
+},
+{
+"class": "bingimagecreator",
+"value": 1.2396834168707333e-13
+},
+{
+"class": "adobefirefly",
+"value": 7.730957531556724e-11
+},
+{
+"class": "lcm",
+"value": 1.0603574179608813e-13
+},
+{
+"class": "dalle",
+"value": 1.5829579658260096e-11
+},
+{
+"class": "pixart",
+"value": 3.8259590315138225e-13
+},
+{
+"class": "glide",
+"value": 1.5966936262853537e-12
+},
+{
+"class": "stablediffusion",
+"value": 1.2622325385403006e-10
+},
+{
+"class": "imagen",
+"value": 1.8887283228386296e-12
+},
+{
+"class": "amused",
+"value": 3.147617901623356e-12
+},
+{
+"class": "stablecascade",
+"value": 8.389369872290415e-13
+},
+{
+"class": "midjourney",
+"value": 9.657547123813794e-12
+},
+{
+"class": "deepfloyd",
+"value": 2.7561463251590186e-12
+},
+{
+"class": "gan",
+"value": 1.507296758127447e-12
+},
+{
+"class": "stablediffusionxl",
+"value": 1.1717683019828033e-11
+},
+{
+"class": "vqdiffusion",
+"value": 7.373628221339837e-14
+},
+{
+"class": "kandinsky",
+"value": 1.4693679413151294e-11
+},
+{
+"class": "wuerstchen",
+"value": 1.6168519824715038e-13
+},
+{
+"class": "titan",
+"value": 8.74061923675419e-13
+},
+{
+"class": "ideogram",
+"value": 1.8798090960972942e-11
+},
+{
+"class": "sana",
+"value": 2.89363150102695e-13
+},
+{
+"class": "emu3",
+"value": 1.0770556175766601e-13
+},
+{
+"class": "omnigen",
+"value": 3.356671265244357e-13
+},
+{
+"class": "cosmos",
+"value": 3.464774787242552e-10
+},
+{
+"class": "dmd2",
+"value": 2.771929194924349e-13
+},
+{
+"class": "flashvideo",
+"value": 5.688478537632422e-12
+},
+{
+"class": "janus",
+"value": 3.9777740584318195e-14
+},
+{
+"class": "switti",
+"value": 1.1921918909706845e-13
+},
+{
+"class": "transpixar",
+"value": 2.4255372337812403e-11
+},
+{
+"class": "4o",
+"value": 4.827749031708428e-12
+},
+{
+"class": "grok",
+"value": 5.581177922294845e-12
+},
+{
+"class": "wan",
+"value": 7.01272081457644e-10
+},
+{
+"class": "infinity",
+"value": 3.048954719700846e-16
+},
+{
+"class": "veo3",
+"value": 5.1870112476665764e-12
+},
+{
+"class": "imagen4",
+"value": 6.899877315196881e-14
+},
+{
+"class": "krea",
+"value": 2.22329358891807e-12
+},
+{
+"class": "moonvalley",
+"value": 7.202818307564982e-14
+},
+{
+"class": "higgsfield",
+"value": 4.5447954769989937e-11
+},
+{
+"class": "gemini",
+"value": 1.2274528039648542e-14
+},
+{
+"class": "reve",
+"value": 7.14017825642568e-12
+},
+{
+"class": "heygen",
+"value": 1.908841785393696e-13
+},
+{
+"class": "sora2",
+"value": 8.672599198210068e-13
+},
+{
+"class": "seedream",
+"value": 1.3885868426798674e-12
+},
+{
+"class": "seedance",
+"value": 5.272842068181462e-10
+},
+{
+"class": "grokimagine",
+"value": 8.672599198210068e-13
+},
+{
+"class": "gemini3",
+"value": 4.310694681158434e-12
+},
+{
+"class": "mai",
+"value": 1.0178979780196373e-12
+},
+{
+"class": "lucid",
+"value": 2.629540623452943e-13
+},
+{
+"class": "sanavideo",
+"value": 3.0457323584894e-10
+},
+{
+"class": "flux2",
+"value": 1.7216439204207932e-11
+},
+{
+"class": "qwen",
+"value": 1.9066168396029653e-11
+},
+{
+"class": "zimage",
+"value": 8.192252690263043e-12
+},
+{
+"class": "viduq2",
+"value": 7.762374340138759e-10
+},
+{
+"class": "bria",
+"value": 4.980254718615249e-13
+},
+{
+"class": "blip3o",
+"value": 4.3858288661942066e-14
+},
+{
+"class": "pixverse",
+"value": 2.106314543204087e-11
+},
+{
+"class": "ovis",
+"value": 3.044368644770847e-13
+},
+{
+"class": "longcat",
+"value": 2.2066505090312176e-10
+},
+{
+"class": "cogview",
+"value": 5.545034890594517e-13
+},
+{
+"class": "bagel",
+"value": 2.7773484096123073e-13
+},
+{
+"class": "ray3",
+"value": 3.901419311845736e-13
+},
+{
+"class": "gptimage1_5",
+"value": 7.352457542962718e-12
+},
+{
+"class": "hidream",
+"value": 1.8022371558574256e-12
+},
+{
+"class": "steadydancer",
+"value": 2.4847412715330225e-13
+},
+{
+"class": "ltx",
+"value": 0.9999998291222664
+},
+{
+"class": "personalive",
+"value": 1.4837067806287016e-13
+},
+{
+"class": "dreamid",
+"value": 2.417719614948349e-13
+},
+{
+"class": "scail",
+"value": 1.4127895173049492e-14
+},
+{
+"class": "meta",
+"value": 3.0997439430475935e-10
+},
+{
+"class": "vibe",
+"value": 1.2554369805083864e-11
+},
+{
+"class": "imagineart",
+"value": 2.5728808490157765e-15
+},
+{
+"class": "seedance2",
+"value": 1.3180446638152466e-08
+},
+{
+"class": "ernie",
+"value": 3.504569961356188e-12
+},
+{
+"class": "gptimage2",
+"value": 4.0317661831637586e-12
+},
+{
+"class": "happyhorse",
+"value": 1.3896236847329685e-07
+},
+{
+"class": "minimax",
+"value": 1.473039813648425e-09
+},
+{
+"class": "flux3",
+"value": 1.912002694781826e-15
+},
+{
+"class": "none",
+"value": 2.6822043552581107e-11
+},
+{
+"class": "inconclusive",
+"value": 0.0
+},
+{
+"class": "inconclusive_video",
+"value": 0.0
+},
+{
+"class": "deepfake",
+"value": 0.0
+},
+{
+"class": "not_ai_generated_audio",
+"value": 0.9999190256106052
+},
+{
+"class": "ai_generated_audio",
+"value": 8.097438939491663e-05
+}
+]
+},
+{
+"extra": [
+{
+"name": "frame_index",
+"value": 3
+},
+{
+"name": "timestamp",
+"value": 3.0
+}
+],
+"classes": [
+{
+"class": "not_ai_generated",
+"value": 4.0586521248284266e-10
+},
+{
+"class": "ai_generated",
+"value": 0.9999999995941348
+},
+{
+"class": "sora",
+"value": 6.8646882229748915e-09
+},
+{
+"class": "pika",
+"value": 3.397252642769177e-11
+},
+{
+"class": "haiper",
+"value": 2.1529606893961002e-18
+},
+{
+"class": "kling",
+"value": 3.345581843652343e-09
+},
+{
+"class": "luma",
+"value": 4.588710403376989e-12
+},
+{
+"class": "hedra",
+"value": 9.268066156613805e-13
+},
+{
+"class": "runway",
+"value": 2.437045699255701e-12
+},
+{
+"class": "hailuo",
+"value": 4.657117740843605e-11
+},
+{
+"class": "mochi",
+"value": 5.220820423159533e-11
+},
+{
+"class": "flux",
+"value": 3.642940836178591e-11
+},
+{
+"class": "hallo",
+"value": 2.1888245218774277e-12
+},
+{
+"class": "hunyuan",
+"value": 1.7257824291297822e-08
+},
+{
+"class": "recraft",
+"value": 1.4213039781641133e-13
+},
+{
+"class": "leonardo",
+"value": 2.4972761283548432e-12
+},
+{
+"class": "luminagpt",
+"value": 1.76512646206648e-14
+},
+{
+"class": "var",
+"value": 1.1399916088557463e-12
+},
+{
+"class": "liveportrait",
+"value": 1.3581968530591495e-11
+},
+{
+"class": "mcnet",
+"value": 1.0484732839087628e-10
+},
+{
+"class": "pyramidflows",
+"value": 3.203914388746062e-11
+},
+{
+"class": "sadtalker",
+"value": 9.003167264744257e-11
+},
+{
+"class": "aniportrait",
+"value": 8.538142640304371e-13
+},
+{
+"class": "cogvideos",
+"value": 4.790894124053268e-11
+},
+{
+"class": "makeittalk",
+"value": 3.3769009213643457e-12
+},
+{
+"class": "sdxlinpaint",
+"value": 1.567106608746484e-13
+},
+{
+"class": "stablediffusioninpaint",
+"value": 1.1333315016102618e-12
+},
+{
+"class": "other_image_generators",
+"value": 9.273602031290972e-09
+},
+{
+"class": "bingimagecreator",
+"value": 2.6866457829387773e-13
+},
+{
+"class": "adobefirefly",
+"value": 2.4907141229861325e-10
+},
+{
+"class": "lcm",
+"value": 8.32284037430253e-14
+},
+{
+"class": "dalle",
+"value": 3.1114113505993495e-11
+},
+{
+"class": "pixart",
+"value": 1.0099765893533454e-12
+},
+{
+"class": "glide",
+"value": 1.7934585414601672e-12
+},
+{
+"class": "stablediffusion",
+"value": 1.4756992802291267e-10
+},
+{
+"class": "imagen",
+"value": 1.4326652586056693e-12
+},
+{
+"class": "amused",
+"value": 2.7134161194276394e-12
+},
+{
+"class": "stablecascade",
+"value": 3.2725160382953797e-13
+},
+{
+"class": "midjourney",
+"value": 2.3348953187195518e-11
+},
+{
+"class": "deepfloyd",
+"value": 3.730595143128065e-12
+},
+{
+"class": "gan",
+"value": 2.5589951239550466e-12
+},
+{
+"class": "stablediffusionxl",
+"value": 2.8412841663724835e-11
+},
+{
+"class": "vqdiffusion",
+"value": 1.0480038344521097e-13
+},
+{
+"class": "kandinsky",
+"value": 4.9237026014013285e-11
+},
+{
+"class": "wuerstchen",
+"value": 1.1510070383643746e-13
+},
+{
+"class": "titan",
+"value": 3.730595143128065e-12
+},
+{
+"class": "ideogram",
+"value": 1.4388385121816336e-11
+},
+{
+"class": "sana",
+"value": 3.134878350677952e-13
+},
+{
+"class": "emu3",
+"value": 7.788103193277078e-14
+},
+{
+"class": "omnigen",
+"value": 3.2917472232987517e-13
+},
+{
+"class": "cosmos",
+"value": 2.1221149636239175e-10
+},
+{
+"class": "dmd2",
+"value": 1.0812710472297453e-13
+},
+{
+"class": "flashvideo",
+"value": 3.349486004197851e-11
+},
+{
+"class": "janus",
+"value": 3.6788394577995816e-14
+},
+{
+"class": "switti",
+"value": 4.705307315592266e-14
+},
+{
+"class": "transpixar",
+"value": 2.9790945214495465e-11
+},
+{
+"class": "4o",
+"value": 6.278151495032294e-12
+},
+{
+"class": "grok",
+"value": 2.9453853331713808e-12
+},
+{
+"class": "wan",
+"value": 1.1206295467961884e-09
+},
+{
+"class": "infinity",
+"value": 5.026876281986232e-16
+},
+{
+"class": "veo3",
+"value": 1.6689235549726767e-10
+},
+{
+"class": "imagen4",
+"value": 9.504982052430329e-14
+},
+{
+"class": "krea",
+"value": 1.2817270184859354e-12
+},
+{
+"class": "moonvalley",
+"value": 1.0814324735893816e-12
+},
+{
+"class": "higgsfield",
+"value": 1.9511693133653408e-10
+},
+{
+"class": "gemini",
+"value": 1.8570767056079413e-14
+},
+{
+"class": "reve",
+"value": 1.1569863162660707e-11
+},
+{
+"class": "heygen",
+"value": 3.833438743857027e-13
+},
+{
+"class": "sora2",
+"value": 6.345008842107274e-13
+},
+{
+"class": "seedream",
+"value": 1.2158872129408669e-12
+},
+{
+"class": "seedance",
+"value": 2.0209851503869795e-10
+},
+{
+"class": "grokimagine",
+"value": 5.59945065003154e-13
+},
+{
+"class": "gemini3",
+"value": 8.300970736980894e-12
+},
+{
+"class": "mai",
+"value": 1.3724092564908489e-12
+},
+{
+"class": "lucid",
+"value": 2.96225186623525e-13
+},
+{
+"class": "sanavideo",
+"value": 2.5004625024369596e-10
+},
+{
+"class": "flux2",
+"value": 6.928950797908436e-12
+},
+{
+"class": "qwen",
+"value": 3.48631730278556e-11
+},
+{
+"class": "zimage",
+"value": 5.6552448224550266e-12
+},
+{
+"class": "viduq2",
+"value": 1.14720451066287e-09
+},
+{
+"class": "bria",
+"value": 3.2917472232987517e-13
+},
+{
+"class": "blip3o",
+"value": 2.1796402444792254e-14
+},
+{
+"class": "pixverse",
+"value": 2.876180367161104e-11
+},
+{
+"class": "ovis",
+"value": 4.642107634690317e-13
+},
+{
+"class": "longcat",
+"value": 2.3261396494210495e-10
+},
+{
+"class": "cogview",
+"value": 5.395466801044909e-13
+},
+{
+"class": "bagel",
+"value": 8.195029973469836e-13
+},
+{
+"class": "ray3",
+"value": 5.995612008276718e-13
+},
+{
+"class": "gptimage1_5",
+"value": 9.881742577775707e-12
+},
+{
+"class": "hidream",
+"value": 4.0812835181536246e-12
+},
+{
+"class": "steadydancer",
+"value": 3.986145583057137e-13
+},
+{
+"class": "ltx",
+"value": 0.9999997857979348
+},
+{
+"class": "personalive",
+"value": 4.854669803119621e-14
+},
+{
+"class": "dreamid",
+"value": 4.2184399083045344e-13
+},
+{
+"class": "scail",
+"value": 5.810278984600679e-14
+},
+{
+"class": "meta",
+"value": 7.792755076692912e-10
+},
+{
+"class": "vibe",
+"value": 7.737355512943397e-12
+},
+{
+"class": "imagineart",
+"value": 9.157355450349191e-15
+},
+{
+"class": "seedance2",
+"value": 9.910334709980333e-09
+},
+{
+"class": "ernie",
+"value": 5.227693254606601e-12
+},
+{
+"class": "gptimage2",
+"value": 2.180291103771881e-12
+},
+{
+"class": "happyhorse",
+"value": 1.5994469876084166e-07
+},
+{
+"class": "minimax",
+"value": 1.9977381643090248e-09
+},
+{
+"class": "flux3",
+"value": 4.998254146243988e-15
+},
+{
+"class": "none",
+"value": 5.4182014995434784e-11
+},
+{
+"class": "inconclusive",
+"value": 0.0
+},
+{
+"class": "inconclusive_video",
+"value": 0.0
+},
+{
+"class": "deepfake",
+"value": 0.0
+},
+{
+"class": "not_ai_generated_audio",
+"value": 0.9999190256106052
+},
+{
+"class": "ai_generated_audio",
+"value": 8.097438939491663e-05
+}
+]
+},
+{
+"extra": [
+{
+"name": "frame_index",
+"value": 4
+},
+{
+"name": "timestamp",
+"value": 4.0
+}
+],
+"classes": [
+{
+"class": "not_ai_generated",
+"value": 3.160881453314576e-10
+},
+{
+"class": "ai_generated",
+"value": 0.999999999683912
+},
+{
+"class": "sora",
+"value": 1.2047902920606715e-08
+},
+{
+"class": "pika",
+"value": 4.404966587789659e-11
+},
+{
+"class": "haiper",
+"value": 2.8745796367447124e-18
+},
+{
+"class": "kling",
+"value": 1.0385941505011905e-08
+},
+{
+"class": "luma",
+"value": 2.8132522678761704e-12
+},
+{
+"class": "hedra",
+"value": 8.179039598968535e-13
+},
+{
+"class": "runway",
+"value": 1.694699209035321e-12
+},
+{
+"class": "hailuo",
+"value": 2.0034904359660416e-11
+},
+{
+"class": "mochi",
+"value": 6.815886325523777e-11
+},
+{
+"class": "flux",
+"value": 3.4863172698823415e-11
+},
+{
+"class": "hallo",
+"value": 2.262720311927075e-12
+},
+{
+"class": "hunyuan",
+"value": 9.910334616448423e-09
+},
+{
+"class": "recraft",
+"value": 1.9887618024962898e-13
+},
+{
+"class": "leonardo",
+"value": 1.4810327408333177e-12
+},
+{
+"class": "luminagpt",
+"value": 2.007978668019396e-14
+},
+{
+"class": "var",
+"value": 6.95503154035168e-13
+},
+{
+"class": "liveportrait",
+"value": 1.808898372228869e-11
+},
+{
+"class": "mcnet",
+"value": 1.1673742036786944e-10
+},
+{
+"class": "pyramidflows",
+"value": 2.1130101319346827e-11
+},
+{
+"class": "sadtalker",
+"value": 6.762844677327387e-11
+},
+{
+"class": "aniportrait",
+"value": 1.0278870292706714e-12
+},
+{
+"class": "cogvideos",
+"value": 2.8649671755332105e-11
+},
+{
+"class": "makeittalk",
+"value": 2.4899705728858395e-12
+},
+{
+"class": "sdxlinpaint",
+"value": 2.1503642261055387e-13
+},
+{
+"class": "stablediffusioninpaint",
+"value": 3.187832455430623e-12
+},
+{
+"class": "other_image_generators",
+"value": 4.067193131698764e-09
+},
+{
+"class": "bingimagecreator",
+"value": 2.380236221008342e-13
+},
+{
+"class": "adobefirefly",
+"value": 2.409372478665064e-10
+},
+{
+"class": "lcm",
+"value": 7.667359772448601e-14
+},
+{
+"class": "dalle",
+"value": 2.209555287808119e-11
+},
+{
+"class": "pixart",
+"value": 1.2742388466030794e-12
+},
+{
+"class": "glide",
+"value": 1.825262874144358e-12
+},
+{
+"class": "stablediffusion",
+"value": 1.309953095094358e-10
+},
+{
+"class": "imagen",
+"value": 1.4897361403894134e-12
+},
+{
+"class": "amused",
+"value": 2.1256290185176767e-12
+},
+{
+"class": "stablecascade",
+"value": 3.8409332091203023e-13
+},
+{
+"class": "midjourney",
+"value": 2.2127943128153303e-11
+},
+{
+"class": "deepfloyd",
+"value": 4.378578013780276e-12
+},
+{
+"class": "gan",
+"value": 1.7760295221937209e-12
+},
+{
+"class": "stablediffusionxl",
+"value": 2.0575217108041608e-11
+},
+{
+"class": "vqdiffusion",
+"value": 7.40248739564908e-14
+},
+{
+"class": "kandinsky",
+"value": 4.7443357096481893e-11
+},
+{
+"class": "wuerstchen",
+"value": 8.420947303474291e-14
+},
+{
+"class": "titan",
+"value": 3.5667181678822144e-12
+},
+{
+"class": "ideogram",
+"value": 2.2536850098507848e-11
+},
+{
+"class": "sana",
+"value": 4.218439868491678e-13
+},
+{
+"class": "emu3",
+"value": 1.350930325734249e-13
+},
+{
+"class": "omnigen",
+"value": 3.6793886486017595e-13
+},
+{
+"class": "cosmos",
+"value": 4.440177958128751e-10
+},
+{
+"class": "dmd2",
+"value": 1.340417302533276e-13
+},
+{
+"class": "flashvideo",
+"value": 4.894937091392097e-11
+},
+{
+"class": "janus",
+"value": 2.876296641387283e-14
+},
+{
+"class": "switti",
+"value": 4.9118950681862793e-14
+},
+{
+"class": "transpixar",
+"value": 3.137345955941241e-11
+},
+{
+"class": "4o",
+"value": 6.102846290107229e-12
+},
+{
+"class": "grok",
+"value": 5.486606578162672e-12
+},
+{
+"class": "wan",
+"value": 8.72747160340999e-10
+},
+{
+"class": "infinity",
+"value": 5.351081897337433e-16
+},
+{
+"class": "veo3",
+"value": 1.5616962672117715e-10
+},
+{
+"class": "imagen4",
+"value": 8.003997291088675e-14
+},
+{
+"class": "krea",
+"value": 1.1715933293002264e-12
+},
+{
+"class": "moonvalley",
+"value": 7.175807940706176e-13
+},
+{
+"class": "higgsfield",
+"value": 1.1237496763565188e-10
+},
+{
+"class": "gemini",
+"value": 1.6452787590940843e-14
+},
+{
+"class": "reve",
+"value": 1.9035935015343085e-11
+},
+{
+"class": "heygen",
+"value": 4.136847855535475e-13
+},
+{
+"class": "sora2",
+"value": 8.947896576524924e-13
+},
+{
+"class": "seedream",
+"value": 1.048160284352447e-12
+},
+{
+"class": "seedance",
+"value": 3.4044025317847407e-10
+},
+{
+"class": "grokimagine",
+"value": 7.106072749353868e-13
+},
+{
+"class": "gemini3",
+"value": 8.741923690082099e-12
+},
+{
+"class": "mai",
+"value": 1.4666399222915664e-12
+},
+{
+"class": "lucid",
+"value": 3.622345014906577e-13
+},
+{
+"class": "sanavideo",
+"value": 2.2856077353203103e-10
+},
+{
+"class": "flux2",
+"value": 1.1603808837620779e-11
+},
+{
+"class": "qwen",
+"value": 3.9776130095987414e-11
+},
+{
+"class": "zimage",
+"value": 5.475901007751511e-12
+},
+{
+"class": "viduq2",
+"value": 1.688848377643161e-09
+},
+{
+"class": "bria",
+"value": 5.501882796435607e-13
+},
+{
+"class": "blip3o",
+"value": 1.8140575529359724e-14
+},
+{
+"class": "pixverse",
+"value": 3.347850880613332e-11
+},
+{
+"class": "ovis",
+"value": 3.665044071685018e-13
+},
+{
+"class": "longcat",
+"value": 2.96937266411685e-10
+},
+{
+"class": "cogview",
+"value": 3.2789138861315597e-13
+},
+{
+"class": "bagel",
+"value": 6.382295700397019e-13
+},
+{
+"class": "ray3",
+"value": 1.1267102936916378e-12
+},
+{
+"class": "gptimage1_5",
+"value": 1.1569863053466482e-11
+},
+{
+"class": "hidream",
+"value": 3.936447649410356e-12
+},
+{
+"class": "steadydancer",
+"value": 2.916326380297477e-13
+},
+{
+"class": "ltx",
+"value": 0.9999997763601218
+},
+{
+"class": "personalive",
+"value": 5.3110248918468474e-14
+},
+{
+"class": "dreamid",
+"value": 3.159465476494258e-13
+},
+{
+"class": "scail",
+"value": 5.81027892976434e-14
+},
+{
+"class": "meta",
+"value": 1.2164318536579495e-09
+},
+{
+"class": "vibe",
+"value": 6.544202125936265e-12
+},
+{
+"class": "imagineart",
+"value": 1.18968798858341e-14
+},
+{
+"class": "seedance2",
+"value": 9.2014342008921e-09
+},
+{
+"class": "ernie",
+"value": 4.153659040525153e-12
+},
+{
+"class": "gptimage2",
+"value": 3.837756993989023e-12
+},
+{
+"class": "happyhorse",
+"value": 1.6762060353965062e-07
+},
+{
+"class": "minimax",
+"value": 3.79104085496397e-09
+},
+{
+"class": "flux3",
+"value": 5.489508204492787e-15
+},
+{
+"class": "none",
+"value": 4.6799131370345244e-11
+},
+{
+"class": "inconclusive",
+"value": 0.0
+},
+{
+"class": "inconclusive_video",
+"value": 0.0
+},
+{
+"class": "deepfake",
+"value": 0.0
+},
+{
+"class": "not_ai_generated_audio",
+"value": 0.9999190256106052
+},
+{
+"class": "ai_generated_audio",
+"value": 8.097438939491663e-05
+}
+]
+},
+{
+"extra": [
+{
+"name": "frame_index",
+"value": 5
+},
+{
+"name": "timestamp",
+"value": 5.0
+}
+],
+"classes": [
+{
+"class": "not_ai_generated",
+"value": 2.1724399346070676e-10
+},
+{
+"class": "ai_generated",
+"value": 0.999999999782756
+},
+{
+"class": "sora",
+"value": 1.1631704357677853e-08
+},
+{
+"class": "pika",
+"value": 1.639598779342915e-11
+},
+{
+"class": "haiper",
+"value": 8.766973799938578e-19
+},
+{
+"class": "kling",
+"value": 3.046187333852795e-09
+},
+{
+"class": "luma",
+"value": 7.942896451756906e-13
+},
+{
+"class": "hedra",
+"value": 3.9090470620647636e-13
+},
+{
+"class": "runway",
+"value": 9.562267414126982e-13
+},
+{
+"class": "hailuo",
+"value": 1.2503899609387608e-11
+},
+{
+"class": "mochi",
+"value": 5.124843575285135e-11
+},
+{
+"class": "flux",
+"value": 1.514900867251632e-11
+},
+{
+"class": "hallo",
+"value": 1.3275893557354545e-12
+},
+{
+"class": "hunyuan",
+"value": 6.653484844497541e-09
+},
+{
+"class": "recraft",
+"value": 5.4582526941062654e-14
+},
+{
+"class": "leonardo",
+"value": 1.0001616712245157e-12
+},
+{
+"class": "luminagpt",
+"value": 7.272417826683525e-15
+},
+{
+"class": "var",
+"value": 5.198914616222307e-13
+},
+{
+"class": "liveportrait",
+"value": 1.3599390008325888e-11
+},
+{
+"class": "mcnet",
+"value": 6.782687705654143e-11
+},
+{
+"class": "pyramidflows",
+"value": 1.466859088218319e-11
+},
+{
+"class": "sadtalker",
+"value": 3.666139001758431e-11
+},
+{
+"class": "aniportrait",
+"value": 7.713570082721238e-13
+},
+{
+"class": "cogvideos",
+"value": 1.8425505567410707e-11
+},
+{
+"class": "makeittalk",
+"value": 1.4242954681676585e-12
+},
+{
+"class": "sdxlinpaint",
+"value": 1.727866440731121e-13
+},
+{
+"class": "stablediffusioninpaint",
+"value": 1.711330320321948e-12
+},
+{
+"class": "other_image_generators",
+"value": 3.106267995528126e-09
+},
+{
+"class": "bingimagecreator",
+"value": 1.106912796658997e-13
+},
+{
+"class": "adobefirefly",
+"value": 1.4843715323974298e-10
+},
+{
+"class": "lcm",
+"value": 4.854670441172175e-14
+},
+{
+"class": "dalle",
+"value": 9.38329695881404e-12
+},
+{
+"class": "pixart",
+"value": 6.222286079674994e-13
+},
+{
+"class": "glide",
+"value": 1.042036824749333e-12
+},
+{
+"class": "stablediffusion",
+"value": 8.408282148529513e-11
+},
+{
+"class": "imagen",
+"value": 1.111411032137292e-12
+},
+{
+"class": "amused",
+"value": 1.1993770333948781e-12
+},
+{
+"class": "stablecascade",
+"value": 2.0923621145887474e-13
+},
+{
+"class": "midjourney",
+"value": 9.619896763326893e-12
+},
+{
+"class": "deepfloyd",
+"value": 3.038882299446435e-12
+},
+{
+"class": "gan",
+"value": 1.6946994477650508e-12
+},
+{
+"class": "stablediffusionxl",
+"value": 1.4252038361640431e-11
+},
+{
+"class": "vqdiffusion",
+"value": 3.4156872563528806e-14
+},
+{
+"class": "kandinsky",
+"value": 3.0452779876971487e-11
+},
+{
+"class": "wuerstchen",
+"value": 5.2491503171094874e-14
+},
+{
+"class": "titan",
+"value": 3.5045702701310053e-12
+},
+{
+"class": "ideogram",
+"value": 9.070212044612756e-12
+},
+{
+"class": "sana",
+"value": 3.2917476559353293e-13
+},
+{
+"class": "emu3",
+"value": 5.18799586356269e-14
+},
+{
+"class": "omnigen",
+"value": 1.284041308078751e-13
+},
+{
+"class": "cosmos",
+"value": 2.6826050263472273e-10
+},
+{
+"class": "dmd2",
+"value": 1.1025973526360248e-13
+},
+{
+"class": "flashvideo",
+"value": 1.9461212398670765e-11
+},
+{
+"class": "janus",
+"value": 1.7242375782304126e-14
+},
+{
+"class": "switti",
+"value": 2.7020310180767343e-14
+},
+{
+"class": "transpixar",
+"value": 2.6226313023547254e-11
+},
+{
+"class": "4o",
+"value": 2.791359758252645e-12
+},
+{
+"class": "grok",
+"value": 1.9735800113306705e-12
+},
+{
+"class": "wan",
+"value": 5.461512943047122e-10
+},
+{
+"class": "infinity",
+"value": 2.864228143970399e-16
+},
+{
+"class": "veo3",
+"value": 1.2721324631201335e-10
+},
+{
+"class": "imagen4",
+"value": 5.4582526941062654e-14
+},
+{
+"class": "krea",
+"value": 4.310051599781972e-13
+},
+{
+"class": "moonvalley",
+"value": 3.080254970383311e-13
+},
+{
+"class": "higgsfield",
+"value": 6.984338708647528e-11
+},
+{
+"class": "gemini",
+"value": 1.113251451596063e-14
+},
+{
+"class": "reve",
+"value": 5.957110131863193e-12
+},
+{
+"class": "heygen",
+"value": 1.7177718262517266e-13
+},
+{
+"class": "sora2",
+"value": 2.771929439148873e-13
+},
+{
+"class": "seedream",
+"value": 3.01478344325829e-13
+},
+{
+"class": "seedance",
+"value": 1.2896443364348355e-10
+},
+{
+"class": "grokimagine",
+"value": 5.322203323420027e-13
+},
+{
+"class": "gemini3",
+"value": 4.688363244448855e-12
+},
+{
+"class": "mai",
+"value": 5.44841573805373e-13
+},
+{
+"class": "lucid",
+"value": 1.5070718954207024e-13
+},
+{
+"class": "sanavideo",
+"value": 2.1429405447418743e-10
+},
+{
+"class": "flux2",
+"value": 7.502965758963711e-12
+},
+{
+"class": "qwen",
+"value": 2.1902207687872868e-11
+},
+{
+"class": "zimage",
+"value": 3.763528584510833e-12
+},
+{
+"class": "viduq2",
+"value": 7.292076496052567e-10
+},
+{
+"class": "bria",
+"value": 2.284584685997066e-13
+},
+{
+"class": "blip3o",
+"value": 9.786107835193222e-15
+},
+{
+"class": "pixverse",
+"value": 2.1945027239619775e-11
+},
+{
+"class": "ovis",
+"value": 2.8321269481506264e-13
+},
+{
+"class": "longcat",
+"value": 2.13458601131042e-10
+},
+{
+"class": "cogview",
+"value": 3.416197195059611e-13
+},
+{
+"class": "bagel",
+"value": 4.2932483010296943e-13
+},
+{
+"class": "ray3",
+"value": 4.66027694277248e-13
+},
+{
+"class": "gptimage1_5",
+"value": 4.88942994319308e-12
+},
+{
+"class": "hidream",
+"value": 4.766847074396973e-12
+},
+{
+"class": "steadydancer",
+"value": 1.421304164967062e-13
+},
+{
+"class": "ltx",
+"value": 0.9999999172285868
+},
+{
+"class": "personalive",
+"value": 2.7338817046853215e-14
+},
+{
+"class": "dreamid",
+"value": 8.193807771183188e-14
+},
+{
+"class": "scail",
+"value": 2.5782960091043332e-14
+},
+{
+"class": "meta",
+"value": 3.391130501841704e-10
+},
+{
+"class": "vibe",
+"value": 3.730595633442721e-12
+},
+{
+"class": "imagineart",
+"value": 3.72892527510361e-15
+},
+{
+"class": "seedance2",
+"value": 1.989949982851383e-09
+},
+{
+"class": "ernie",
+"value": 2.5690110853344072e-12
+},
+{
+"class": "gptimage2",
+"value": 1.178478451045308e-12
+},
+{
+"class": "happyhorse",
+"value": 5.152235309469605e-08
+},
+{
+"class": "minimax",
+"value": 1.444548771839184e-09
+},
+{
+"class": "flux3",
+"value": 1.926998887556786e-15
+},
+{
+"class": "none",
+"value": 2.7999675145378463e-11
+},
+{
+"class": "inconclusive",
+"value": 0.0
+},
+{
+"class": "inconclusive_video",
+"value": 0.0
+},
+{
+"class": "deepfake",
+"value": 0.0
+},
+{
+"class": "not_ai_generated_audio",
+"value": 0.9999190256106052
+},
+{
+"class": "ai_generated_audio",
+"value": 8.097438939491663e-05
+}
+]
+},
+{
+"extra": [
+{
+"name": "frame_index",
+"value": 6
+},
+{
+"name": "timestamp",
+"value": 6.0
+}
+],
+"classes": [
+{
+"class": "not_ai_generated",
+"value": 2.4616969512093895e-10
+},
+{
+"class": "ai_generated",
+"value": 0.9999999997538302
+},
+{
+"class": "sora",
+"value": 1.2976101514306872e-08
+},
+{
+"class": "pika",
+"value": 1.6236647026968657e-11
+},
+{
+"class": "haiper",
+"value": 4.66590310650179e-18
+},
+{
+"class": "kling",
+"value": 1.7945296920042712e-08
+},
+{
+"class": "luma",
+"value": 8.661196532977143e-12
+},
+{
+"class": "hedra",
+"value": 1.5340263031333149e-12
+},
+{
+"class": "runway",
+"value": 1.570404688562163e-12
+},
+{
+"class": "hailuo",
+"value": 2.6399757748984136e-11
+},
+{
+"class": "mochi",
+"value": 7.066666585798724e-11
+},
+{
+"class": "flux",
+"value": 7.101256172246426e-11
+},
+{
+"class": "hallo",
+"value": 8.784712870668191e-12
+},
+{
+"class": "hunyuan",
+"value": 1.6726855985303567e-08
+},
+{
+"class": "recraft",
+"value": 2.361712974869222e-13
+},
+{
+"class": "leonardo",
+"value": 3.225409477839077e-12
+},
+{
+"class": "luminagpt",
+"value": 4.5074080905468117e-14
+},
+{
+"class": "var",
+"value": 2.3666834799551477e-12
+},
+{
+"class": "liveportrait",
+"value": 3.6163564251205017e-11
+},
+{
+"class": "mcnet",
+"value": 1.5166070920742594e-10
+},
+{
+"class": "pyramidflows",
+"value": 5.68654993152145e-11
+},
+{
+"class": "sadtalker",
+"value": 6.465767323644289e-11
+},
+{
+"class": "aniportrait",
+"value": 2.176036765063569e-12
+},
+{
+"class": "cogvideos",
+"value": 7.184963532878615e-11
+},
+{
+"class": "makeittalk",
+"value": 4.473666638987047e-12
+},
+{
+"class": "sdxlinpaint",
+"value": 2.6761714040609116e-13
+},
+{
+"class": "stablediffusioninpaint",
+"value": 3.982849078469028e-12
+},
+{
+"class": "other_image_generators",
+"value": 1.2478994871786843e-08
+},
+{
+"class": "bingimagecreator",
+"value": 2.504229099728494e-13
+},
+{
+"class": "adobefirefly",
+"value": 1.297222789567016e-10
+},
+{
+"class": "lcm",
+"value": 1.988761717519843e-13
+},
+{
+"class": "dalle",
+"value": 3.463411603813386e-11
+},
+{
+"class": "pixart",
+"value": 1.800477845800385e-12
+},
+{
+"class": "glide",
+"value": 2.5094995469034784e-12
+},
+{
+"class": "stablediffusion",
+"value": 2.767759542705851e-10
+},
+{
+"class": "imagen",
+"value": 2.939638088313973e-12
+},
+{
+"class": "amused",
+"value": 3.8340108499933234e-12
+},
+{
+"class": "stablecascade",
+"value": 2.201687197863609e-12
+},
+{
+"class": "midjourney",
+"value": 2.1721150745105195e-11
+},
+{
+"class": "deepfloyd",
+"value": 3.940293545861535e-12
+},
+{
+"class": "gan",
+"value": 3.545880384474378e-12
+},
+{
+"class": "stablediffusionxl",
+"value": 2.6341814150824694e-11
+},
+{
+"class": "vqdiffusion",
+"value": 2.334198185296185e-13
+},
+{
+"class": "kandinsky",
+"value": 6.006193731189836e-11
+},
+{
+"class": "wuerstchen",
+"value": 3.559227199669343e-13
+},
+{
+"class": "titan",
+"value": 4.161779405649109e-12
+},
+{
+"class": "ideogram",
+"value": 2.0630546198903113e-11
+},
+{
+"class": "sana",
+"value": 6.70166459500251e-13
+},
+{
+"class": "emu3",
+"value": 1.4380577846824136e-13
+},
+{
+"class": "omnigen",
+"value": 2.7289541554451524e-13
+},
+{
+"class": "cosmos",
+"value": 2.3125496572336644e-10
+},
+{
+"class": "dmd2",
+"value": 5.437783687971504e-13
+},
+{
+"class": "flashvideo",
+"value": 1.1435069577447796e-11
+},
+{
+"class": "janus",
+"value": 7.287722154601838e-14
+},
+{
+"class": "switti",
+"value": 1.721129811879762e-13
+},
+{
+"class": "transpixar",
+"value": 2.6351462577852248e-11
+},
+{
+"class": "4o",
+"value": 8.522754609488525e-12
+},
+{
+"class": "grok",
+"value": 2.2020158946786395e-11
+},
+{
+"class": "wan",
+"value": 1.235587815210325e-09
+},
+{
+"class": "infinity",
+"value": 1.1871893569320608e-15
+},
+{
+"class": "veo3",
+"value": 6.970709455207316e-11
+},
+{
+"class": "imagen4",
+"value": 1.920059053416322e-13
+},
+{
+"class": "krea",
+"value": 2.125628927693123e-12
+},
+{
+"class": "moonvalley",
+"value": 2.837663330482274e-13
+},
+{
+"class": "higgsfield",
+"value": 1.5847409826239839e-10
+},
+{
+"class": "gemini",
+"value": 1.7309857355011456e-14
+},
+{
+"class": "reve",
+"value": 6.2597850631364835e-12
+},
+{
+"class": "heygen",
+"value": 2.997617254424063e-12
+},
+{
+"class": "sora2",
+"value": 3.8004611402243856e-12
+},
+{
+"class": "seedream",
+"value": 3.5876781003858026e-12
+},
+{
+"class": "seedance",
+"value": 1.5927356470995483e-09
+},
+{
+"class": "grokimagine",
+"value": 3.314821122196895e-12
+},
+{
+"class": "gemini3",
+"value": 7.565504052467495e-12
+},
+{
+"class": "mai",
+"value": 6.457527906576057e-13
+},
+{
+"class": "lucid",
+"value": 5.811146116302213e-13
+},
+{
+"class": "sanavideo",
+"value": 6.385154353415835e-10
+},
+{
+"class": "flux2",
+"value": 2.0375264299763463e-11
+},
+{
+"class": "qwen",
+"value": 2.9566326157839735e-11
+},
+{
+"class": "zimage",
+"value": 8.556111727887953e-12
+},
+{
+"class": "viduq2",
+"value": 2.290417970036808e-09
+},
+{
+"class": "bria",
+"value": 5.523416320847112e-13
+},
+{
+"class": "blip3o",
+"value": 5.2903189420120864e-14
+},
+{
+"class": "pixverse",
+"value": 1.0796446007200523e-10
+},
+{
+"class": "ovis",
+"value": 1.5310330820290118e-12
+},
+{
+"class": "longcat",
+"value": 4.93406486015096e-10
+},
+{
+"class": "cogview",
+"value": 9.580960209093898e-13
+},
+{
+"class": "bagel",
+"value": 5.545034361096534e-13
+},
+{
+"class": "ray3",
+"value": 1.6361549960590718e-12
+},
+{
+"class": "gptimage1_5",
+"value": 1.0032456999807858e-11
+},
+{
+"class": "hidream",
+"value": 3.932605170652758e-12
+},
+{
+"class": "steadydancer",
+"value": 6.780661696569175e-13
+},
+{
+"class": "ltx",
+"value": 0.999999733631813
+},
+{
+"class": "personalive",
+"value": 2.059922668542467e-13
+},
+{
+"class": "dreamid",
+"value": 1.6946991366236738e-12
+},
+{
+"class": "scail",
+"value": 1.3404172452594984e-13
+},
+{
+"class": "meta",
+"value": 1.0084573838749098e-09
+},
+{
+"class": "vibe",
+"value": 1.5020110305022074e-11
+},
+{
+"class": "imagineart",
+"value": 5.7081851073216976e-15
+},
+{
+"class": "seedance2",
+"value": 1.3598837628248004e-08
+},
+{
+"class": "ernie",
+"value": 6.192901161155292e-12
+},
+{
+"class": "gptimage2",
+"value": 2.750768217706633e-12
+},
+{
+"class": "happyhorse",
+"value": 1.637376694445635e-07
+},
+{
+"class": "minimax",
+"value": 1.9632214630165552e-08
+},
+{
+"class": "flux3",
+"value": 1.1621288463548511e-14
+},
+{
+"class": "none",
+"value": 4.097868688863576e-11
+},
+{
+"class": "inconclusive",
+"value": 0.0
+},
+{
+"class": "inconclusive_video",
+"value": 0.0
+},
+{
+"class": "deepfake",
+"value": 0.0
+}
+]
+}
+]
+}

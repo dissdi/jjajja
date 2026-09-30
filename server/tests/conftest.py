@@ -1,5 +1,9 @@
+import os
 import sys
 from pathlib import Path
+
+# never load server/.env (real API keys) during tests; Settings.from_env honours this
+os.environ["JJAJJA_ENV_FILE"] = ""
 
 import pytest
 

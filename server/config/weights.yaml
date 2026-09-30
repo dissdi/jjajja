@@ -1,6 +1,6 @@
 # Ensemble config. Tuned from detection-qa results (eval/dataset.csv); keep code free of constants.
 # Changing this file changes the cache version -> old cached verdicts are ignored.
-version: 2   # 2026-09-28 LOO calibration on eval/dataset.csv (_workspace/05_calibration_report.md)
+version: 3   # 2026-09-30 Hive LOO eval (_workspace/06_hive_report.md). v2: 05_calibration_report.md
 
 # verdict bands (must equal the table in .claude/skills/detect-api-contract/SKILL.md)
 thresholds:
@@ -16,6 +16,11 @@ ensemble:
   strong_signals:
     - yt_creator_ai_disclosure
     - yt_c2pa_ai_label
+    # v3: Hive (score >= 0.5) may lift p above the cap -> likely_ai from the video alone.
+    # Evidence (06_hive_report): raw AUC 1.00 (mean) / 0.97 (top25) on 22 labelled shorts, all 8
+    # real <= 0.30 (top25); nested-LOO FPR real->likely_ai 0/8. Hive is NOT a strong NEGATIVE
+    # signal: releasing the 0.40 floor would tell 2-4/14 AI shorts "AI 흔적 없음" (upload path).
+    - hive
   # Symmetric guard: unless a *strong negative* signal (camera C2PA record, decisive negative,
   # or a calibrated model) points to real, p is floored here, so uncalibrated models alone can
   # never produce likely_real. Reason: LOO on the eval set (n=22) put both models at chance
@@ -62,3 +67,20 @@ detectors:
     frames: 16
     aggregate: mean        # mean | top25 (mean of top 25% frames)
     calibration: null      # null = use raw probability
+  hive:
+    # Hive AI-generated & deepfake detection API (commercial, detectors/hive.py). Opt-in:
+    # JJAJJA_DETECTORS=d3,commfor_224,hive + HIVE_API_KEY. Without a key -> "down"/unavailable.
+    # v3 (06_hive_report): weight 1.0 + strong positive (ensemble.strong_signals) + top25.
+    # weight 1.0 with `mean` diluted a creator-disclosure rule below 0.75 (4oES_mh1MyM); top25 fixes
+    # that and was the policy picked in 20/22 nested-LOO folds (upload path). Raw prob, no Platt
+    # (vendor-calibrated; Platt LOO a=3.0,b=0.20 squeezes everything to 0.38-0.91 -> not adopted).
+    # calibrated stays false: that would also make Hive a strong NEGATIVE signal (floor release).
+    weight: 1.0
+    calibrated: false
+    aggregate: top25       # mean | top25 over per-second `ai_generated`
+    calibration: null      # null = raw probability
+    max_seconds: 20        # cost control: only the first 20 s are sent (~$6 / 1000 frames, 1 fps)
+    timeout_s: 25          # < URL budget 40 s (contract v1.2); budget cut still applies
+    retries: 0             # no retry: 429/5xx/timeout -> unavailable (a retry would cost frames)
+    max_upload_mb: 8       # stream-copied clip larger than this is re-encoded to 360p
+    usd_per_1000_frames: 6.0
