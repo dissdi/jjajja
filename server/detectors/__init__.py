@@ -59,8 +59,11 @@ class Handle:
 
 
 class Registry:
-    def __init__(self, ids: list[str], det_cfg: dict, device: str = "cpu"):
+    def __init__(self, ids: list[str], det_cfg: dict, device: str = "cpu", debug: bool = False):
         self.device = device
+        # dev mode (JJAJJA_DEBUG): signals also carry an internal `debug` {reason, raw}; the
+        # pipeline redacts/strips it (app/debug.py). Off -> signals are exactly the contract keys.
+        self.debug = debug
         self.handles: list[Handle] = []
         for i in ids:
             cfg = dict(det_cfg.get(i, {}) or {})
@@ -88,18 +91,40 @@ class Registry:
     def version_tag(self) -> str:
         return ",".join(f"{h.id}={h.version if h.ok else 'down'}" for h in self.handles)
 
-    @staticmethod
-    def _signal(h: Handle, r: DetectorResult) -> dict:
-        return {"id": h.id, "kind": "model", "status": r.status, "decisive": False,
-                "score": None if r.score is None else round(float(r.score), 4),
-                "weight": h.weight, "evidence_ko": r.evidence_ko, "via": "model",
-                "present": None}  # contract v1.2: `present` is rule-only; models always null
+    def _signal(self, h: Handle, r: DetectorResult, reason: Optional[str] = None) -> dict:
+        sig = {"id": h.id, "kind": "model", "status": r.status, "decisive": False,
+               "score": None if r.score is None else round(float(r.score), 4),
+               "weight": h.weight, "evidence_ko": r.evidence_ko, "via": "model",
+               "present": None}  # contract v1.2: `present` is rule-only; models always null
+        if self.debug:
+            sig["debug"] = self._debug(h, r, reason)
+        return sig
 
-    def unavailable_signals(self, evidence: str = EVIDENCE_NO_VIDEO) -> list[dict]:
+    @staticmethod
+    def _debug(h: Handle, r: DetectorResult, reason: Optional[str]) -> dict:
+        raw = r.raw or {}
+        if reason is None and not h.ok:
+            reason = f"not loaded ({h.error or 'unknown'})"
+        if reason is None and r.status != "ok":
+            reason = str(raw.get("error") or f"{r.status} (no detail from detector)")
+        if reason is None and h.weight <= 0:
+            reason = "weight 0 (disabled)"
+        summary = None
+        if raw:
+            try:
+                summary = h.detector.debug_raw(raw) if h.detector is not None else None
+            except Exception as e:  # a summary bug must never break the response
+                summary = {"summary_error": type(e).__name__}
+        return {"reason": reason, "raw": summary}
+
+    def unavailable_signals(self, evidence: str = EVIDENCE_NO_VIDEO,
+                            reason: Optional[str] = None) -> list[dict]:
+        """`reason` (dev mode only): why the video was not analysed, e.g. "budget cut"."""
         out = []
         for h in self.handles:
             ev = evidence if h.ok else EVIDENCE_DOWN
-            out.append(self._signal(h, DetectorResult(None, "unavailable", ev)))
+            out.append(self._signal(h, DetectorResult(None, "unavailable", ev),
+                                    reason if h.ok else None))
         return out
 
     async def run_all(self, media: MediaBundle, timeout_s: float,
@@ -119,11 +144,12 @@ class Registry:
         async def one(h: Handle) -> dict:
             if not h.ok or h.detector is None:
                 return self._signal(h, DetectorResult(None, "unavailable", EVIDENCE_DOWN))
+            why = "error"
             retries = int(h.extra.get("retries", 0))  # remote APIs: 1; local models: 0
             for attempt in range(retries + 1):
                 rem = left()
                 if rem is not None and rem <= 0:
-                    return self._signal(h, budget_out())
+                    return self._signal(h, budget_out(), "budget cut")
                 t = timeout_s if rem is None else min(timeout_s, rem)
                 t0 = time.perf_counter()
                 try:
@@ -134,11 +160,13 @@ class Registry:
                 except asyncio.TimeoutError:
                     if rem is not None and rem <= timeout_s:  # cut by the response budget
                         log.warning("detector %s: response budget exhausted", h.id)
-                        return self._signal(h, budget_out())
+                        return self._signal(h, budget_out(), "budget cut")
                     log.warning("detector %s timeout (attempt %d)", h.id, attempt + 1)
-                except Exception:
+                    why = f"timeout after {t:.1f}s (attempts {attempt + 1})"
+                except Exception as e:
                     log.exception("detector %s failed", h.id)
+                    why = f"{type(e).__name__}: {e}"
                     break
-            return self._signal(h, DetectorResult(None, "error", EVIDENCE_ERROR))
+            return self._signal(h, DetectorResult(None, "error", EVIDENCE_ERROR), why)
 
         return list(await asyncio.gather(*(one(h) for h in self.handles)))

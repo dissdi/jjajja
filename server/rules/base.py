@@ -5,7 +5,7 @@ RuleSignal fields map 1:1 to `signals[]` in the detect API contract
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Literal, Optional, Protocol
 from urllib.parse import SplitResult
 
@@ -48,13 +48,19 @@ class RuleSignal:
     # What "the mark" is differs per signal id; see the present column in
     # _workspace/02_rules_spec.md section 3. The app shows 있음/없음 from this field only.
     present: Optional[bool] = None
+    # Dev mode only (contract v1.3 `signals[].debug`, JJAJJA_DEBUG=1): {"reason": English one
+    # line or None, "raw": few decision keys}. Never secrets/headers/cookies. Not part of
+    # to_dict() (so not persisted in the rule store); the server redacts it again before sending.
+    debug: Optional[dict] = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         if self.status != "ok":
             self.present = None  # contract: unchecked signals never claim presence/absence
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        d.pop("debug", None)
+        return d
 
 
 class RuleSet(Protocol):

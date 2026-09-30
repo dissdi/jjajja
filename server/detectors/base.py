@@ -28,7 +28,9 @@ class DetectorResult:
     score: Optional[float]             # 0~1, probability of AI (after calibration)
     status: Status
     evidence_ko: str
-    raw: dict = field(default_factory=dict)  # logged only, never sent to clients
+    # logged; sent to clients ONLY as a small summary in dev mode (Detector.debug_raw, v1.3).
+    # A failure puts its English one-line cause in raw["error"] (-> debug.reason).
+    raw: dict = field(default_factory=dict)
 
 
 class Detector:
@@ -45,6 +47,12 @@ class Detector:
 
     def infer(self, media: MediaBundle) -> DetectorResult:
         raise NotImplementedError
+
+    def debug_raw(self, raw: dict) -> dict:
+        """Small summary of `raw` for dev-mode `signals[].debug.raw` (contract v1.3).
+        Default: scalar values only. Override to pick the few numbers worth showing."""
+        return {k: v for k, v in (raw or {}).items()
+                if v is None or isinstance(v, (bool, int, float, str))}
 
     # --- helpers
     def calibrate(self, raw: float) -> float:

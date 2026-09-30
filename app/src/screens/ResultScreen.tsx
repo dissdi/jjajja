@@ -8,7 +8,8 @@ import type { DetectResponse } from '../api/contract';
 import { Button, T } from '../components/ui';
 import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
-import { buildShareText, detailRowsFor, headlineFor, partialNoteFor, percentLabel, resultModeFor, selectEvidence } from '../ux/present';
+import { DEBUG_MODE } from '../debug';
+import { buildShareText, debugHeaderFor, debugRowsFor, detailRowsFor, headlineFor, partialNoteFor, percentLabel, resultModeFor, selectEvidence } from '../ux/present';
 import { border, color, font, radius, size, space, verdictColor, verdictIcon } from '../ux/theme';
 
 interface Props {
@@ -19,9 +20,11 @@ interface Props {
   onAgain: () => void;
   /** D1: 저장한 영상을 골랐을 때 — 홈의 업로드 흐름과 같은 App.run({ kind: 'upload' }) */
   onSubmitVideo: (video: PickedVideo) => void;
+  /** 개발 모드(원시 표). 기본값은 EXPO_PUBLIC_DEBUG=1 여부 — 테스트에서만 직접 넘긴다 */
+  debug?: boolean;
 }
 
-export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo }: Props) {
+export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo, debug = DEBUG_MODE }: Props) {
   const [shareError, setShareError] = useState(false);
   const [pickerFailed, setPickerFailed] = useState(false);
   const v = data.verdict;
@@ -33,7 +36,7 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo }: Pro
   const evidence = selectEvidence(v, data.signals);
   const partial = partialNoteFor(data, url === null);
   const detailRows = detailRowsFor(data);
-  const [detailsOpen, setDetailsOpen] = useState(false); // 기본 접힘 (명세 §2.3a)
+  const [detailsOpen, setDetailsOpen] = useState(debug); // 기본 접힘 (명세 §2.3a). 개발 모드만 기본 펼침
 
   const cardLabel = [vCopy.headline, pl, vCopy.sub].filter(Boolean).join('. ');
 
@@ -104,7 +107,7 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo }: Pro
         </View>
       )}
 
-      {detailRows.length > 0 && (
+      {(debug || detailRows.length > 0) && (
         <View style={{ marginTop: 20 }}>
           <Pressable
             accessibilityRole="button"
@@ -123,7 +126,9 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo }: Pro
               importantForAccessibility="no"
             />
           </Pressable>
+          {detailsOpen && debug && <DebugTable data={data} />}
           {detailsOpen &&
+            !debug &&
             detailRows.map((r) => (
               <View key={r.key} style={styles.detailRow} accessible>
                 {r.kind === 'rule'
@@ -189,6 +194,31 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo }: Pro
   );
 }
 
+/** 개발 모드 원시 표 (계약 v1.3 signals[].debug). 영어 id·수치 그대로 — 사용자 문구 원칙 비적용 */
+function DebugTable({ data }: { data: DetectResponse }) {
+  const rows = debugRowsFor(data);
+  return (
+    <View testID="debug-table" style={styles.debugBox}>
+      <T style={[styles.mono, { fontWeight: '700' }]} selectable>{debugHeaderFor(data)}</T>
+      {rows.length === 0 && <T style={styles.mono}>signals: (none)</T>}
+      {rows.map((r) => (
+        <View key={r.key} style={styles.debugRow}>
+          <T style={[styles.mono, { fontWeight: '700' }, r.alert && { color: color.danger }]} selectable>
+            {r.id}
+          </T>
+          <T style={styles.mono} selectable>
+            {`kind=${r.kind} status=${r.status} score=${r.score} weight=${r.weight} present=${r.present} decisive=${r.decisive}`}
+          </T>
+          <T style={[styles.mono, r.reason !== null && { color: color.danger, fontWeight: '700' }]} selectable>
+            {`reason=${r.reason ?? '-'}`}
+          </T>
+          <T style={[styles.mono, styles.secondaryText]} selectable>{`raw=${r.raw ?? '-'}`}</T>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { paddingHorizontal: space.screenX, paddingVertical: 20, backgroundColor: color.background, flexGrow: 1 },
   card: { borderRadius: radius.card, borderLeftWidth: border.verdictStripe, padding: 20 },
@@ -216,4 +246,12 @@ const styles = StyleSheet.create({
   detailRow: { marginTop: space.item, paddingBottom: space.item, borderBottomWidth: 1, borderBottomColor: color.surface },
   primaryText: { color: color.textPrimary },
   secondaryText: { color: color.textSecondary },
+  debugBox: { marginTop: space.item, padding: 10, backgroundColor: color.surface, borderRadius: 6 },
+  debugRow: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: color.border },
+  mono: {
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+    fontSize: 13,
+    lineHeight: 18,
+    color: color.textPrimary,
+  },
 });

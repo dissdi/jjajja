@@ -1,4 +1,4 @@
-// source: .claude/skills/detect-api-contract/SKILL.md (v1.2)
+// source: .claude/skills/detect-api-contract/SKILL.md (v1.3)
 //
 // 이 파일은 계약 문서의 스키마를 그대로 옮긴 것이다. 필드명은 snake_case 그대로 쓴다
 // (변환 레이어 금지). 필드를 바꾸려면 계약 문서를 먼저 고치고 이 파일을 맞춘다.
@@ -40,6 +40,18 @@ export interface Signal {
    * 필드가 없는 응답(v1.2 이전 서버)은 파서가 null로 채운다.
    */
   present: boolean | null;
+  /**
+   * (v1.3, 개발 모드 전용) 서버가 JJAJJA_DEBUG=1일 때만 넣는다. 없으면 undefined.
+   * reason: 영어 원인 한 줄(예: "http 405: Organization paused"), raw: 탐지기 원점수 요약.
+   * 사용자 화면에는 쓰지 않는다 — EXPO_PUBLIC_DEBUG=1일 때 원시 표에서만 보여준다.
+   */
+  debug?: SignalDebug;
+}
+
+/** (v1.3) signals[].debug */
+export interface SignalDebug {
+  reason: string | null;
+  raw: Record<string, unknown> | null;
 }
 
 /** POST /v1/detect 응답 200 */
@@ -123,7 +135,16 @@ function parseSignal(v: unknown): Signal | null {
   if (typeof v.via !== 'string') return null;
   // present: v1.2 추가. 없으면(구버전 서버) null — 에러로 보내지 않는다. 있는데 형식이 틀리면 거부.
   if (!(v.present === undefined || v.present === null || typeof v.present === 'boolean')) return null;
-  return {
+  // debug: v1.3 선택 필드. 없으면 undefined. 있는데 형식이 틀리면 거부.
+  let debug: SignalDebug | undefined;
+  if (v.debug !== undefined) {
+    if (!isObj(v.debug)) return null;
+    const { reason, raw } = v.debug;
+    if (!(reason === undefined || reason === null || typeof reason === 'string')) return null;
+    if (!(raw === undefined || raw === null || isObj(raw))) return null;
+    debug = { reason: reason ?? null, raw: raw ?? null };
+  }
+  const out: Signal = {
     id: v.id,
     kind: v.kind,
     status: v.status,
@@ -134,6 +155,8 @@ function parseSignal(v: unknown): Signal | null {
     via: v.via as SignalVia,
     present: typeof v.present === 'boolean' ? v.present : null,
   };
+  if (debug !== undefined) out.debug = debug;
+  return out;
 }
 
 /** 200 응답 본문 검증. 계약과 다르면 null. */

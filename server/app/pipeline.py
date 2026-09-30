@@ -34,6 +34,7 @@ from media.fetch import Fetcher, FetchResult
 from media.ffmpeg import MediaError, find_ffmpeg, find_ffprobe, probe, sample_clip, sample_uniform
 from media.workdir import WorkDir, WorkDirClosed
 
+from . import debug as dbg
 from .cache import ResultCache
 from .ensemble import EnsembleConfig, combine
 from .errors import ApiError
@@ -81,6 +82,7 @@ class Pipeline:
             det_cfg.setdefault("mock", {})
             det_cfg["mock"] = {**(det_cfg["mock"] or {}), "fixed_score": settings.mock_score}
         self.registry = registry or Registry(ids, det_cfg, settings.resolved_device())
+        self.registry.debug = settings.debug  # dev mode: signals carry `debug` (contract v1.3)
         self.ffmpeg = find_ffmpeg(settings.ffmpeg)
         self.ffprobe = find_ffprobe(settings.ffprobe)
         self.fetcher = fetcher or Fetcher(settings.fetch_enabled, settings.fetch_cooldown_s,
@@ -123,8 +125,14 @@ class Pipeline:
         # contract v1.2 (#2): present is rules' own answer; null whenever the rule did not check
         present = getattr(r, "present", d.get("present"))
         d["present"] = bool(present) if present is not None and d.get("status") == "ok" else None
-        return {k: d[k] for k in ("id", "kind", "status", "decisive", "score", "weight",
-                                  "evidence_ko", "via", "present")}
+        out = {k: d[k] for k in ("id", "kind", "status", "decisive", "score", "weight",
+                                 "evidence_ko", "via", "present")}
+        if self.s.debug:  # rules fill RuleSignal.debug; anything missing gets a generic reason
+            dd = dict(getattr(r, "debug", None) or d.get("debug") or {})
+            if dd.get("reason") is None and out["status"] != "ok":
+                dd["reason"] = f"{out['status']} (no detail from rules)"
+            out["debug"] = {"reason": dd.get("reason"), "raw": dd.get("raw")}
+        return out
 
     def _finish(self, *, platform: str, video_id: Optional[str], signals: list[dict]) -> dict:
         p, verdict = combine(signals, self.ens)
@@ -140,11 +148,14 @@ class Pipeline:
         }
 
     def _respond(self, body: dict, cached: bool) -> dict:
-        return {"request_id": str(uuid.uuid4()), **body, "cached": cached}
+        # dev mode (v1.3): keep/redact `debug`; otherwise drop the key. Cached bodies have none.
+        sigs = dbg.finalize(body["signals"], self.s.debug, cached=cached)
+        return {"request_id": str(uuid.uuid4()), **body, "signals": sigs, "cached": cached}
 
     def _store(self, key: str, body: dict) -> None:
         if _budget_cut(body["signals"]):
             return  # answer was cut short by the response budget; let the next request retry
+        body = {**body, "signals": dbg.strip(body["signals"])}  # debug is never cached
         self.cache.set(key, body, self.s.partial_ttl_s if body["partial"] else self.s.cache_ttl_s)
 
     async def _staged(self, work: WorkDir, deadline: float, cap: float, fn, *args):
@@ -241,7 +252,8 @@ class Pipeline:
     async def _video(self, n, work: WorkDir, deadline: float
                      ) -> tuple[Optional[FetchResult], list[dict]]:
         """Download + analyse within the budget. Never raises (except ApiError from analysis)."""
-        timeout_sigs = lambda: self.registry.unavailable_signals(EVIDENCE_TIMEOUT)  # noqa: E731
+        timeout_sigs = lambda: self.registry.unavailable_signals(  # noqa: E731
+            EVIDENCE_TIMEOUT, "budget cut")
         rem = _left(deadline)
         if rem <= 0:
             return None, timeout_sigs()
@@ -257,16 +269,17 @@ class Pipeline:
         except WorkDirClosed:
             return None, timeout_sigs()
         if fetched.path is None:
-            return fetched, self.registry.unavailable_signals()
+            return fetched, self.registry.unavailable_signals(
+                reason=f"video not fetched ({fetched.reason}: {fetched.message[:120]})")
         try:
             sigs = await self._analyse_file(
                 fetched.path, work, {"platform": n.platform, "video_id": n.video_id}, deadline)
         except BudgetExceeded:
             log.warning("URL budget exhausted while sampling %s", n.video_id)
             sigs = timeout_sigs()
-        except MediaError:
+        except MediaError as e:
             log.warning("downloaded file undecodable for %s", n.video_id)
-            sigs = self.registry.unavailable_signals()
+            sigs = self.registry.unavailable_signals(reason=f"media undecodable: {e}")
         return fetched, sigs
 
     # ------------------------------------------------------------------ upload path
@@ -283,7 +296,7 @@ class Pipeline:
                                                   deadline)
         except BudgetExceeded:
             log.warning("upload budget exhausted before detectors ran")
-            model_sigs = self.registry.unavailable_signals(EVIDENCE_TIMEOUT)
+            model_sigs = self.registry.unavailable_signals(EVIDENCE_TIMEOUT, "budget cut")
         except MediaError as e:
             raise ApiError("invalid_file", str(e))
         finally:

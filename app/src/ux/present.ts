@@ -173,3 +173,78 @@ export function detailRowsFor(res: DetectResponse): DetailRow[] {
     return true;
   });
 }
+
+// ---------------------------------------------------------------------------
+// 개발 모드 원시 표 (EXPO_PUBLIC_DEBUG=1 전용, 계약 v1.3 signals[].debug)
+// 사용자 문구 원칙은 적용하지 않는다 — 영어 id·수치를 그대로 보여준다.
+// 개발 모드 off일 때는 쓰이지 않으며, 위 detailRowsFor 등 기존 함수에 영향이 없다.
+// ---------------------------------------------------------------------------
+
+/** 숫자를 소수 n자리로. null/비유한값은 "null" */
+export function fmtNum(v: number | null | undefined, digits: number): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return 'null';
+  return v.toFixed(digits);
+}
+
+/** debug.raw → 'k=v k=v' 한 줄. 숫자는 소수 셋째 자리까지(정수는 그대로), 객체는 JSON. null/빈 객체면 null */
+export function fmtRaw(raw: Record<string, unknown> | null | undefined): string | null {
+  if (!raw) return null;
+  const parts = Object.entries(raw).map(([k, v]) => {
+    let s: string;
+    if (typeof v === 'number') s = Number.isInteger(v) ? String(v) : fmtNum(v, 3);
+    else if (typeof v === 'string') s = v;
+    else if (v === null || v === undefined) s = 'null';
+    else s = JSON.stringify(v);
+    return `${k}=${s}`;
+  });
+  return parts.length ? parts.join(' ') : null;
+}
+
+/** 표 상단 한 줄: verdict / ai_probability(소수 넷째) / partial / cached / request_id */
+export function debugHeaderFor(res: DetectResponse): string {
+  return [
+    `verdict=${res.verdict}`,
+    `ai_probability=${fmtNum(res.ai_probability, 4)}`,
+    `partial=${res.partial}`,
+    `cached=${res.cached}`,
+    `request_id=${res.request_id}`,
+  ].join('  ');
+}
+
+export interface DebugRow {
+  key: string;
+  id: string;
+  kind: string;
+  status: string;
+  /** 소수 셋째 자리, null이면 "null" */
+  score: string;
+  weight: string;
+  present: string;
+  decisive: string;
+  /** debug.reason. 없으면 null (화면에서 강조색) */
+  reason: string | null;
+  /** debug.raw 한 줄 요약. 없으면 null */
+  raw: string | null;
+  /** status≠ok 또는 reason 있음 → 화면에서 강조 */
+  alert: boolean;
+}
+
+/** 모든 신호를 서버 순서대로 (가중치 0, unavailable/error 포함). 필터·정렬·중복 제거 없음 */
+export function debugRowsFor(res: DetectResponse): DebugRow[] {
+  return res.signals.map((s, i) => {
+    const reason = s.debug?.reason ?? null;
+    return {
+      key: `${s.id}-${i}`,
+      id: s.id,
+      kind: s.kind,
+      status: s.status,
+      score: fmtNum(s.score, 3),
+      weight: Number.isInteger(s.weight) ? String(s.weight) : fmtNum(s.weight, 3),
+      present: s.present === null ? 'null' : String(s.present),
+      decisive: String(s.decisive),
+      reason,
+      raw: fmtRaw(s.debug?.raw),
+      alert: s.status !== 'ok' || reason !== null,
+    };
+  });
+}

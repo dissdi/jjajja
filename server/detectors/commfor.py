@@ -39,12 +39,18 @@ class CommForDetector(Detector):
         ])
         self._lock = threading.Lock()
 
+    def debug_raw(self, raw: dict) -> dict:
+        return {"mean": raw.get("mean"), "top25": raw.get("top25"),
+                "frames": len(raw.get("per_frame") or []),
+                "aggregate": str(self.cfg.get("aggregate", "mean"))}
+
     def infer(self, media: MediaBundle) -> DetectorResult:
         from PIL import Image
         torch = self._torch
         frames = media.frames[: int(self.cfg.get("frames", 16))]
         if not frames:
-            return DetectorResult(None, "unavailable", "영상에서 장면을 꺼내지 못했어요", {})
+            return DetectorResult(None, "unavailable", "영상에서 장면을 꺼내지 못했어요",
+                                  {"error": "no frames sampled"})
         with self._lock, torch.inference_mode():
             x = torch.stack([self.tf(Image.open(p).convert("RGB")) for p in frames]).to(self.device)
             probs = torch.sigmoid(self.model(x).float().squeeze(-1)).cpu().numpy()

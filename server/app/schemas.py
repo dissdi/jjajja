@@ -1,4 +1,4 @@
-"""Pydantic models that mirror .claude/skills/detect-api-contract/SKILL.md (v1.2).
+"""Pydantic models that mirror .claude/skills/detect-api-contract/SKILL.md (v1.3).
 
 Do not add/rename fields here without updating the contract first.
 """
@@ -20,6 +20,14 @@ class DetectUrlRequest(BaseModel):
     source: Optional[str] = "paste"  # analytics only; unknown values are tolerated
 
 
+class SignalDebug(BaseModel):
+    """v1.3, development mode only (JJAJJA_DEBUG=1). English one-line cause + small raw summary.
+    Never secrets. Built and redacted by app/debug.py."""
+    model_config = ConfigDict(extra="forbid")
+    reason: Optional[str] = None
+    raw: Optional[dict] = None
+
+
 class Signal(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str
@@ -33,6 +41,9 @@ class Signal(BaseModel):
     # v1.2 (#2): rule signals only -- mark found (true) / looked, not found (false) / not checked
     # (null, whenever status != "ok"). Model signals are always null. Always serialized.
     present: Optional[bool] = None
+    # v1.3: only when JJAJJA_DEBUG=1. When absent the KEY is omitted from JSON (app/main.py
+    # dumps with exclude on this field only; other nulls such as present stay serialized).
+    debug: Optional[SignalDebug] = None
 
 
 class DetectResponse(BaseModel):

@@ -24,6 +24,7 @@
 | JJAJJA_FFMPEG / JJAJJA_FFPROBE | PATH lookup | ffmpeg binaries (conda env provides them) |
 | JJAJJA_CORS_ORIGINS | (off) | comma list of browser origins for the web demo, e.g. http://localhost:8081 |
 | JJAJJA_ENV_FILE | server/.env | KEY=VALUE file loaded at startup if it exists; never overrides variables already set. "" disables |
+| JJAJJA_DEBUG | 0 | 1 -> every signal carries `debug: {reason, raw}` (contract v1.3, dev only; secrets redacted). 0 -> key omitted |
 | HIVE_API_KEY | (none) | Hive commercial detector key (detector `hive`). Missing -> `hive` is "down", server still starts |
 | JJAJJA_INNERTUBE_CLIENT_VERSION | (code default) | YouTube innertube WEB client version; read by rules/youtube.py per request (#9) |
 """
@@ -103,6 +104,7 @@ class Settings:
     ffmpeg: str | None = None
     ffprobe: str | None = None
     cors_origins: list[str] = field(default_factory=list)
+    debug: bool = False
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -135,6 +137,7 @@ class Settings:
         s.ffmpeg = os.environ.get("JJAJJA_FFMPEG") or None
         s.ffprobe = os.environ.get("JJAJJA_FFPROBE") or None
         s.cors_origins = [o.strip() for o in os.environ.get("JJAJJA_CORS_ORIGINS", "").split(",") if o.strip()]
+        s.debug = _env_bool("JJAJJA_DEBUG", False)
         return s
 
     def resolved_device(self) -> str:

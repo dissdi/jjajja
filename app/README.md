@@ -34,6 +34,22 @@ npx expo start --web    # 브라우저에서 빠르게 확인
 - 휴대폰과 PC가 다른 네트워크면 `npx expo start --tunnel`. 이때도 **서버 주소는 휴대폰에서 닿는 주소**여야 한다.
 - 원격 서버(SSH)에서 개발 중이면: 서버 포트를 휴대폰이 닿는 곳으로 노출하거나(예: `ngrok http 8000` 후 그 https 주소를 `EXPO_PUBLIC_API_BASE`로), `--tunnel`로 Metro를 연다.
 
+## 개발 모드 (탐지기 원시 수치 보기)
+
+"API 연결이 안 된 건지, 점수가 낮은 건지"를 구분할 때 쓴다. 기본은 off이며, off일 때 화면은 전혀 바뀌지 않는다.
+
+```sh
+# 서버: 신호별 debug.reason / debug.raw 를 응답에 넣는다 (계약 v1.3)
+JJAJJA_DEBUG=1 <서버 실행 명령>
+# 앱: 결과 화면 [자세히 보기]가 기본 펼침 + 신호별 원시 표
+EXPO_PUBLIC_DEBUG=1 npx expo start --web --port 8081 -c
+```
+
+- 표 상단: `verdict`, `ai_probability`(소수 넷째), `partial`, `cached`, `request_id`
+- 신호마다(가중치 0·unavailable·error 포함, 서버 순서): `id`, `kind`, `status`, `score`(소수 셋째, 없으면 `null`), `weight`, `present`, `decisive`, `reason`(있으면 빨간색), `raw`(key=value 한 줄)
+- `reason=-` 이면 서버가 `JJAJJA_DEBUG=1` 없이 떠 있는 것. 예: `status=error reason=http 405: ...` → 연결 문제, `status=ok score=0.041` → 연결은 됐고 점수가 낮은 것
+- `EXPO_PUBLIC_*` 는 번들 시점에 들어가므로 값을 바꾸면 `-c`로 다시 시작한다. 코드: `src/debug.ts`, `debugRowsFor`(`src/ux/present.ts`)
+
 ## 검증
 
 ```sh

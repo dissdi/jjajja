@@ -232,6 +232,10 @@ def label_signals(p: Parsed, via: str) -> list[RuleSignal]:
                               # present=True means a CAMERA-capture record was found
                               # (points toward real footage, not toward AI).
                               via=via, present=True, **W[key]))
+    raw = {"via": via, "answer_ids": sorted({s.answer_id or "?" for s in p.sections}),
+           "attribution": any(s.attribution for s in p.sections), "ai_badge": p.ai_badge}
+    for sig in out:
+        sig.debug = {"reason": None, "raw": dict(raw)}
     if not out:
         # Absence of a label is NOT evidence of a real video (YouTube does not require
         # labels for clearly unrealistic content, and many AI shorts are unlabeled).
@@ -240,7 +244,8 @@ def label_signals(p: Parsed, via: str) -> list[RuleSignal]:
         # (It never means "the absence was found = True".)
         out.append(RuleSignal(id="yt_no_ai_label",
                               evidence_ko="유튜브에 AI로 만들었다는 표시는 없어요",
-                              via=via, present=False, **W["no_label"]))
+                              via=via, present=False, **W["no_label"],
+                              debug={"reason": None, "raw": dict(raw)}))
     return out
 
 
@@ -310,13 +315,16 @@ def self_report_signals(title: str, description: str, via: str, has_description:
               else "영상 제목에 AI 표시는 없어요")
         # present answers "does the title/description say it was made with AI?"
         return [RuleSignal(id="yt_self_report_ai", evidence_ko=ev, via=via, present=False,
-                           **W["self_none"])]
+                           **W["self_none"],
+                           debug={"reason": None, "raw": {"via": via, "level": None,
+                                                         "has_description": has_description}})]
     level, fld = hit
     where = "제목" if fld == "title" else "설명"
     key = {"strong": "self_strong", "weak": "self_weak", "tutorial": "self_tutorial"}[level]
     return [RuleSignal(id="yt_self_report_ai",
                        evidence_ko=f"영상 {where}에 AI로 만들었다는 표시가 있어요",
-                       via=via, present=True, **W[key])]
+                       via=via, present=True, **W[key],
+                       debug={"reason": None, "raw": {"via": via, "level": level, "field": fld}})]
 
 
 # --------------------------------------------------------------------------- network
@@ -404,10 +412,21 @@ class _Fetcher:
         self._lock: Optional[asyncio.Lock] = None
         self._lock_loop = None
         self.calls = 0  # network calls made (for tests/metrics)
+        # key -> English one-line cause of the last unusable answer (dev-mode debug.reason)
+        self.last_error: dict[str, str] = {}
         self.store: Optional[SqliteStore] = None
+
+    def why(self, key: str) -> str:
+        return self.last_error.get(key, f"{key.split(':', 1)[0]} no answer")
+
+    def _fail(self, key: str, why: str) -> None:
+        if len(self.last_error) >= self.max_entries:
+            self.last_error.pop(next(iter(self.last_error)))
+        self.last_error[key] = why
 
     def clear(self) -> None:
         self._cache.clear()
+        self.last_error.clear()
         self._blocked_until.clear()
         self._last = 0.0
         self.store = None
@@ -468,6 +487,7 @@ class _Fetcher:
         if ok:
             return val
         if self._is_blocked(endpoint):
+            self._fail(key, f"{endpoint} blocked/cooldown")
             return None
         parse = kw.pop("parse")
         usable = kw.pop("usable", None)  # optional check that a parsed 200 is really usable
@@ -487,16 +507,23 @@ class _Fetcher:
                         resp.status_code in (302, 303) and "sorry" in resp.headers.get("location", "")):
                     log.warning("youtube %s blocked (%s); cooling down", endpoint, resp.status_code)
                     self._block(endpoint)
+                    self._fail(key, f"{endpoint} blocked (http {resp.status_code})")
                 elif resp.status_code == 200:
                     result = parse(resp)
                     ok = result is not None and (usable is None or usable(result))
                     MONITOR.record(endpoint, ok, "" if ok else "unrecognized 200 payload")
+                    if not ok:
+                        self._fail(key, f"{endpoint} parse failed (unrecognized 200 payload)")
+                    else:
+                        self.last_error.pop(key, None)
                 else:
                     log.info("youtube %s status %s", endpoint, resp.status_code)
                     MONITOR.record(endpoint, False, f"status {resp.status_code}")
+                    self._fail(key, f"{endpoint} http {resp.status_code}")
             except Exception as e:  # network, timeout, JSON errors
                 log.info("youtube %s failed: %r", endpoint, e)
                 MONITOR.record(endpoint, False, type(e).__name__)
+                self._fail(key, f"{endpoint} {type(e).__name__}")
             finally:
                 self._last = time.monotonic()
             self._store(key, result)
@@ -564,14 +591,18 @@ class YouTubeRules:
         try:
             cached = FETCHER.load_signals(n.video_id)
             if cached is not None:
+                for sig in cached:
+                    sig.debug = {"reason": None, "raw": {"source": "rules store cache"}}
                 return cached
             sigs = await self._extract(n, client)
             FETCHER.save_signals(n.video_id, sigs)
             return sigs
         except Exception as e:  # last line of defence: never raise
             log.exception("youtube extract crashed: %r", e)
-            return [RuleSignal(id="yt_ai_label", status="unavailable", via="api"),
-                    RuleSignal(id="yt_self_report_ai", status="unavailable", via="api")]
+            dbg = {"reason": f"extract crashed: {type(e).__name__}", "raw": None}
+            return [RuleSignal(id="yt_ai_label", status="unavailable", via="api", debug=dict(dbg)),
+                    RuleSignal(id="yt_self_report_ai", status="unavailable", via="api",
+                               debug=dict(dbg))]
 
     async def _extract(self, n: Normalized, client) -> list[RuleSignal]:
         parsed, via = None, "api"
@@ -588,13 +619,19 @@ class YouTubeRules:
                                            has_description=bool(parsed.description))
             return signals
 
-        signals.append(RuleSignal(id="yt_ai_label", status="unavailable", via="api"))
+        why = (f"{FETCHER.why(f'next:{n.video_id}')}; "
+               f"{FETCHER.why(f'html:{n.video_id}')}")
+        signals.append(RuleSignal(id="yt_ai_label", status="unavailable", via="api",
+                                  debug={"reason": why, "raw": None}))
         oe = await fetch_oembed(n.video_id, client)
         title = oe.get("title") if isinstance(oe, dict) else None
         if isinstance(title, str) and title:
             signals += self_report_signals(title, "", "oembed", has_description=False)
         else:
-            signals.append(RuleSignal(id="yt_self_report_ai", status="unavailable", via="oembed"))
+            oe_why = (FETCHER.why(f"oembed:{n.video_id}") if oe is None
+                      else "oembed parse failed (no title)")
+            signals.append(RuleSignal(id="yt_self_report_ai", status="unavailable", via="oembed",
+                                      debug={"reason": oe_why, "raw": None}))
         return signals
 
 

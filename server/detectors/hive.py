@@ -71,6 +71,23 @@ def _mask(text: str, key: Optional[str]) -> str:
     return text
 
 
+def _http_message(r) -> str:
+    """Hive error bodies are JSON with `message` (sometimes nested); fall back to the text.
+    First 120 chars, single line -> the dev-mode reason reads `http 405: <message>`."""
+    msg = ""
+    try:
+        j = r.json()
+        if isinstance(j, dict):
+            m = j.get("message") or j.get("error") or j.get("detail")
+            if isinstance(m, dict):
+                m = m.get("message") or json.dumps(m)
+            msg = str(m or "")
+    except Exception:
+        pass
+    msg = msg or str(getattr(r, "text", "") or "")
+    return " ".join(msg.split())[:120]
+
+
 def aggregate(resp: dict) -> dict:
     """Parse a Hive v3 reply into per-video raw numbers (pure function; unit-tested)."""
     frames = resp.get("output") or []
@@ -145,6 +162,14 @@ class HiveDetector(Detector):
         self.ffmpeg = find_ffmpeg(os.environ.get("JJAJJA_FFMPEG") or None)
         self.ffprobe = find_ffprobe(os.environ.get("JJAJJA_FFPROBE") or None)
 
+    def debug_raw(self, raw: dict) -> dict:
+        if "ai_mean" not in raw:
+            return {k: raw[k] for k in ("clip",) if k in raw}
+        return {"mean": raw.get("ai_mean"), "top25": raw.get("ai_top25"),
+                "frames": raw.get("n_frames"), "top_generator": raw.get("top_generator"),
+                "audio": raw.get("audio_ai_mean"), "deepfake": raw.get("deepfake_mean"),
+                "aggregate": str(self.cfg.get("aggregate", "mean"))}
+
     # ------------------------------------------------------------------ media
     def _codec(self, path: Path) -> tuple[str, int, int]:
         if not self.ffprobe:
@@ -193,13 +218,14 @@ class HiveDetector(Detector):
                            headers={"authorization": f"Bearer {self._key}",
                                     "accept": "application/json"})
         except httpx.TimeoutException as e:
-            raise HiveUnavailable("timeout") from e
+            raise HiveUnavailable(f"timeout after {self.timeout_s:g}s") from e
         except httpx.HTTPError as e:
             raise HiveUnavailable(_mask(f"network: {type(e).__name__}", self._key)) from e
         if r.status_code == 429 or r.status_code >= 500:
-            raise HiveUnavailable(f"http {r.status_code}")
+            raise HiveUnavailable(_mask(f"http {r.status_code}: {_http_message(r)}", self._key))
         if r.status_code != 200:
-            raise HiveError(_mask(f"http {r.status_code}: {r.text[:200]}", self._key))
+            # e.g. "http 405: Your Organization is currently paused..." (account/billing state)
+            raise HiveError(_mask(f"http {r.status_code}: {_http_message(r)}", self._key))
         try:
             return r.json()
         except ValueError as e:
@@ -208,7 +234,8 @@ class HiveDetector(Detector):
     # ------------------------------------------------------------------ detector
     def infer(self, media: MediaBundle) -> DetectorResult:
         if media.video_path is None or not Path(media.video_path).exists():
-            return DetectorResult(None, "unavailable", "영상을 받아오지 못해 화면은 확인하지 못했어요", {})
+            return DetectorResult(None, "unavailable", "영상을 받아오지 못해 화면은 확인하지 못했어요",
+                                  {"error": "no video file"})
         with tempfile.TemporaryDirectory(prefix="hive_") as td:
             try:
                 clip, how = self.prepare_clip(Path(media.video_path), Path(td))
@@ -218,7 +245,7 @@ class HiveDetector(Detector):
             except HiveUnavailable as e:
                 msg = _mask(str(e), getattr(self, "_key", None))
                 log.warning("hive unavailable: %s", msg)
-                ev = EVIDENCE_TIMEOUT if msg == "timeout" else EVIDENCE_DOWN
+                ev = EVIDENCE_TIMEOUT if msg.startswith("timeout") else EVIDENCE_DOWN
                 return DetectorResult(None, "unavailable", ev, {"error": msg})
             except (HiveError, subprocess.SubprocessError, OSError) as e:
                 msg = _mask(str(e), getattr(self, "_key", None))

@@ -59,6 +59,7 @@ CUDA_VISIBLE_DEVICES=<빈 GPU> JJAJJA_DEVICE=cuda uvicorn app.main:app --port 80
 | `JJAJJA_RATE_LIMIT_PER_MIN` | `30` | IP당 분당 요청(429) |
 | `JJAJJA_CACHE_DIR` | `server/.cache` | 결과 캐시(7일, partial 6시간) |
 | `JJAJJA_CORS_ORIGINS` | (꺼짐) | 웹 시연용 브라우저 origin, 예: `http://localhost:8081` |
+| `JJAJJA_DEBUG` | `0` | **개발 전용.** `1`이면 모든 `signals[]`에 `debug: {reason, raw}`(계약 v1.3)를 넣는다. `reason`은 영어 원인 한 줄(`http 405: <Hive 메시지>`, `timeout after 25.0s`, `budget cut`, `not loaded (...)`, `weight 0 (disabled)`, `video not fetched (blocked: ...)`, 규칙은 `innertube blocked (http 429); ...`/`parse failed`, 정상은 `null`), `raw`는 원점수 요약(hive: mean/top25/frames/top_generator/audio/deepfake, commfor: mean/top25/frames, d3: raw). 캐시 적중 시 `reason: "cached result"`(debug는 캐시에 저장하지 않음). API 키·Authorization·쿠키는 `app/debug.py`에서 가림. `0`이면 필드 자체가 없다. 출시 빌드에서는 켜지 말 것 |
 
 응답 시간 보장(계약 v1.2, #1): 규칙 조회와 영상 다운로드는 병렬로 돌고, 각 단계 timeout은 남은 예산으로 잘린다.
 예산이 끝나 버려진 yt-dlp/ffmpeg 스레드는 `media/workdir.py`의 `WorkDir`가 관리한다 — 마지막 스레드가 끝날 때 임시 폴더를

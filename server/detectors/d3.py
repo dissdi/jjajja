@@ -44,13 +44,17 @@ class D3Detector(Detector):
             arr.append(((a - _MEAN) / _STD).transpose(2, 0, 1))
         return self._torch.from_numpy(np.stack(arr)).to(self.device)
 
+    def debug_raw(self, raw: dict) -> dict:
+        return {"raw": raw.get("d2_std"), "frames": raw.get("n_frames")}
+
     def infer(self, media: MediaBundle) -> DetectorResult:
         torch = self._torch
         want = int(self.cfg.get("frames", 16))
         frames = media.clip_frames
         if len(frames) < 8:
             return DetectorResult(None, "unavailable", "영상이 너무 짧아 움직임은 확인하지 못했어요",
-                                  {"n_frames": len(frames)})
+                                  {"n_frames": len(frames),
+                                   "error": f"too few clip frames ({len(frames)} < 8)"})
         frames = frames[: (want if len(frames) >= want else 8)]
         with self._lock, torch.inference_mode():
             x = self._tensor(frames)

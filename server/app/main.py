@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
@@ -48,7 +49,7 @@ def create_app(settings: Optional[Settings] = None, pipeline: Optional[Pipeline]
         yield
         await pipe.stop()
 
-    app = FastAPI(title="jjajja detect API", version="1.2", lifespan=lifespan)
+    app = FastAPI(title="jjajja detect API", version="1.3", lifespan=lifespan)
     install_handlers(app)
     if settings.cors_origins:  # web demo only (Expo web on another port); apps don't need CORS
         app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins,
@@ -83,12 +84,23 @@ def create_app(settings: Optional[Settings] = None, pipeline: Optional[Pipeline]
         body = await pipe.detect_url(req.url)
         log.info("detect url source=%s verdict=%s p=%s partial=%s cached=%s", req.source,
                  body["verdict"], body["ai_probability"], body["partial"], body["cached"])
-        return DetectResponse.model_validate(body)
+        return _out(body)
 
     return app
 
 
-async def _detect_upload(request: Request, pipe: Pipeline, settings: Settings) -> DetectResponse:
+def _out(body: dict) -> JSONResponse:
+    """Validate against the contract model, then drop `signals[].debug` when it is null.
+    Only that key is removed (contract v1.3: omitted outside dev mode); every other null
+    (present, score, video_id, ai_probability) is kept as the contract requires."""
+    d = DetectResponse.model_validate(body).model_dump(mode="json")
+    for s in d["signals"]:
+        if s.get("debug") is None:
+            s.pop("debug", None)
+    return JSONResponse(d)
+
+
+async def _detect_upload(request: Request, pipe: Pipeline, settings: Settings) -> JSONResponse:
     limit = settings.max_upload_bytes
     cl = request.headers.get("content-length")
     if cl and cl.isdigit() and int(cl) > limit + 64 * 1024:  # multipart overhead margin
@@ -117,7 +129,7 @@ async def _detect_upload(request: Request, pipe: Pipeline, settings: Settings) -
         shutil.rmtree(work, ignore_errors=True)
     log.info("detect upload %d bytes verdict=%s p=%s cached=%s", size, body["verdict"],
              body["ai_probability"], body["cached"])
-    return DetectResponse.model_validate(body)
+    return _out(body)
 
 
 logging.basicConfig(level=os.environ.get("JJAJJA_LOG_LEVEL", "INFO"),

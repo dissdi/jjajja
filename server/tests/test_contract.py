@@ -236,7 +236,8 @@ def test_contract_example_keys_match_schema():
     from tests.helpers import CONTRACT_RESPONSE_KEYS, CONTRACT_SIGNAL_KEYS
     ex = _contract_example()
     assert set(ex) == CONTRACT_RESPONSE_KEYS == set(DetectResponse.model_fields)
-    assert set(ex["signals"][0]) == CONTRACT_SIGNAL_KEYS == set(Signal.model_fields)
+    # v1.3 `debug` is a dev-mode-only optional field: in the schema, not in the example
+    assert set(ex["signals"][0]) == CONTRACT_SIGNAL_KEYS == set(Signal.model_fields) - {"debug"}
 
 
 def _with_present(sig: RuleSignal, present):
