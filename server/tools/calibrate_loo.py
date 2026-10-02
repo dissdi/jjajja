@@ -29,7 +29,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.ensemble import EnsembleConfig, combine  # noqa: E402
 
-EXCLUDE_IDS = {"IUbJ0EPwUro", "ys84TpoCz10"}   # 2026 news shorts, label not human-verified
+# rows whose label is not human-verified yet (scored and reported separately). The two 2026
+# news shorts (IUbJ0EPwUro, ys84TpoCz10) were watched and confirmed real on 2026-10-02 (#5).
+EXCLUDE_IDS: set[str] = set()
 DETS = {"d3": "d3_raw", "commfor_224": "commfor_raw"}
 WEIGHT_GRID = [0.0, 0.25, 0.5, 1.0]
 L2 = 1.0
