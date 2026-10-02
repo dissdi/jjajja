@@ -3,17 +3,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler } from 'react-native';
+import { AppState, BackHandler } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { detect, uploadVideo, type PickedVideo } from './src/api/client';
-import type { DetectResponse } from './src/api/contract';
+import type { DetectResponse, DetectSource } from './src/api/contract';
+import { clipboardMayHaveLink } from './src/capture/clipboard';
 import { ErrorScreen } from './src/screens/ErrorScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoadingScreen } from './src/screens/LoadingScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
 import { color } from './src/ux/theme';
 
-type Job = { kind: 'url'; url: string } | { kind: 'upload'; video: PickedVideo };
+type Job = { kind: 'url'; url: string; source: DetectSource } | { kind: 'upload'; video: PickedVideo };
 
 type Screen =
   | { name: 'home'; text: string }
@@ -27,6 +28,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'home', text: '' });
   const [homeKey, setHomeKey] = useState(0);
   const [showHint, setShowHint] = useState(true);
+  const [clipboardHint, setClipboardHint] = useState(false);
   const inflight = useRef<AbortController | null>(null);
 
   // 첫 결과를 보기 전까지 첫 실행 안내 노출 (§2.1.2). 저장 실패 시 계속 노출.
@@ -34,6 +36,25 @@ export default function App() {
     AsyncStorage.getItem(SEEN_RESULT_KEY)
       .then((v) => v === 'true' && setShowHint(false))
       .catch(() => {});
+  }, []);
+
+  // 복사만 해도 확인 (#12): 앱을 열 때·다시 앞으로 올 때만 클립보드를 (내용 없이) 확인한다.
+  // 한 번 확인을 시작하면 다음에 앱이 다시 앞으로 올 때까지 안내를 띄우지 않는다 —
+  // 방금 확인한 주소가 클립보드에 남아 있어도 홈으로 돌아올 때 같은 안내가 반복되지 않게.
+  const clipboardMuted = useRef(false);
+  useEffect(() => {
+    const check = () => {
+      clipboardMayHaveLink()
+        .then((has) => setClipboardHint(has && !clipboardMuted.current)) // 늦게 끝난 확인이 다시 켜지 않게
+        .catch(() => setClipboardHint(false));
+    };
+    check();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s !== 'active') return;
+      clipboardMuted.current = false;
+      check();
+    });
+    return () => sub.remove();
   }, []);
 
   const goHome = useCallback((text = '') => {
@@ -48,7 +69,9 @@ export default function App() {
     const ctrl = new AbortController();
     inflight.current = ctrl;
     setScreen({ name: 'loading', job });
-    const out = job.kind === 'url' ? await detect(job.url, 'paste', ctrl.signal) : await uploadVideo(job.video, ctrl.signal);
+    clipboardMuted.current = true;
+    setClipboardHint(false);
+    const out = job.kind === 'url' ? await detect(job.url, job.source, ctrl.signal) : await uploadVideo(job.video, ctrl.signal);
     if (ctrl.signal.aborted || inflight.current !== ctrl) return; // 사용자가 그만둠
     inflight.current = null;
     if (out.ok) {
@@ -79,7 +102,8 @@ export default function App() {
             key={homeKey}
             initialText={screen.text}
             showFirstRunHint={showHint}
-            onSubmitUrl={(url) => run({ kind: 'url', url })}
+            clipboardHint={clipboardHint}
+            onSubmitUrl={(url, source) => run({ kind: 'url', url, source })}
             onSubmitVideo={(video) => run({ kind: 'upload', video })}
           />
         )}

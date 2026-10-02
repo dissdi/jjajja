@@ -4,6 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import type { PickedVideo } from '../api/client';
+import type { DetectSource } from '../api/contract';
 import { Button, T } from '../components/ui';
 import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
@@ -15,11 +16,13 @@ type InlineError = keyof typeof copy.home.inlineError;
 interface Props {
   initialText: string;
   showFirstRunHint: boolean;
-  onSubmitUrl: (url: string) => void;
+  /** 클립보드에 복사한 내용이 있을 법함 (내용은 읽지 않음, capture/clipboard.ts) */
+  clipboardHint?: boolean;
+  onSubmitUrl: (url: string, source: DetectSource) => void;
   onSubmitVideo: (video: PickedVideo) => void;
 }
 
-export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmitVideo }: Props) {
+export function HomeScreen({ initialText, showFirstRunHint, clipboardHint = false, onSubmitUrl, onSubmitVideo }: Props) {
   const [text, setText] = useState(initialText);
   const [inlineError, setInlineError] = useState<InlineError | null>(null);
 
@@ -30,7 +33,7 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
       return;
     }
     setText(url);
-    onSubmitUrl(url);
+    onSubmitUrl(url, 'paste');
   };
 
   const onPaste = async () => {
@@ -53,7 +56,8 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
     }
     setInlineError(null);
     setText(url);
-    onSubmitUrl(url); // 붙여넣기 즉시 확인 시작 (§2.1.1)
+    // 붙여넣기 즉시 확인 시작 (§2.1.1). 클립보드 안내를 보고 누른 경우는 계약의 source=clipboard
+    onSubmitUrl(url, showClipboardHint ? 'clipboard' : 'paste');
   };
 
   const onPickVideo = async () => {
@@ -64,6 +68,7 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
   };
 
   const hasText = text.trim().length > 0;
+  const showClipboardHint = clipboardHint && !hasText && !inlineError;
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -118,6 +123,13 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
           </View>
         )}
 
+        {showClipboardHint && (
+          <View style={styles.clipboardHint} accessibilityLiveRegion="polite">
+            <MaterialCommunityIcons name="content-paste" size={22} color={color.textPrimary} style={{ marginTop: 3 }} />
+            <T style={[font.body, { color: color.textPrimary, flex: 1 }]}>{copy.home.clipboardHint}</T>
+          </View>
+        )}
+
         <View style={{ marginTop: 16 }}>
           {hasText ? (
             <Button label={copy.home.checkButton} onPress={() => submit(text)} />
@@ -126,7 +138,7 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
           )}
         </View>
 
-        {showFirstRunHint && (
+        {showFirstRunHint && !showClipboardHint && (
           <View style={styles.hint}>
             <MaterialCommunityIcons name="information" size={20} color={color.textSecondary} style={{ marginTop: 2 }} />
             <T style={[font.caption, { color: color.textSecondary, flex: 1 }]}>{copy.home.firstRunHint}</T>
@@ -162,5 +174,6 @@ const styles = StyleSheet.create({
   clear: { width: size.touchMin, height: size.touchMin, alignItems: 'center', justifyContent: 'center' },
   inlineError: { flexDirection: 'row', gap: 6, marginTop: 8 },
   hint: { flexDirection: 'row', gap: 6, marginTop: 16 },
+  clipboardHint: { flexDirection: 'row', gap: 8, marginTop: 16, padding: 12, backgroundColor: color.surface, borderRadius: radius.button },
   divider: { borderTopWidth: 1, borderTopColor: color.surface, paddingTop: space.section },
 });
