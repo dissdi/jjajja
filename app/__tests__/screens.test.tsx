@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as Clipboard from 'expo-clipboard';
+import { AppState } from 'react-native';
 import App from '../App';
 import type { DetectResponse, Verdict } from '../src/api/contract';
 import { ErrorScreen } from '../src/screens/ErrorScreen';
@@ -11,7 +12,11 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
-jest.mock('expo-clipboard', () => ({ getStringAsync: jest.fn() }));
+jest.mock('expo-clipboard', () => ({
+  getStringAsync: jest.fn(),
+  hasUrlAsync: jest.fn(() => Promise.resolve(false)),
+  hasStringAsync: jest.fn(() => Promise.resolve(false)),
+}));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: () => {} }));
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
 
@@ -162,5 +167,69 @@ describe('App 흐름', () => {
     fireEvent.press(screen.getByText(copy.home.pasteButton));
     await waitFor(() => expect(screen.getByText(copy.error.unsupported_platform.title)).toBeTruthy());
     expect(screen.queryByText('서버 문구')).toBeNull();
+  });
+});
+
+describe('복사만 해도 확인 (#12)', () => {
+  const sentSource = (fetchMock: jest.Mock) => JSON.parse(fetchMock.mock.calls[0][1].body).source;
+  const okFetch = () =>
+    jest.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(SAMPLE) }));
+
+  beforeEach(() => jest.clearAllMocks()); // 앞 테스트의 호출 기록 제거 (구현은 유지)
+  afterEach(() => {
+    (Clipboard.hasUrlAsync as jest.Mock).mockResolvedValue(false);
+    jest.restoreAllMocks();
+  });
+
+  it('클립보드에 주소가 없으면 안내 없음, 붙여넣기는 source=paste', async () => {
+    (Clipboard.getStringAsync as jest.Mock).mockResolvedValue('https://youtube.com/shorts/abc123');
+    const f = okFetch();
+    (globalThis as unknown as { fetch: unknown }).fetch = f;
+    render(<App />);
+    await waitFor(() => expect(Clipboard.hasUrlAsync).toHaveBeenCalled());
+    expect(screen.queryByText(copy.home.clipboardHint)).toBeNull();
+    fireEvent.press(screen.getByText(copy.home.pasteButton));
+    await waitFor(() => expect(f).toHaveBeenCalled());
+    expect(sentSource(f)).toBe('paste');
+  });
+
+  it('주소가 있으면 안내 → 붙여넣기는 source=clipboard, 홈으로 돌아와도 같은 안내 반복 없음', async () => {
+    (Clipboard.hasUrlAsync as jest.Mock).mockResolvedValue(true);
+    (Clipboard.getStringAsync as jest.Mock).mockResolvedValue('https://youtube.com/shorts/abc123');
+    const f = okFetch();
+    (globalThis as unknown as { fetch: unknown }).fetch = f;
+    render(<App />);
+    await waitFor(() => expect(screen.getByText(copy.home.clipboardHint)).toBeTruthy());
+    expect(Clipboard.getStringAsync).not.toHaveBeenCalled(); // 누르기 전에는 내용을 읽지 않는다
+    fireEvent.press(screen.getByText(copy.home.pasteButton));
+    await waitFor(() => expect(screen.getByText(copy.result.verdict.likely_ai.headline)).toBeTruthy());
+    expect(sentSource(f)).toBe('clipboard');
+    fireEvent.press(screen.getByText(copy.result.againButton));
+    expect(screen.getByText(copy.home.pasteButton)).toBeTruthy();
+    expect(screen.queryByText(copy.home.clipboardHint)).toBeNull();
+  });
+
+  it('앱이 다시 앞으로 오면 다시 확인해 안내', async () => {
+    let onChange: ((s: string) => void) | undefined;
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_t, h) => {
+      onChange = h as (s: string) => void;
+      return { remove: () => {} } as ReturnType<typeof AppState.addEventListener>;
+    });
+    render(<App />);
+    await waitFor(() => expect(Clipboard.hasUrlAsync).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(copy.home.clipboardHint)).toBeNull();
+    (Clipboard.hasUrlAsync as jest.Mock).mockResolvedValue(true);
+    act(() => onChange?.('background'));
+    act(() => onChange?.('active'));
+    await waitFor(() => expect(screen.getByText(copy.home.clipboardHint)).toBeTruthy());
+    expect(Clipboard.hasUrlAsync).toHaveBeenCalledTimes(2);
+  });
+
+  it('입력칸에 글을 넣으면 안내를 숨김', async () => {
+    (Clipboard.hasUrlAsync as jest.Mock).mockResolvedValue(true);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText(copy.home.clipboardHint)).toBeTruthy());
+    fireEvent.changeText(screen.getByLabelText(copy.home.inputA11yLabel), 'https://youtu.be/x');
+    expect(screen.queryByText(copy.home.clipboardHint)).toBeNull();
   });
 });

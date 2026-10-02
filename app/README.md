@@ -58,10 +58,25 @@ npx jest                # 단위/화면 테스트 (계약 파싱, 에러 코드�
 npx expo export --platform web   # 번들 확인
 ```
 
+## 복사 후 앱을 열면 확인 안내 (#12)
+
+앱을 열 때·다시 앞으로 올 때 클립보드를 **내용은 읽지 않고** 확인해, 복사한 내용이 있으면 [붙여넣기] 버튼 위에 안내 한 줄을 띄운다.
+내용은 사용자가 버튼을 누를 때만 읽는다(그때 요청 `source`는 `clipboard`, 안내가 없으면 `paste`).
+
+| OS | 확인 방법 | 팝업·알림 | 한계 |
+|----|----------|----------|------|
+| iOS | `hasUrlAsync` (UIPasteboard.hasURLs) | 없음 | 카카오톡 메시지 글처럼 "글 속의 주소"는 URL 항목이 아니라 안내가 안 뜰 수 있음 (버튼은 그대로 동작) |
+| Android | `hasStringAsync` (ClipDescription) | 없음 | 주소인지 모름 → 아무 글이나 복사돼 있어도 안내("영상 주소라면…") |
+| 웹 | 확인 안 함 | — | 브라우저가 권한을 물어서 |
+
+한 번 확인을 시작하면 앱이 다시 앞으로 올 때까지 안내를 띄우지 않는다(방금 확인한 주소가 클립보드에 남아 있어도 반복 안 함).
+실기기 동작은 #11에서 확인한다.
+
 ## 구조
 
 ```
 App.tsx                  화면 전환 (홈 → 확인 중 → 결과/에러)
+src/capture/clipboard.ts 클립보드에 복사한 내용이 있을 법한지 (내용은 읽지 않음, #12)
 src/api/contract.ts      API 계약 타입 (detect-api-contract v1 그대로, snake_case)
 src/api/client.ts        detect(url, source) / uploadVideo(file)
 src/ux/copy.ts           화면 문구 (UX 명세 §5 키 1:1)
