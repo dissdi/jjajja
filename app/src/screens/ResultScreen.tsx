@@ -9,7 +9,8 @@ import { Button, T } from '../components/ui';
 import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
 import { DEBUG_MODE } from '../debug';
-import { buildShareText, debugHeaderFor, debugRowsFor, detailRowsFor, headlineFor, partialNoteFor, percentLabel, resultModeFor, selectEvidence } from '../ux/present';
+import { DEBUG_GLOSSARY, debugCalcFor, debugGroupsFor, debugSummaryFor, type DebugGroup } from '../ux/debugView';
+import { buildShareText, detailRowsFor, headlineFor, partialNoteFor, percentLabel, resultModeFor, selectEvidence } from '../ux/present';
 import { border, color, font, radius, size, space, verdictColor, verdictIcon } from '../ux/theme';
 
 interface Props {
@@ -194,25 +195,74 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo, debug
   );
 }
 
-/** 개발 모드 원시 표 (계약 v1.3 signals[].debug). 영어 id·수치 그대로 — 사용자 문구 원칙 비적용 */
+/** 개발 모드 표 (계약 v1.3 signals[].debug). 개발자용 설명 — 판정은 서버 값 그대로, 계산식은 설명용 재현 */
 function DebugTable({ data }: { data: DetectResponse }) {
-  const rows = debugRowsFor(data);
+  const sum = debugSummaryFor(data);
+  const calc = debugCalcFor(data);
+  const groups = debugGroupsFor(data);
+  const [glossOpen, setGlossOpen] = useState(false);
   return (
     <View testID="debug-table" style={styles.debugBox}>
-      <T style={[styles.mono, { fontWeight: '700' }]} selectable>{debugHeaderFor(data)}</T>
-      {rows.length === 0 && <T style={styles.mono}>signals: (none)</T>}
-      {rows.map((r) => (
-        <View key={r.key} style={styles.debugRow}>
-          <T style={[styles.mono, { fontWeight: '700' }, r.alert && { color: color.danger }]} selectable>
-            {r.id}
+      <View style={styles.debugCard}>
+        <T style={[styles.dbg, { fontWeight: '700', fontSize: 16 }]} selectable>{sum.verdict}</T>
+        <T style={[styles.dbg, { fontWeight: '700' }]} selectable>{sum.probability}</T>
+        <T style={styles.dbg}>{sum.partial}</T>
+        <T style={styles.dbg}>{sum.cached}</T>
+        <T style={[styles.dbgSmall, styles.secondaryText]} selectable>{sum.requestId}</T>
+      </View>
+      <View style={styles.debugCard}>
+        <T style={[styles.dbg, { fontWeight: '700' }]}>계산식 (가중 평균, 설명용)</T>
+        <T style={styles.mono} selectable>{calc.formula}</T>
+        {calc.adjusted !== null && <T style={[styles.dbg, { color: color.danger }]} selectable>{calc.adjusted}</T>}
+        {calc.decisive !== null && <T style={[styles.dbg, { fontWeight: '700' }]} selectable>{calc.decisive}</T>}
+      </View>
+      <DebugGroupView testID="debug-group-used" group={groups.used} />
+      <DebugGroupView testID="debug-group-excluded" group={groups.excluded} />
+      <Pressable accessibilityRole="button" onPress={() => setGlossOpen((o) => !o)} style={styles.glossToggle}>
+        <T style={[styles.dbg, { fontWeight: '700' }]}>{glossOpen ? '용어 설명 접기 ▲' : '용어 설명 펼치기 ▼'}</T>
+      </Pressable>
+      {glossOpen && (
+        <View testID="debug-glossary" style={styles.debugCard}>
+          {DEBUG_GLOSSARY.map((g) => (
+            <T key={g.term} style={styles.dbg}>
+              <T style={[styles.dbg, { fontWeight: '700' }]}>{g.term}</T>
+              {` — ${g.desc}`}
+            </T>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function DebugGroupView({ group, testID }: { group: DebugGroup; testID: string }) {
+  return (
+    <View testID={testID} style={{ marginTop: 14 }}>
+      <T style={[styles.dbg, { fontWeight: '700', fontSize: 16 }]}>{`${group.title} (${group.cards.length})`}</T>
+      <T style={[styles.dbgSmall, styles.secondaryText]}>{group.desc}</T>
+      {group.cards.length === 0 && <T style={[styles.dbg, styles.secondaryText]}>(없음)</T>}
+      {group.cards.map((c) => (
+        <View key={c.key} style={styles.debugCard}>
+          <T style={[styles.dbg, { fontWeight: '700' }, c.alert && { color: color.danger }]} selectable>
+            {c.title}
+            {c.title !== c.id && <T style={[styles.dbgSmall, styles.secondaryText]}>{`  ${c.id}`}</T>}
           </T>
-          <T style={styles.mono} selectable>
-            {`kind=${r.kind} status=${r.status} score=${r.score} weight=${r.weight} present=${r.present} decisive=${r.decisive}`}
-          </T>
-          <T style={[styles.mono, r.reason !== null && { color: color.danger, fontWeight: '700' }]} selectable>
-            {`reason=${r.reason ?? '-'}`}
-          </T>
-          <T style={[styles.mono, styles.secondaryText]} selectable>{`raw=${r.raw ?? '-'}`}</T>
+          {c.fields.map((f) => (
+            <View key={f.label} style={styles.debugField}>
+              <T style={[styles.dbg, styles.secondaryText, { width: 96 }]}>{f.label}</T>
+              <T style={[styles.dbg, { flex: 1 }, f.alert && { color: color.danger, fontWeight: '700' }]} selectable>
+                {f.value}
+              </T>
+            </View>
+          ))}
+          {c.rawLines.length > 0 && (
+            <View style={styles.debugRaw}>
+              <T style={[styles.dbgSmall, styles.secondaryText]}>원점수 상세</T>
+              {c.rawLines.map((l, i) => (
+                <T key={i} style={styles.dbg} selectable>{l}</T>
+              ))}
+            </View>
+          )}
         </View>
       ))}
     </View>
@@ -247,7 +297,12 @@ const styles = StyleSheet.create({
   primaryText: { color: color.textPrimary },
   secondaryText: { color: color.textSecondary },
   debugBox: { marginTop: space.item, padding: 10, backgroundColor: color.surface, borderRadius: 6 },
-  debugRow: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: color.border },
+  debugCard: { marginTop: 8, padding: 10, backgroundColor: color.background, borderRadius: 6, borderWidth: 1, borderColor: color.border },
+  debugField: { flexDirection: 'row', marginTop: 2 },
+  debugRaw: { marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: color.surface },
+  glossToggle: { marginTop: 14, paddingVertical: 8 },
+  dbg: { fontSize: 14, lineHeight: 20, color: color.textPrimary },
+  dbgSmall: { fontSize: 12, lineHeight: 16 },
   mono: {
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
     fontSize: 13,
