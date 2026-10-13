@@ -1,6 +1,6 @@
 ---
 name: jjajja-orchestrator
-description: "jjajja(AI 슬롭 쇼츠 탐지 앱) 개발 에이전트 팀을 조율하는 오케스트레이터. 탐지 API 조사, 탐지 서버, 출처별 규칙, Expo/Swift 앱, 5060 UX, QA·정확도 평가 전반을 다룬다. 'jjajja', '슬롭 탐지', 'AI 영상 탐지', '쇼츠 URL 탐지', '1차 MVP 만들어', '공유하기로 탐지', '복사 탐지', '탐지 정확도' 요청 시 사용. 후속 작업: 다시 실행, 재실행, 업데이트, 수정, 보완, 이전 결과 기반으로 개선, 'jjajja의 {조사/서버/규칙/앱/UX/QA}만 다시', 새 플랫폼 추가, 임계값 조정 요청 시에도 반드시 이 스킬을 사용. 단순 질문(개념 설명, 파일 위치 확인)은 직접 응답."
+description: "jjajja(AI 슬롭 쇼츠 탐지 앱) 개발 에이전트 팀을 조율하는 오케스트레이터. 탐지 API 조사, 탐지 서버, 출처별 규칙, Expo/Swift 앱, 5060 UX, QA·정확도 평가 전반을 다룬다. 'jjajja', '슬롭 탐지', 'AI 영상 탐지', '쇼츠 URL 탐지', '1차 MVP 만들어', '공유하기로 탐지', '복사 탐지', '탐지 정확도', '크롬 확장', '앱 안 유튜브(시연)' 요청 시 사용. 후속 작업: 다시 실행, 재실행, 업데이트, 수정, 보완, 이전 결과 기반으로 개선, 'jjajja의 {조사/서버/규칙/앱/UX/QA}만 다시', 새 플랫폼 추가, 임계값 조정 요청 시에도 반드시 이 스킬을 사용. 단순 질문(개념 설명, 파일 위치 확인)은 직접 응답."
 ---
 
 # jjajja Orchestrator
@@ -32,6 +32,7 @@ AI 슬롭 쇼츠를 판별해 50~60대 사용자가 공유 전에 멈추게 하�
 | source-rule-engineer | `.claude/agents/source-rule-engineer.md` | source-rule-engineer | source-rules, detect-api-contract | `server/rules/`, `_workspace/02_rules_spec.md` |
 | detection-engineer | `.claude/agents/detection-engineer.md` | detection-engineer | ai-video-detection, detect-api-contract | `server/`, `_workspace/03_engineer_notes.md` |
 | mobile-engineer | `.claude/agents/mobile-engineer.md` | mobile-engineer | mobile-capture, senior-ux-korean, detect-api-contract | `app/`, `_workspace/03_mobile_notes.md` |
+| web-extension-engineer | `.claude/agents/web-extension-engineer.md` | web-extension-engineer | detect-api-contract, senior-ux-korean | `extension/`, `_workspace/08_extension_notes.md` |
 | qa-integrator | `.claude/agents/qa-integrator.md` | general-purpose | detection-qa, detect-api-contract | `_workspace/04_qa_report.md` |
 
 모든 Agent/팀원 호출에 `model: "opus"`를 명시한다. 프롬프트에는 "`.claude/agents/{name}.md`를 먼저 읽고 그 역할로 작업하라"와 사용할 스킬 이름을 넣는다.
