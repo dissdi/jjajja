@@ -25,9 +25,11 @@ interface Props {
   onSubmitVideo: (video: PickedVideo) => void;
   /** 개발 모드(원시 표). 기본값은 EXPO_PUBLIC_DEBUG=1 여부 — 테스트에서만 직접 넘긴다 */
   debug?: boolean;
+  /** 맨 아래 보조 버튼 이름. 기본 '다른 영상 확인하기'. 앱 안 유튜브 바텀시트에선 '닫고 계속 보기' */
+  againLabel?: string;
 }
 
-export function ResultScreen({ data, url, fromShare = false, onRetry, onAgain, onSubmitVideo, debug = DEBUG_MODE }: Props) {
+export function ResultScreen({ data, url, fromShare = false, onRetry, onAgain, onSubmitVideo, debug = DEBUG_MODE, againLabel = copy.result.againButton }: Props) {
   const [shareError, setShareError] = useState(false);
   const [pickerFailed, setPickerFailed] = useState(false);
   const v = data.verdict;
@@ -193,7 +195,7 @@ export function ResultScreen({ data, url, fromShare = false, onRetry, onAgain, o
           </>
         )}
         <View style={{ marginTop: space.buttonGap }}>
-          <Button variant="secondary" label={copy.result.againButton} onPress={onAgain} />
+          <Button variant="secondary" label={againLabel} onPress={onAgain} />
         </View>
       </View>
     </ScrollView>

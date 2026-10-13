@@ -14,6 +14,7 @@ import { ErrorScreen } from './src/screens/ErrorScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoadingScreen } from './src/screens/LoadingScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
+import { YoutubeScreen } from './src/screens/YoutubeScreen';
 import { color } from './src/ux/theme';
 
 /** url 잡의 fromShare=true면 url은 공유로 받은 문구 그대로(제목+주소 섞임 가능) — 서버가 주소를 꺼낸다 */
@@ -23,7 +24,8 @@ type Screen =
   | { name: 'home'; text: string }
   | { name: 'loading'; job: Job }
   | { name: 'result'; job: Job; data: DetectResponse }
-  | { name: 'error'; job: Job; code: string };
+  | { name: 'error'; job: Job; code: string }
+  | { name: 'youtube' }; // 앱 안 유튜브(시연) — src/screens/YoutubeScreen
 
 const SEEN_RESULT_KEY = 'hasSeenResult';
 
@@ -70,7 +72,7 @@ export default function App() {
   // Android 뒤로가기: S2 → 취소 후 S1, S3/S4 → S1 (§1)
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (screen.name === 'home') return false;
+      if (screen.name === 'home' || screen.name === 'youtube') return false; // youtube는 화면이 직접 처리
       goHome(screen.name === 'loading' && screen.job.kind === 'url' ? screen.job.url : '');
       return true;
     });
@@ -88,7 +90,11 @@ export default function App() {
             showFirstRunHint={showHint}
             onSubmitUrl={(url) => run({ kind: 'url', url })}
             onSubmitVideo={(video) => run({ kind: 'upload', video })}
+            onOpenYoutube={() => setScreen({ name: 'youtube' })}
           />
+        )}
+        {screen.name === 'youtube' && (
+          <YoutubeScreen onExit={() => goHome()} onSubmitVideo={(video) => run({ kind: 'upload', video })} />
         )}
         {screen.name === 'loading' && (
           <LoadingScreen

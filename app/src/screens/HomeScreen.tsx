@@ -17,9 +17,11 @@ interface Props {
   showFirstRunHint: boolean;
   onSubmitUrl: (url: string) => void;
   onSubmitVideo: (video: PickedVideo) => void;
+  /** [추가·시연] 앱 안 유튜브 화면 열기. 없으면 버튼을 숨긴다 */
+  onOpenYoutube?: () => void;
 }
 
-export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmitVideo }: Props) {
+export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmitVideo, onOpenYoutube }: Props) {
   const [text, setText] = useState(initialText);
   const [inlineError, setInlineError] = useState<InlineError | null>(null);
 
@@ -140,6 +142,15 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
           {copy.home.uploadHint}
         </T>
       </View>
+
+      {onOpenYoutube && (
+        <View style={[styles.section, styles.divider]}>
+          <Button variant="secondary" label={copy.home.youtubeButton} onPress={onOpenYoutube} />
+          <T style={[font.caption, { color: color.textSecondary, textAlign: 'center', marginTop: 8 }]}>
+            {copy.home.youtubeHint}
+          </T>
+        </View>
+      )}
     </ScrollView>
   );
 }
