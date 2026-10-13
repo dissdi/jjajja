@@ -50,6 +50,39 @@ EXPO_PUBLIC_DEBUG=1 npx expo start --web --port 8081 -c
 - `reason=-` 이면 서버가 `JJAJJA_DEBUG=1` 없이 떠 있는 것. 예: `status=error reason=http 405: ...` → 연결 문제, `status=ok score=0.041` → 연결은 됐고 점수가 낮은 것
 - `EXPO_PUBLIC_*` 는 번들 시점에 들어가므로 값을 바꾸면 `-c`로 다시 시작한다. 코드: `src/debug.ts`, `debugRowsFor`(`src/ux/present.ts`)
 
+## 공유하기로 확인 (GitHub #12 기능 3)
+
+유튜브·카카오톡에서 [공유] → 목록의 **jjajja**(iOS 표시 이름 `jjajja AI 확인`) → 바로 "확인하고 있어요" → 결과 → [카카오톡 등으로 다시 보내기]로 **결과 문구 + 원래 링크**를 OS 공유 시트로 다시 보낸다.
+
+- 받은 공유 문구(제목+주소, 카카오 단축 링크 등)는 **그대로** `POST /v1/detect`에 `source: "share"`로 보낸다. 주소 추출·단축 링크 해석은 서버가 한다.
+- 네이티브 설정은 `expo-share-intent`(v8, Expo SDK 57용) config plugin이 prebuild 때 만든다 (`app.json` → `plugins`). `ios/`·`android/`는 만들어지는 산출물이라 커밋하지 않는다(gitignore).
+  - Android: `MainActivity`에 `ACTION_SEND` + `text/plain` intent-filter, `launchMode=singleTask`
+  - iOS: Share Extension 타깃 `jjajjaAI`(Swift) + App Group `group.com.jjajja.app` + URL scheme `jjajja`
+- **Expo Go와 웹에서는 동작하지 않는다**(네이티브 모듈 없음 → 조용히 꺼지고 붙여넣기 흐름은 그대로). 시연하려면 EAS로 앱을 직접 빌드해야 한다.
+
+### 필요한 계정
+| 플랫폼 | 계정 | 비고 |
+|--------|------|------|
+| Android | Expo 계정 (무료) | APK를 받아 휴대폰에 바로 설치 |
+| iOS | Expo 계정 + **Apple Developer Program**(유료, 연 $99) | Share Extension·App Group은 서명이 필요해 무료 계정으로는 안 됨. 실기기 UDID 등록 필요 |
+
+### 빌드·시연 (사용자가 직접)
+```sh
+npm install -g eas-cli          # 또는 npx eas-cli
+eas login                       # Expo 계정
+eas init                        # app.json에 projectId 추가 (커밋)
+eas build:configure             # eas.json 생성 (커밋)
+```
+- `eas.json`의 빌드 프로필 `env`에 `EXPO_PUBLIC_API_BASE`(휴대폰에서 닿는 서버 주소, 예: ngrok https 주소)를 넣는다. 번들에 빌드 시점 값이 들어간다.
+- Android (가장 빠름): 프로필에 `"android": { "buildType": "apk" }`, `"distribution": "internal"` 후 `eas build -p android --profile preview` → 링크/QR로 APK 설치.
+- iOS: `eas device:create`로 기기 등록 → `eas build -p ios --profile preview`. 자격 증명 단계에서 **확장 타깃이 하나(`jjajjaAI`)만** 잡혀야 한다(expo-share-intent FAQ). EAS가 `app.json`에 실험용 `appExtensions`를 자동으로 넣지 않도록 `eas init`/`eas.json`을 먼저 만든다.
+- 코드 수정을 바로 보며 개발하려면 dev client: `npx expo install expo-dev-client` 후 `"developmentClient": true` 프로필로 빌드 → `npx expo start --dev-client`.
+- 로컬에 Android Studio/Xcode가 있으면 `npx expo prebuild --clean && npx expo run:android`(또는 `run:ios`)도 된다. 만들어진 `android/`·`ios/`는 커밋하지 않는다.
+
+시연 순서: 유튜브 앱에서 쇼츠 → [공유] → (목록 끝 [더보기]에서) jjajja → 결과 → [카카오톡 등으로 다시 보내기] → 카카오톡 선택. 카카오톡에서 받은 링크는 말풍선 길게 누르기 → [공유], 또는 링크를 연 화면의 공유 버튼 → 다른 앱 → jjajja (카카오톡 버전·기종마다 메뉴 위치가 달라 실기기 확인 필요). 실기기 확인 항목은 `NOTES-share.md`.
+
+설정만 검증할 때 (빌드 없이): `npx expo prebuild --no-install --platform android` → `android/app/src/main/AndroidManifest.xml`에 `android.intent.action.SEND` 확인 → `rm -rf android` (prebuild가 `package.json`의 `android`/`ios` 스크립트를 `expo run:*`으로 바꾸므로 되돌린다).
+
 ## 검증
 
 ```sh
@@ -67,6 +100,8 @@ src/api/client.ts        detect(url, source) / uploadVideo(file)
 src/ux/copy.ts           화면 문구 (UX 명세 §5 키 1:1)
 src/ux/theme.ts          색·글자·간격 토큰 (UX 명세 §6)
 src/ux/present.ts        퍼센트·근거 선택·공유 문구 규칙 (순수 함수)
+src/capture/share.ts     공유하기로 받은 텍스트 처리·진입 결정 (순수 함수)
+src/capture/useShareEntry.ts  공유 수신 훅 (expo-share-intent)
 src/screens/             Home / Loading / Result / Error
 __tests__/               jest
 ```
