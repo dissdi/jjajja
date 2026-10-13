@@ -15,8 +15,10 @@ import { border, color, font, radius, size, space, verdictColor, verdictIcon } f
 
 interface Props {
   data: DetectResponse;
-  /** 사용자가 넣은 원본 URL. 영상 파일로 확인했으면 null */
+  /** 사용자가 넣은 원본 URL(공유로 들어왔으면 공유 문구에서 꺼낸 원래 링크). 영상 파일로 확인했으면 null */
   url: string | null;
+  /** 공유하기로 들어왔는지 (#12 기능 3) — 보내기 버튼을 '카카오톡 등으로 다시 보내기'로 */
+  fromShare?: boolean;
   onRetry: () => void;
   onAgain: () => void;
   /** D1: 저장한 영상을 골랐을 때 — 홈의 업로드 흐름과 같은 App.run({ kind: 'upload' }) */
@@ -25,7 +27,7 @@ interface Props {
   debug?: boolean;
 }
 
-export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo, debug = DEBUG_MODE }: Props) {
+export function ResultScreen({ data, url, fromShare = false, onRetry, onAgain, onSubmitVideo, debug = DEBUG_MODE }: Props) {
   const [shareError, setShareError] = useState(false);
   const [pickerFailed, setPickerFailed] = useState(false);
   const v = data.verdict;
@@ -39,12 +41,15 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo, debug
   const detailRows = detailRowsFor(data);
   const [detailsOpen, setDetailsOpen] = useState(debug); // 기본 접힘 (명세 §2.3a). 개발 모드만 기본 펼침
 
+  const shareMessage = buildShareText(data, url); // unknown이면 null → 버튼 없음
+
   const cardLabel = [vCopy.headline, pl, vCopy.sub].filter(Boolean).join('. ');
 
   const onShare = async () => {
     setShareError(false);
+    const message = shareMessage;
+    if (message === null) return;
     try {
-      const message = buildShareText(data, url);
       if (Platform.OS === 'android') await Share.share({ message }, { dialogTitle: copy.share.dialogTitle });
       else await Share.share({ message });
     } catch {
@@ -174,11 +179,11 @@ export function ResultScreen({ data, url, onRetry, onAgain, onSubmitVideo, debug
           </>
         ) : isUnknown ? (
           <Button label={copy.result.retryButton} onPress={onRetry} />
-        ) : (
+        ) : shareMessage === null ? null : (
           <>
-            <Button label={copy.result.shareButton} onPress={onShare} />
+            <Button label={fromShare ? copy.result.reshareButton : copy.result.shareButton} onPress={onShare} />
             <T style={[font.caption, styles.secondaryText, { textAlign: 'center', marginTop: 6 }]}>
-              {copy.result.shareHint}
+              {fromShare ? copy.result.reshareHint : copy.result.shareHint}
             </T>
             {shareError && (
               <T style={[font.body, { color: color.danger, marginTop: 6 }]} accessibilityLiveRegion="polite">

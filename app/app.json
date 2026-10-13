@@ -2,6 +2,7 @@
   "expo": {
     "name": "jjajja",
     "slug": "jjajja",
+    "scheme": "jjajja",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -38,7 +39,19 @@
         }
       ],
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsWebPageWithMaxCount": 1
+          },
+          "iosShareExtensionName": "jjajja AI 확인",
+          "androidIntentFilters": ["text/plain"]
+        }
+      ]
     ]
   }
 }

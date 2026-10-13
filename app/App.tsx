@@ -1,4 +1,5 @@
 // 화면 흐름 (UX 명세 §1): S1 홈 → S2 확인 중 → S3 결과 / S4 에러
+// 공유하기로 들어오면(#12 기능 3) S1을 건너뛰고 바로 S2 → S3.
 // 화면이 4개뿐이고 한 방향 흐름이라 라우터 없이 상태 하나로 전환한다.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
@@ -7,13 +8,16 @@ import { BackHandler } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { detect, uploadVideo, type PickedVideo } from './src/api/client';
 import type { DetectResponse } from './src/api/contract';
+import { originalLinkFrom, SHARE_SOURCE } from './src/capture/share';
+import { useShareEntry } from './src/capture/useShareEntry';
 import { ErrorScreen } from './src/screens/ErrorScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LoadingScreen } from './src/screens/LoadingScreen';
 import { ResultScreen } from './src/screens/ResultScreen';
 import { color } from './src/ux/theme';
 
-type Job = { kind: 'url'; url: string } | { kind: 'upload'; video: PickedVideo };
+/** url 잡의 fromShare=true면 url은 공유로 받은 문구 그대로(제목+주소 섞임 가능) — 서버가 주소를 꺼낸다 */
+type Job = { kind: 'url'; url: string; fromShare?: boolean } | { kind: 'upload'; video: PickedVideo };
 
 type Screen =
   | { name: 'home'; text: string }
@@ -48,7 +52,7 @@ export default function App() {
     const ctrl = new AbortController();
     inflight.current = ctrl;
     setScreen({ name: 'loading', job });
-    const out = job.kind === 'url' ? await detect(job.url, 'paste', ctrl.signal) : await uploadVideo(job.video, ctrl.signal);
+    const out = job.kind === 'url' ? await detect(job.url, job.fromShare ? SHARE_SOURCE : 'paste', ctrl.signal) : await uploadVideo(job.video, ctrl.signal);
     if (ctrl.signal.aborted || inflight.current !== ctrl) return; // 사용자가 그만둠
     inflight.current = null;
     if (out.ok) {
@@ -59,6 +63,9 @@ export default function App() {
       setScreen({ name: 'error', job, code: out.code });
     }
   }, []);
+
+  // 공유 시트에서 '우리 앱'을 고르면 바로 확인 시작 (Expo Go·웹에서는 동작 안 함 — README 참고)
+  useShareEntry((text) => run({ kind: 'url', url: text, fromShare: true }));
 
   // Android 뒤로가기: S2 → 취소 후 S1, S3/S4 → S1 (§1)
   useEffect(() => {
@@ -92,7 +99,8 @@ export default function App() {
         {screen.name === 'result' && (
           <ResultScreen
             data={screen.data}
-            url={screen.job.kind === 'url' ? screen.job.url : null}
+            url={screen.job.kind === 'url' ? (screen.job.fromShare ? originalLinkFrom(screen.job.url) : screen.job.url) : null}
+            fromShare={screen.job.kind === 'url' && screen.job.fromShare === true}
             onRetry={() => run(screen.job)}
             onAgain={() => goHome()}
             onSubmitVideo={(video) => run({ kind: 'upload', video })}

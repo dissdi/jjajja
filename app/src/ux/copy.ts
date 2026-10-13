@@ -113,6 +113,9 @@ export const copy = {
     disclaimer: '자동으로 확인한 결과라 틀릴 수 있어요',
     shareButton: '가족에게 결과 보내기',
     shareHint: '카카오톡 등으로 보낼 수 있어요',
+    // [추가·#12 기능 3] 공유하기로 들어온 경우 같은 버튼의 이름·안내 (받은 곳으로 결과+링크를 다시 보냄)
+    reshareButton: '카카오톡 등으로 다시 보내기',
+    reshareHint: '확인 결과와 영상 링크를 함께 보내요',
     againButton: '다른 영상 확인하기',
     retryButton: '다시 확인하기',
     shareError: '보내기 화면을 열지 못했어요. 다시 눌러 주세요',
@@ -174,7 +177,15 @@ export const copy = {
   share: {
     template: '[{appName} 영상 확인 결과]\n{headline} ({percentLabel})\n{sub}\n{evidenceBlock}\n영상 주소: {url}\n\n{footer}',
     evidenceLine: '- {evidence}',
-    footer: '※ {appName} 앱이 자동으로 확인한 결과라 틀릴 수 있어요',
+    // [변경·#12 기능 3] 'jjajja로 확인했어요' 꼬리 (사용자 결정). 틀릴 수 있다는 안내는 유지
+    footer: '※ {appName}로 확인했어요. 자동으로 확인한 결과라 틀릴 수 있어요',
+    // [추가·#12 기능 3] 받는 사람에게 하는 한 줄 (화면의 sub는 보내는 사람에게 하는 말이라 메시지에는 맞지 않음).
+    // unknown은 결과를 보내지 않는다 (버튼 숨김) — 확인 못 한 영상을 '확인했다'며 퍼뜨리지 않게
+    verdictLine: {
+      likely_ai: '내용을 그대로 믿기 전에 한 번 더 확인해 보세요',
+      uncertain: '출처가 확실한 곳에서 같은 내용을 찾아보세요',
+      likely_real: '그래도 내용이 사실인지는 따로 확인이 필요해요',
+    } satisfies Record<Exclude<Verdict, 'unknown'>, string>,
     dialogTitle: '결과 보내기',
     // [추가] 영상 파일로 확인한 경우 '영상 주소: {url}' 줄 대신 쓰는 줄
     uploadedVideoLine: '영상: 휴대폰에 저장된 영상을 직접 확인했어요',

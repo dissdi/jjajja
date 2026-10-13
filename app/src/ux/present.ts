@@ -92,8 +92,13 @@ export function partialNoteFor(res: DetectResponse, fromUpload: boolean): string
   return copy.result.partialNote;
 }
 
-/** 공유 텍스트 (명세 §5.6). url=null이면 영상 파일로 확인한 경우 */
-export function buildShareText(res: DetectResponse, url: string | null): string {
+/**
+ * 공유(다시 보내기) 텍스트 (명세 §5.6 + #12 기능 3). url=null이면 영상 파일로 확인한 경우.
+ * 공유로 들어온 경우 url은 공유 문구에서 꺼낸 원래 링크(capture/share.originalLinkFrom).
+ * unknown(확인 못 함)이면 null — 결과 보내기 버튼을 숨긴다.
+ */
+export function buildShareText(res: DetectResponse, url: string | null): string | null {
+  if (res.verdict === 'unknown') return null;
   const v = copy.result.verdict[res.verdict];
   const pl = percentLabel(res.ai_probability);
   const evidence = selectEvidence(res.verdict, res.signals);
@@ -105,7 +110,7 @@ export function buildShareText(res: DetectResponse, url: string | null): string 
     appName: copy.app.name,
     headline: v.headline,
     percentLabel: pl ?? '',
-    sub: v.sub,
+    sub: copy.share.verdictLine[res.verdict],
     evidenceBlock: evidence.map((e) => fill(copy.share.evidenceLine, { evidence: e })).join('\n'),
     url: url ?? '',
     footer: fill(copy.share.footer, { appName: copy.app.name }),
