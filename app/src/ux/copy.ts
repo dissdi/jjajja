@@ -44,6 +44,31 @@ export const copy = {
       // [추가] 영상 고르기 화면을 열지 못했을 때
       pickerFailed: '영상을 고르는 화면을 열지 못했어요. 다시 눌러 주세요',
     },
+    // [추가·시연] 앱 안 유튜브 진입 버튼 (NOTES-in-app-youtube.md)
+    youtubeButton: '유튜브 보면서 확인하기 (시연)',
+    youtubeHint: '쇼츠를 넘길 때마다 자동으로 확인해 드려요',
+  },
+  // [추가·시연] 앱 안 유튜브 화면 (WebView + 오버레이 배지). senior-ux-designer 검토 대상
+  youtube: {
+    backButton: '뒤로',
+    backA11yLabel: '이전 화면으로',
+    shortsButton: '쇼츠 처음으로',
+    exitButton: '나가기',
+    exitA11yLabel: '유튜브 화면 나가기',
+    badgeChecking: '확인 중…',
+    badgeUnknown: '확인하지 못했어요',
+    badgeError: '확인하지 못했어요',
+    badgeA11yHint: '눌러서 자세한 결과를 봐요. 길게 끌어서 자리를 옮길 수 있어요',
+    sheetClose: '닫고 계속 보기',
+    retryButton: '다시 해보기',
+    sheetA11yLabel: '확인 결과',
+    loadError: '유튜브를 열지 못했어요. 인터넷 연결을 확인한 뒤 다시 눌러 주세요',
+    reloadButton: '다시 열기',
+    webOnly: {
+      title: '휴대폰 앱에서만 동작해요',
+      body: '이 기능은 휴대폰에서 jjajja 앱을 열어 사용해 주세요',
+      button: '처음으로',
+    },
   },
   loading: {
     title: '확인하고 있어요…',
