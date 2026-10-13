@@ -1,0 +1,10 @@
+{
+  "name": "jjajja-extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "jjajja 데스크탑 크롬 확장 — 빌드 없이 로드. 이 파일은 node --test 용(ESM 지정)이며 크롬은 무시한다.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/"
+  }
+}
