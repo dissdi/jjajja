@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>jjajja 영상 확인</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="top">
+    <span class="brand">jjajja 영상 확인</span>
+    <button type="button" class="link" id="open-options">설정</button>
+  </header>
+
+  <main>
+    <section id="loading" class="state" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="loading-text">확인하고 있어요…<br /><span class="muted">보통 10초 정도 걸려요</span></p>
+      <p class="muted small" id="elapsed"></p>
+    </section>
+
+    <section id="result" class="state" hidden aria-live="polite">
+      <div class="verdict">
+        <div class="badge" id="badge" aria-hidden="true"></div>
+        <div>
+          <h1 id="headline"></h1>
+          <p class="sub" id="sub"></p>
+          <p class="percent" id="percent"></p>
+        </div>
+      </div>
+
+      <div id="evidence-box" hidden>
+        <h2>이렇게 확인했어요</h2>
+        <ul id="evidence"></ul>
+      </div>
+
+      <p class="muted small" id="cache-note" hidden></p>
+      <button type="button" class="primary" id="recheck">다시 확인</button>
+
+      <details id="debug" hidden>
+        <summary>자세히 (개발자용)</summary>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>id</th><th>status</th><th>score</th><th>weight</th><th>reason</th></tr></thead>
+            <tbody id="debug-rows"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section id="error" class="state" hidden aria-live="polite">
+      <div class="verdict">
+        <div class="badge tone-gray" aria-hidden="true">–</div>
+        <div>
+          <h1 id="error-message"></h1>
+          <p class="sub" id="error-hint" hidden></p>
+        </div>
+      </div>
+      <button type="button" class="primary" id="retry" hidden>다시 확인</button>
+      <button type="button" class="secondary" id="error-options" hidden>설정 열기</button>
+    </section>
+  </main>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "jjajja 영상 확인",
+  "version": "0.1.0",
+  "description": "유튜브에서 보고 있는 영상이 AI로 만든 영상인지 한 번에 확인해요. (내부 시연용)",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/active-16.png",
+    "32": "icons/active-32.png",
+    "48": "icons/active-48.png",
+    "128": "icons/active-128.png"
+  },
+  "action": {
+    "default_title": "유튜브 영상 화면에서 쓸 수 있어요",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/inactive-16.png",
+      "32": "icons/inactive-32.png",
+      "48": "icons/inactive-48.png",
+      "128": "icons/inactive-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://youtube.com/*",
+    "https://m.youtube.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}

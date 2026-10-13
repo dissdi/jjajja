@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>jjajja 영상 확인 — 설정</title>
+  <link rel="stylesheet" href="popup.css" />
+  <style>
+    body { width: auto; max-width: 640px; margin: 0 auto; }
+    label { display: block; font-weight: 700; margin: 16px 0 6px; }
+    input[type="text"] {
+      width: 100%; min-height: 52px; font-size: 18px; padding: 8px 12px;
+      border: 2px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg);
+    }
+    .row { display: flex; gap: 10px; }
+    .row button { flex: 1; }
+    #status { min-height: 1.5em; margin-top: 16px; font-weight: 600; }
+    #status.ok { color: var(--green); }
+    #status.bad { color: var(--red); }
+    code { font-size: 15px; }
+  </style>
+</head>
+<body>
+  <header class="top"><span class="brand">jjajja 영상 확인 — 설정</span></header>
+  <main>
+    <label for="server">확인 서버 주소</label>
+    <input type="text" id="server" placeholder="http://localhost:8000" autocomplete="off" spellcheck="false" />
+    <p class="muted small">
+      기본값은 <code>http://localhost:8000</code> 이에요. 시연 때는 임시 터널 주소(예:
+      <code>https://abc-def.trycloudflare.com</code>)를 넣어 주세요.
+      localhost 가 아닌 주소는 저장할 때 크롬이 그 주소 사용 허락을 물어봐요. 그 주소 하나에만 허락을 받아요.
+    </p>
+    <div class="row">
+      <button type="button" class="primary" id="save">저장</button>
+      <button type="button" class="secondary" id="check">연결 확인</button>
+    </div>
+    <button type="button" class="secondary" id="reset">기본값으로 되돌리기</button>
+    <p id="status" role="status"></p>
+  </main>
+  <script type="module" src="options.js"></script>
+</body>
+</html>
