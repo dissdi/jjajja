@@ -92,15 +92,7 @@ eas build:configure             # eas.json 생성 (커밋)
 
 **휴대폰(Expo Go)에서만 동작한다.** 웹(`--web`)에서는 "휴대폰 앱에서만 동작해요" 안내만 나온다.
 
-```sh
-# 1) 서버를 휴대폰에서 닿는 임시 주소로 연다 (예: 원격 서버에서)
-<서버 실행 명령, 0.0.0.0:8000>
-npx cloudflared tunnel --url http://localhost:8000   # 또는 ngrok http 8000 → https://xxxx 주소
-# 2) 그 주소로 앱을 띄운다 (EXPO_PUBLIC_* 는 번들 시점에 들어가므로 -c)
-cd app
-EXPO_PUBLIC_API_BASE=https://xxxx.trycloudflare.com npx expo start --tunnel -c
-# 3) 휴대폰 Expo Go로 QR 스캔 → 홈 맨 아래 [유튜브 보면서 확인하기 (시연)]
-```
+실행 절차(탐지 서버 터널 + `expo start --tunnel`, 도구 설치, QR, 주의 사항)는 **루트 [`README.md`](../README.md)의 "3-B. 휴대폰으로 시연"**에 실제로 시연한 순서대로 정리돼 있다.
 
 - `--tunnel`은 Metro(앱 번들)용 터널이고, 탐지 서버 주소는 별도로 휴대폰에서 닿아야 한다. 메인 작업 폴더의 8081 웹 시연과 겹치지 않게 다른 포트가 필요하면 `--port 8082`.
 - 위쪽 막대: [뒤로](유튜브 안에서 뒤로, 더 갈 곳 없으면 앱 홈) · [쇼츠 처음으로] · [나가기]. Android 뒤로가기도 같은 순서(시트 → 유튜브 뒤로 → 앱 홈).
