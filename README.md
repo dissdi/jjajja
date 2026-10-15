@@ -161,9 +161,13 @@ npx expo start --tunnel --port 8082 -c
 ### 테스트
 
 ```sh
+conda activate jjajja                # (base)에는 pytest·서버 패키지가 없다
 cd server && python -m pytest -q     # 네트워크 없이 fixture로 동작
-cd app && npx jest && npx tsc --noEmit
+cd ../app && npx jest && npx tsc --noEmit
+cd ../extension && node --test       # 크롬 확장 순수 로직
 ```
+
+환경을 켜지 않고 돌리려면 `conda run -n jjajja python -m pytest -q`.
 
 ## 알려진 한계
 
