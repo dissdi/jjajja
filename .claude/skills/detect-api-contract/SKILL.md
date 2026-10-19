@@ -60,7 +60,7 @@ URL 또는 업로드 영상 하나를 탐지한다.
 서버 설정 `JJAJJA_AUTH_REQUIRED=0`(로컬 도구·테스트 전용)이면 토큰 없이도 `/v1/detect`가 동작한다. 기본값은 1.
 
 ### `POST /v1/auth/signup`
-요청 `{ "email": "a@b.com", "password": "8자 이상" }` → `201 { "token": "...", "user": { "id": "uuid", "email": "a@b.com", "created_at": "..." } }`
+요청 `{ "email": "a@b.com", "password": "8자 이상", "device_name": "선택 — 없으면 \"이름 없는 기기\"" }` → `201 { "token": "...", "user": { "id": "uuid", "email": "a@b.com", "created_at": "..." } }`
 - email은 소문자·앞뒤 공백 제거로 정규화. 이미 있으면 `409 email_taken`. 형식이 틀리면 `400 invalid_email`, 비밀번호 8자 미만이면 `400 weak_password`
 
 ### `POST /v1/auth/login`
@@ -77,9 +77,10 @@ URL 또는 업로드 영상 하나를 탐지한다.
 로그인한 사용자가 확인한 기록(모든 기기 합산, 최신순) →
 `200 { "items": [ { "id", "checked_at", "source", "platform", "video_id", "url": "원래 입력 주소 | null", "verdict", "ai_probability", "device_name" } ], "next": "<cursor> | null" }`
 - `/v1/detect`가 성공(200)할 때마다 서버가 기록한다(캐시 적중 포함). 업로드는 `url: null`, 영상 파일은 저장하지 않는다
-- 최대 `limit` 50
+- 최대 `limit` 50. 읽을 수 없는 `before` 커서는 에러 대신 빈 목록 `{"items":[],"next":null}`
+- `source`가 계약의 네 값(paste/share/clipboard/upload)이 아니면 `null`로 저장
 
-### `DELETE /v1/history/{id}` → `204` (본인 기록만)
+### `DELETE /v1/history/{id}` → `204` (본인 기록만). 남의 기록이거나 없으면 `404 not_found` (존재 여부를 구분하지 않는다)
 
 ### 토큰
 - 불투명한 무작위 문자열(서버는 해시만 저장), 유효기간 30일, 사용할 때마다 연장하지 않음
@@ -126,6 +127,7 @@ URL 또는 업로드 영상 하나를 탐지한다.
 | 400 | `invalid_file` | (v1.1) 업로드 파일이 없거나 영상으로 열 수 없음 |
 | 401 | `unauthorized` | (v2.0) 토큰 없음·만료·폐기 |
 | 401 | `invalid_credentials` | (v2.0) 로그인 실패 |
+| 404 | `not_found` | (v2.0) 기록 삭제 — 없거나 본인 기록이 아님 |
 | 409 | `email_taken` | (v2.0) 회원가입 — 이미 가입한 이메일 |
 | 400 | `invalid_email` / `weak_password` | (v2.0) 회원가입 입력 오류 |
 | 503 | `detectors_down` | 모든 탐지기 실패 (업로드 경로에서 모델 신호가 하나도 ok가 아님, 또는 서버 내부 오류) |
@@ -149,6 +151,7 @@ URL 방식에서 영상 확보가 막혀도(봇 차단 등) 에러가 아니라 
 |------|------|------|------|
 | v1 | 2026-09-28 | 초기 계약 | - |
 | v1.1 | 2026-09-28 | (추가만, 기존 필드 불변) 에러 `invalid_file`(400) 추가 / 업로드 한도 50MB·180초 명시 + `/v1/health`에 `limits` 추가 / `partial` 정의 명시(모델 ok 신호 없음) / 상태별 `evidence_ko`·`weight=0` 규칙 명시 | 업로드 경로 구현(detection-engineer), mobile-engineer 요청 (1)(2)(3) |
+| v2.0 (보완) | 2026-10-19 | signup `device_name` 선택 필드, history 잘못된 커서 → 빈 목록, 잘못된 source → null, `404 not_found` 추가 | 서버 구현(detection-engineer) 요청 |
 | v2.0 | 2026-10-19 | **호환 깨짐**: 로그인 필수(`Authorization: Bearer`), 인증·기기·기록 엔드포인트 추가, 에러 코드 401/409/400 추가. `/v1/detect` 응답 형식은 그대로 | 사용자 결정: 이메일+비밀번호, 로그인 필수, 확인 기록·여러 기기 연동, 앱+확장+서버 (#20) |
 | v1.3 | 2026-09-30 | (추가만, 선택 필드) `signals[].debug` — 개발 모드에서 신호별 원인·원점수 노출 | 사용자 요청: Hive 연결 실패와 낮은 점수를 화면에서 구분할 수 없음 (계정 일시정지 405가 "확인하지 못했어요"로만 보였음) |
 | v1.2 | 2026-09-28 | (추가만) `signals[].present` 추가(규칙 신호 있음/없음) / 응답 시간 보장 표 추가: URL 40초·업로드 110초 | #2 앱이 문장 끝으로 있음/없음 판단, #1 URL 지연이 앱 45초 초과 가능 |
