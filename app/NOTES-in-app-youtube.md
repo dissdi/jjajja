@@ -5,7 +5,7 @@
 ## 구현한 것
 | 항목 | 위치 | 내용 |
 |------|------|------|
-| 화면 | `src/screens/YoutubeScreen.tsx` | 위쪽 얇은 막대(뒤로/쇼츠 처음으로/나가기) + `react-native-webview`(13.16.1, `npx expo install`)로 `https://m.youtube.com/shorts` 전체 화면. 화면 켜짐 유지 |
+| 화면 | `src/screens/YoutubeScreen.tsx` | `react-native-webview`(13.16.1, `npx expo install`)로 `https://m.youtube.com/shorts` 전체 화면(안전 영역만 비움, 위쪽 막대 없음). 뒤로/쇼츠 처음으로/나가기는 배지 → 바텀시트 아래 선 버튼 3개. 화면 켜짐 유지 |
 | 웹 대체 | `src/screens/YoutubeScreen.web.tsx` | Metro가 웹 번들에선 이 파일을 고른다 → WebView를 불러오지 않음. "휴대폰 앱에서만 동작해요" + [처음으로]. `expo export --platform web` 번들에 WebView 코드 없음 확인 |
 | 영상 전환 감지 | `src/youtube/bridge.ts` | 주입 스크립트: `history.pushState/replaceState` 후킹, `popstate`, `yt-navigate-finish`, 400ms 주기 `location.href` 확인 → 바뀌었을 때만 `ReactNativeWebView.postMessage({type:'jjajja:url', url})`. 보조로 `onNavigationStateChange` |
 | 영상 ID | `src/youtube/videoId.ts` | `/shorts/<11자>`, `/watch?v=<11자>`, `youtu.be/<11자>` (youtube.com 및 하위 도메인만). 서버에는 추적 파라미터 없는 표준 주소(`https://www.youtube.com/shorts/<id>` / `watch?v=<id>`)를 보낸다 |

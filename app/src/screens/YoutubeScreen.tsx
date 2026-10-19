@@ -1,7 +1,11 @@
-// 앱 안 유튜브(시연, 출시용 아님) — 유튜브 모바일 웹을 WebView로 거의 전체 화면에 띄우고,
-// 쇼츠를 넘길 때마다 자동으로 확인해 오버레이 배지로 보여준다. 배지를 누르면 바텀시트로 결과 화면.
+// 앱 안 유튜브(시연, 출시용 아님) — 유튜브 모바일 웹을 WebView로 전체 화면에 띄우고(안전 영역만 비움),
+// 쇼츠를 넘길 때마다 자동으로 확인해 떠 있는 배지로 보여준다.
+// 상단 막대는 없다: 배지를 누르면 바텀시트가 열리고, 위에는 결과(또는 지금 상태 한 줄), 아래에는
+// [뒤로](유튜브 안에서 뒤로, 더 갈 곳이 없으면 앱 홈) · [쇼츠 처음으로] · [나가기](앱 홈)가 있다.
+// 배지는 영상이 아닌 화면에서도 늘 보인다(뒤로·나가기로 가는 유일한 손잡이).
 // 웹 번들은 YoutubeScreen.web.tsx(안내 화면)를 쓴다.
-// 디자인 시스템 §5.5(배지: 불투명 surface 면 + 2px ink 테두리), §5.6(바텀시트: paper 면 + 윗선 2px ink), §6.7.
+// 디자인 시스템 v2 §5.5(배지: 불투명 surface 면 + 2px ink 테두리 — 실사용자 화면에서 2px가 남는 유일한 곳, 높이 40),
+// §5.6(바텀시트: paper 면 + 윗모서리 16, 윗선 없음), §6.8(시트 안 버튼 위계: 주 버튼 하나, 나머지 선·텍스트 버튼).
 // 자동 확인도 로그인 토큰을 쓴다(api/client가 Bearer를 붙임). 401이면 App이 로그인 화면으로 보낸다.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -10,7 +14,7 @@ import { BackHandler, type LayoutChangeEvent, Modal, PanResponder, Platform, Pre
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
 import { detect } from '../api/client';
-import { Button, InkBloom, Rule, T, useReduceMotion, VerdictMark } from '../components/ui';
+import { Button, InkBloom, NoticeHead, T, useReduceMotion } from '../components/ui';
 import { copy, errorCopyFor } from '../ux/copy';
 import { border, color, font, radius, size, space, verdict as verdictTokens, verdictIcon } from '../ux/theme';
 import { useAutoCheck, type CheckState } from '../youtube/autoCheck';
@@ -56,6 +60,7 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
     [onUrl],
   );
 
+  /** 유튜브 안에서 뒤로. 더 갈 곳이 없으면 앱 홈 */
   const goBack = useCallback(() => {
     if (canGoBack) web.current?.goBack();
     else onExit();
@@ -71,6 +76,8 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
     web.current?.reload();
   }, []);
 
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+
   // Android 뒤로가기: 시트 닫기 → 유튜브 안에서 뒤로 → 앱 홈 (App은 이 화면에서 뒤로가기를 넘겨준다)
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -82,14 +89,7 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
   }, [sheetOpen, goBack]);
 
   return (
-    <View style={styles.root}>
-      <View style={styles.bar}>
-        <BarButton icon="chevron-left" label={copy.youtube.backButton} a11yLabel={copy.youtube.backA11yLabel} onPress={goBack} />
-        <BarButton icon="play-box-multiple-outline" label={copy.youtube.shortsButton} onPress={goShorts} />
-        <View style={{ flex: 1 }} />
-        <BarButton icon="close" label={copy.youtube.exitButton} a11yLabel={copy.youtube.exitA11yLabel} onPress={onExit} />
-      </View>
-
+    <View style={styles.root} testID="youtube-screen">
       <View style={styles.webArea}>
         <WebView
           ref={web}
@@ -116,7 +116,7 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
         {loadFailed && (
           <View style={styles.loadError}>
             <T style={[font.body, { color: color.ink, textAlign: 'center' }]}>{copy.youtube.loadError}</T>
-            <View style={{ marginTop: space[4], alignSelf: 'stretch' }}>
+            <View style={{ marginTop: space[6], alignSelf: 'stretch' }}>
               <Button label={copy.youtube.reloadButton} onPress={reload} />
             </View>
           </View>
@@ -124,22 +124,33 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
         <Badge state={state} onPress={() => setSheetOpen(true)} />
       </View>
 
-      <Modal
-        visible={sheetOpen}
-        transparent
-        animationType={reduceMotion ? 'fade' : 'slide'}
-        onRequestClose={() => setSheetOpen(false)}
-      >
+      <Modal visible={sheetOpen} transparent animationType={reduceMotion ? 'fade' : 'slide'} onRequestClose={closeSheet}>
         <View style={styles.sheetRoot}>
-          <Pressable style={styles.backdrop} accessibilityLabel={copy.youtube.sheetClose} onPress={() => setSheetOpen(false)} />
+          <Pressable style={styles.backdrop} accessibilityLabel={copy.youtube.sheetClose} onPress={closeSheet} />
           <Sheet expanded={state.status === 'done'}>
-            <SheetBody
-              state={state}
-              onClose={() => setSheetOpen(false)}
-              onRetry={retry}
-              onSubmitVideo={(v) => {
+            <View style={styles.sheetBody}>
+              <SheetBody
+                state={state}
+                onClose={closeSheet}
+                onRetry={retry}
+                onSubmitVideo={(v) => {
+                  setSheetOpen(false);
+                  onSubmitVideo(v);
+                }}
+              />
+            </View>
+            <SheetNav
+              onBack={() => {
                 setSheetOpen(false);
-                onSubmitVideo(v);
+                goBack();
+              }}
+              onShorts={() => {
+                setSheetOpen(false);
+                goShorts();
+              }}
+              onExit={() => {
+                setSheetOpen(false);
+                onExit();
               }}
             />
           </Sheet>
@@ -149,7 +160,7 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
   );
 }
 
-/** 바텀시트 면 §5.6 — paper, 윗모서리 12, 윗선 2px ink, 손잡이 40×4 lineStrong. 그림자 없음 */
+/** 바텀시트 면 §5.6 (v2) — paper, 윗모서리 16, 윗선 없음(scrim만), 손잡이 36×4 lineUi. 그림자 없음 */
 function Sheet({ expanded, children }: { expanded: boolean; children: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
@@ -165,31 +176,34 @@ function Sheet({ expanded, children }: { expanded: boolean; children: ReactNode 
   );
 }
 
-function BarButton({
-  icon,
-  label,
-  a11yLabel,
-  onPress,
-}: {
-  icon: 'chevron-left' | 'play-box-multiple-outline' | 'close';
-  label: string;
-  a11yLabel?: string;
-  onPress: () => void;
-}) {
+/**
+ * 시트 맨 아래 화면 이동 (상단 막대 대신). 선 버튼 3개(높이 44, hitSlop 4 → 터치 52, 사이 12), 위에 1px line.
+ * 결과의 주 버튼(보내기 등)과 겹치지 않게 주 버튼은 쓰지 않는다. 글자가 커지면 다음 줄로 감긴다.
+ */
+function SheetNav({ onBack, onShorts, onExit }: { onBack: () => void; onShorts: () => void; onExit: () => void }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={a11yLabel ?? label}
-      onPress={onPress}
-      style={({ pressed }) => [styles.barButton, pressed && { backgroundColor: color.sunken }]}
-    >
-      <MaterialCommunityIcons name={icon} size={24} color={color.ink} />
-      <T style={[font.caption, { color: color.ink }]}>{label}</T>
-    </Pressable>
+    <View style={styles.nav} accessibilityLabel={copy.youtube.navA11yLabel} testID="youtube-sheet-nav">
+      <Button
+        variant="secondary"
+        icon="chevron-left"
+        label={copy.youtube.backButton}
+        accessibilityLabel={copy.youtube.backA11yLabel}
+        onPress={onBack}
+        testID="youtube-nav-back"
+      />
+      <Button variant="secondary" label={copy.youtube.shortsButton} onPress={onShorts} testID="youtube-nav-shorts" />
+      <Button
+        variant="secondary"
+        label={copy.youtube.exitButton}
+        accessibilityLabel={copy.youtube.exitA11yLabel}
+        onPress={onExit}
+        testID="youtube-nav-exit"
+      />
+    </View>
   );
 }
 
-/** WebView 위에 떠 있는 배지 §5.5. 탭 → 바텀시트, 끌기 → 자리 옮기기 */
+/** WebView 위에 떠 있는 배지 §5.5 (v2: 높이 40, 아이콘 20, 글자 16/600 ink, hitSlop 4 → 터치 48). 탭 → 바텀시트, 끌기 → 자리 옮기기 */
 function Badge({ state, onPress }: { state: CheckState; onPress: () => void }) {
   const view = badgeFor(state);
   const [pos, setPos] = useState<BadgePos>(DEFAULT_BADGE_POS);
@@ -221,7 +235,6 @@ function Badge({ state, onPress }: { state: CheckState; onPress: () => void }) {
     [],
   );
 
-  if (view.kind === 'hidden') return null;
   return (
     <View
       style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' }]}
@@ -243,8 +256,10 @@ function Badge({ state, onPress }: { state: CheckState; onPress: () => void }) {
           accessibilityHint={copy.youtube.badgeA11yHint}
           accessibilityLiveRegion="polite"
           onPress={onPress}
+          hitSlop={size.hitSlop.secondary}
           style={({ pressed }) => [styles.badge, pressed && { backgroundColor: color.sunken }]}
         >
+          {view.kind === 'idle' && <MaterialCommunityIcons testID="badge-icon-idle" name="menu" size={size.badgeIcon} color={color.ink} />}
           {view.kind === 'checking' && (
             <View style={styles.badgeIconBox}>
               <InkBloom dot={10} />
@@ -261,7 +276,7 @@ function Badge({ state, onPress }: { state: CheckState; onPress: () => void }) {
               color={verdictTokens[view.verdict].main}
             />
           )}
-          <T style={[font.bodyStrong, { color: color.ink }]} numberOfLines={1}>
+          <T style={[font.badge, { color: color.ink }]} numberOfLines={1}>
             {view.label}
           </T>
         </Pressable>
@@ -296,32 +311,38 @@ function SheetBody({
   }
   if (state.status === 'error') {
     const c = errorCopyFor(state.code);
-    // §6.4 모양: unknown 마크 + 명조 제목 + 괘선 + 본문 (빨강 없음)
+    // §6.4 모양: unknown 도장 + 명조 600 제목 + 괘선 + 본문 (빨강 없음). [다시 해보기] 주 버튼 + [닫고 계속 보기] 텍스트 버튼 (§6.8)
     return (
       <View style={styles.sheetPad}>
-        <View accessible accessibilityLabel={`${c.title}. ${c.body}`}>
-          <VerdictMark verdict="unknown" />
-          <T style={[font.headline, { color: color.ink, marginTop: space[4] }]}>{c.title}</T>
-          <Rule style={{ marginTop: space[2] }} />
-          <T style={[font.body, { color: color.inkSecondary, marginTop: space[3] }]}>{c.body}</T>
-        </View>
+        <NoticeHead title={c.title} body={c.body} />
         <View style={{ marginTop: space.section }}>
           <Button label={copy.youtube.retryButton} onPress={onRetry} />
         </View>
-        <View style={{ marginTop: space.buttonGap }}>
-          <Button variant="secondary" label={copy.youtube.sheetClose} onPress={onClose} />
+        <View style={{ marginTop: space[5] }}>
+          <Button variant="text" label={copy.youtube.sheetClose} onPress={onClose} />
         </View>
       </View>
     );
   }
-  // 확인 중 (또는 영상 화면이 아님) — §6.2 축소판
+  if (state.status === 'idle') {
+    // 영상이 아닌 화면 — 상태 한 줄 + [닫고 계속 보기]. 아래 화면 이동 버튼이 이 시트의 주 용도
+    return (
+      <View style={styles.sheetPad}>
+        <T style={[font.body, styles.center2]}>{copy.youtube.sheetIdle}</T>
+        <View style={{ marginTop: space[3] }}>
+          <Button variant="text" label={copy.youtube.sheetClose} onPress={onClose} />
+        </View>
+      </View>
+    );
+  }
+  // 확인 중 — §6.2 축소판: 점 16 + display + 안내 + [닫고 계속 보기] (아래 화면 이동 선 버튼과 구분되게 텍스트 버튼)
   return (
     <View style={[styles.sheetPad, { alignItems: 'center' }]}>
       <InkBloom />
-      <T style={[font.display, styles.center, { marginTop: space[4] }]}>{copy.loading.title}</T>
+      <T style={[font.display, styles.center, { marginTop: space[6] }]}>{copy.loading.title}</T>
       <T style={[font.body, styles.center2, { marginTop: space[2] }]}>{copy.loading.subtitle}</T>
-      <View style={{ marginTop: space.section, alignSelf: 'stretch' }}>
-        <Button variant="secondary" label={copy.youtube.sheetClose} onPress={onClose} />
+      <View style={{ marginTop: space[6], alignSelf: 'stretch' }}>
+        <Button variant="text" label={copy.youtube.sheetClose} onPress={onClose} />
       </View>
     </View>
   );
@@ -329,23 +350,6 @@ function SheetBody({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: color.ink },
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: color.paper,
-    paddingHorizontal: space[1],
-    minHeight: 56,
-    borderBottomWidth: border.hair,
-    borderBottomColor: color.line,
-  },
-  barButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 56,
-    minWidth: size.touchMin + space[4],
-    paddingHorizontal: space[2],
-    borderRadius: radius.md,
-  },
   webArea: { flex: 1 },
   webview: { flex: 1, backgroundColor: color.ink },
   loadError: {
@@ -360,13 +364,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.screenX,
   },
   badgeWrap: { position: 'absolute' },
-  // 불투명 크림 면 + 2px 잉크 테두리 (어두운 영상 위 18:1, 흰 화면 위 17.7:1). 그림자·반투명 금지
+  // 불투명 크림 면 + 2px 잉크 테두리 (어두운 영상 위 18:1, 흰 화면 위 17.7:1, 회색 썸네일 3.63:1). 그림자·반투명 금지
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space[2],
+    gap: 6,
     minHeight: size.badgeHeight,
-    paddingHorizontal: 14,
+    paddingHorizontal: space[3],
     borderRadius: radius.md,
     backgroundColor: color.surface,
     borderWidth: border.strong,
@@ -380,19 +384,29 @@ const styles = StyleSheet.create({
     backgroundColor: color.paper,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    borderTopWidth: border.rule,
-    borderColor: color.ink,
     overflow: 'hidden',
   },
+  // 결과가 길면 이 부분만 스크롤되고, 아래 화면 이동 줄은 늘 보인다
+  sheetBody: { flexGrow: 1, flexShrink: 1 },
   grabber: {
     alignSelf: 'center',
     width: size.sheetHandle.width,
     height: size.sheetHandle.height,
-    borderRadius: 2,
-    backgroundColor: color.lineStrong,
+    borderRadius: size.sheetHandle.height / 2,
+    backgroundColor: color.lineUi,
     marginTop: space[2],
   },
-  sheetPad: { paddingHorizontal: space.screenX, paddingTop: space[4], paddingBottom: space[5], alignItems: 'stretch' },
+  sheetPad: { paddingHorizontal: space.screenX, paddingTop: space[6], paddingBottom: space[5], alignItems: 'stretch' },
+  nav: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: space.buttonGap,
+    paddingHorizontal: space.screenX,
+    paddingVertical: space[4],
+    borderTopWidth: border.hair,
+    borderTopColor: color.line,
+  },
   center: { color: color.ink, textAlign: 'center' },
   center2: { color: color.inkSecondary, textAlign: 'center' },
 });

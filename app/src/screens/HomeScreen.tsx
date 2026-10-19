@@ -1,14 +1,15 @@
-// S1 홈 (UX 명세 §2.1, 디자인 시스템 §6.1) + 영상 파일로 확인하기 + 앱 안 유튜브(시연) + 내 기록·내 계정(#20)
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+// S1 홈 (UX 명세 §2.1, 디자인 시스템 v2 §6.1) + 영상 파일로 확인하기 + 앱 안 유튜브(시연) + 내 기록·내 계정(#20)
+// v2: 폭 넓은 주 버튼은 하나(입력이 비면 [붙여넣기], 차면 [확인하기]). 나머지 하나는 바로 아래 텍스트 버튼.
+// 영상 파일은 선 버튼(글자 폭), 유튜브 시연은 텍스트 버튼. 섹션 구분선 대신 여백 40.
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import type { PickedVideo } from '../api/client';
-import { Button, Divider, InlineError, Input, Rule, T, TextButton, TopBar } from '../components/ui';
+import { Button, IconButton, ScreenTitle, T, TextButton, TextField, TopBar } from '../components/ui';
 import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
 import { extractUrl } from '../ux/present';
-import { border, color, font, radius, size, space, verdict } from '../ux/theme';
+import { color, font, space } from '../ux/theme';
 
 type InlineErrorKey = keyof typeof copy.home.inlineError;
 
@@ -34,7 +35,6 @@ export function HomeScreen({
   onOpenAccount,
 }: Props) {
   const [text, setText] = useState(initialText);
-  const [focused, setFocused] = useState(false);
   const [inlineError, setInlineError] = useState<InlineErrorKey | null>(null);
 
   const submit = (raw: string) => {
@@ -78,8 +78,6 @@ export function HomeScreen({
   };
 
   const hasText = text.trim().length > 0;
-  const borderColor = inlineError ? verdict.likely_ai.main : focused ? color.ink : color.lineStrong;
-  const borderWidth = inlineError || focused ? border.strong : border.ink;
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -93,53 +91,46 @@ export function HomeScreen({
       />
 
       <View style={{ marginTop: space.section }}>
-        <T style={[font.display, styles.ink]} accessibilityRole="header">
-          {copy.home.title}
-        </T>
-        <Rule style={{ marginTop: space[3] }} />
-        <T style={[font.body, styles.ink2, { marginTop: space[3] }]}>{copy.home.subtitle}</T>
+        <ScreenTitle title={copy.home.title} subtitle={copy.home.subtitle} />
       </View>
 
-      <View style={{ marginTop: space[6] }}>
-        <View style={[styles.inputWrap, { borderColor, borderWidth }]}>
-          <Input
-            value={text}
-            onChangeText={(t) => {
-              setText(t);
-              if (inlineError) setInlineError(null);
-            }}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder={copy.home.inputPlaceholder}
-            accessibilityLabel={copy.home.inputA11yLabel}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-            returnKeyType="go"
-            onSubmitEditing={() => hasText && submit(text)}
-            style={[font.body, styles.input]}
-          />
-          {hasText && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={copy.home.clearA11yLabel}
-              onPress={() => {
-                setText('');
-                setInlineError(null);
-              }}
-              style={styles.clear}
-              hitSlop={4}
-            >
-              <MaterialCommunityIcons name="close" size={24} color={color.inkSecondary} />
-            </Pressable>
-          )}
-        </View>
-
-        {inlineError && <InlineError text={copy.home.inlineError[inlineError]} />}
+      <View style={{ marginTop: space[7] }}>
+        <TextField
+          value={text}
+          onChangeText={(t) => {
+            setText(t);
+            if (inlineError) setInlineError(null);
+          }}
+          error={inlineError ? copy.home.inlineError[inlineError] : null}
+          placeholder={copy.home.inputPlaceholder}
+          accessibilityLabel={copy.home.inputA11yLabel}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          returnKeyType="go"
+          onSubmitEditing={() => hasText && submit(text)}
+          right={
+            hasText ? (
+              <IconButton
+                icon="close"
+                accessibilityLabel={copy.home.clearA11yLabel}
+                onPress={() => {
+                  setText('');
+                  setInlineError(null);
+                }}
+              />
+            ) : undefined
+          }
+        />
 
         <View style={{ marginTop: space[3] }}>
           {hasText ? (
-            <Button label={copy.home.checkButton} onPress={() => submit(text)} />
+            <>
+              <Button label={copy.home.checkButton} onPress={() => submit(text)} />
+              <View style={{ marginTop: space.buttonGap }}>
+                <TextButton label={copy.home.pasteButton} onPress={onPaste} />
+              </View>
+            </>
           ) : (
             <Button label={copy.home.pasteButton} onPress={onPaste} />
           )}
@@ -148,37 +139,22 @@ export function HomeScreen({
         {showFirstRunHint && <T style={[font.caption, styles.caption]}>{copy.home.firstRunHint}</T>}
       </View>
 
-      <Divider style={{ marginTop: space.section }} />
-
       <View style={{ marginTop: space.section }}>
         <Button variant="secondary" label={copy.home.uploadButton} onPress={onPickVideo} />
         <T style={[font.caption, styles.caption]}>{copy.home.uploadHint}</T>
       </View>
 
       {onOpenYoutube && (
-        <View style={{ marginTop: space[3] }}>
-          <TextButton label={copy.home.youtubeButton} onPress={onOpenYoutube} icon="chevron-right" accessibilityHint={copy.home.youtubeHint} />
-          <T style={[font.caption, { color: color.inkTertiary }]}>{copy.home.youtubeHint}</T>
+        <View style={{ marginTop: space[5] }}>
+          <TextButton label={copy.home.youtubeButton} onPress={onOpenYoutube} accessibilityHint={copy.home.youtubeHint} />
+          <T style={[font.caption, styles.caption, { marginTop: 0 }]}>{copy.home.youtubeHint}</T>
         </View>
       )}
-
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: space.screenX, paddingBottom: space[8], backgroundColor: color.paper, flexGrow: 1 },
-  ink: { color: color.ink },
-  ink2: { color: color.inkSecondary },
-  caption: { color: color.inkTertiary, textAlign: 'center', marginTop: 6 },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: size.inputMinHeight,
-    backgroundColor: color.surface,
-    borderRadius: radius.sm,
-    paddingLeft: space[4],
-  },
-  input: { flex: 1, minWidth: 0, color: color.ink, paddingVertical: space[3] },
-  clear: { width: size.touchMin, height: size.touchMin, alignItems: 'center', justifyContent: 'center' },
+  caption: { color: color.inkTertiary, textAlign: 'center', marginTop: space[2] },
 });

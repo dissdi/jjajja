@@ -110,8 +110,8 @@ describe('badgeFor', () => {
   const data = (o: Partial<DetectResponse>): DetectResponse => ({ ...(SAMPLE as DetectResponse), ...o });
   const done = (o: Partial<DetectResponse>): CheckState => ({ status: 'done', video, data: data(o), fromCache: false });
 
-  it('영상 아님 → 숨김, 대기·요청 중 → 확인 중', () => {
-    expect(badgeFor({ status: 'idle' })).toEqual({ kind: 'hidden' });
+  it('영상 아님 → 대기 배지(뒤로·나가기 메뉴 손잡이라 숨기지 않음), 대기·요청 중 → 확인 중', () => {
+    expect(badgeFor({ status: 'idle' })).toEqual({ kind: 'idle', label: copy.youtube.badgeIdle, a11yLabel: copy.youtube.badgeIdleA11y });
     expect(badgeFor({ status: 'waiting', video }).kind).toBe('checking');
     expect(badgeFor({ status: 'loading', video })).toMatchObject({ kind: 'checking', label: copy.youtube.badgeChecking });
   });

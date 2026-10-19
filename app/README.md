@@ -47,15 +47,21 @@ npx expo start --web    # 브라우저에서 빠르게 확인
 - 앱 안 유튜브 자동 확인도 같은 토큰을 쓴다.
 - 에러 code → 문구: `copy.auth.error` (invalid_credentials, email_taken, invalid_email, weak_password, unauthorized, not_found + 네트워크).
 
-## 디자인 (잉크 & 크림, GitHub #21)
+## 디자인 (잉크 & 크림 v2 정제·에디토리얼, GitHub #21)
 
 기준: `.claude/skills/senior-ux-korean/references/design-system.md`, 토큰 원본 `../design/tokens.json`. 라이트 모드만.
 
 - `src/ux/theme.ts`는 `src/ux/tokens.json`(= `design/tokens.json` 복사본)에서 값을 가져온다. 색·크기 숫자를 코드에 적지 않는다. 토큰이 바뀌면 `npm run tokens`로 다시 복사 — 어긋나면 `__tests__/theme.test.ts`가 실패한다(색 hex·그림자 사용도 검사).
-- 글꼴(SIL OFL 1.1, `assets/fonts/OFL.txt`): Pretendard Regular/SemiBold/Bold(본문·버튼), Noto Serif KR Bold(헤드라인 24pt 이상, copy.ts 고정 문구 전용). 명조는 KS X 1001 한글 2,350자 + ASCII + 기호 + copy.ts 글자로 서브셋(약 1.1MB): `python scripts/subset_serif.py <원본 NotoSerifKR-Bold.otf>` (fonttools 필요). **copy.ts에 새 명조 문구를 넣으면 서브셋을 다시 만든다.**
+- 글꼴(SIL OFL 1.1, `assets/fonts/OFL.txt`): Pretendard Regular/SemiBold/Bold(본문·버튼), Noto Serif KR SemiBold(큰 제목 600: 홈·확인 중·로그인·에러 제목)·Bold(판정 헤드라인 700 전용). 명조는 24pt 이상, copy.ts 고정 문구 전용. 두 명조 모두 KS X 1001 한글 2,350자 + ASCII + 기호 + copy.ts 글자로 서브셋(각 약 1.1MB): `python scripts/subset_serif.py <원본 NotoSerifKR-Bold.otf 또는 NotoSerifKR-SemiBold.otf>` (fonttools 필요). **copy.ts에 새 명조 문구를 넣으면 두 서브셋을 다시 만든다.**
 - `expo-font`로 불러오고 그동안 스플래시를 유지한다(최대 4초, 실패하면 시스템 글꼴). 로드 전에는 `T`/`Input`이 시스템 글꼴 + 굵기로 대신 그린다.
-- 부품(`src/components/ui.tsx`): 주/보조/텍스트 버튼, 입력칸, 판정 블록(도장 마크·괘선), 안내 줄, 잉크 번짐 로딩(유일한 애니메이션, 동작 줄이기 설정이면 정지), DEV 띠·칩.
-- 앱 안 유튜브 배지는 불투명 크림 면 + 2px 잉크 테두리, 바텀시트는 크림 면 + 윗선 2px 잉크. 그림자 없음.
+- v2 원칙(실기기 피드백 "버튼이 너무 커, 굵어서 싸 보임"): 접근성은 터치 영역(hitSlop)과 본문 18로 지키고, 보이는 무게는 줄인다.
+  - 버튼: 주 버튼 보이는 높이 48·내용 폭(최대 400)·17/600·모서리 8, **화면당 하나**. 두 번째 행동은 1px `lineUi` 선 버튼(44, hitSlop 4 → 터치 52), 그다음은 밑줄 텍스트 버튼(44, 터치 52). 아이콘 버튼은 상자 40 + hitSlop 8.
+  - 선: 1px 헤어라인이 기본. 카드 외곽선 없음(목록은 행 + 1px `line`). 입력칸·선 버튼 경계만 `lineUi`. 2px는 유튜브 배지와 개발 영역만.
+  - 판정 블록: 색 면·왼쪽 띠 없이 위 1px 판정색 선 + 도장 40(1.5px) + 명조 700 헤드라인. 700 굵기는 이 헤드라인 하나뿐.
+  - 여백: 좌우 24, 섹션 40, 판정 블록 위아래 24, 간격 단계 4·8·12·16·20·24·32·48·64.
+- 부품(`src/components/ui.tsx`): 주/선/텍스트/아이콘 버튼, 입력칸, 판정 블록·도장, 화면 제목·에러 제목 묶음, 안내 줄, 잉크 번짐 로딩(유일한 애니메이션, 동작 줄이기 설정이면 정지), DEV 띠·칩. 개발 영역 표는 `src/screens/DebugTable.tsx`.
+- 앱 안 유튜브 배지는 불투명 크림 면 + 2px 잉크 테두리(높이 40), 바텀시트는 크림 면 + 윗모서리 16(윗선 없음). 그림자 없음.
+- Do/Don't는 `__tests__/designRules.test.tsx`가 지킨다: 버튼 높이·hitSlop·폭, 화면당 주 버튼 1개, `fontWeight 700` 하드코딩 금지, `font.headline`은 판정 블록만, 2px 선·`lineStrong`·판정 `tint` 사용처 제한.
 
 ## 개발 모드 (탐지기 원시 수치 보기)
 
@@ -113,13 +119,15 @@ eas build:configure             # eas.json 생성 (커밋)
 쇼츠를 넘기다 한 영상에 0.8초 머무르면 자동으로 `POST /v1/detect`(source `paste`)를 보내고, 오른쪽 위 배지에
 "확인 중…" → 신호등 아이콘 + "AI 가능성 93%"가 뜬다. 배지를 누르면 결과 화면(헤드라인·근거·자세히 보기)이 바텀시트로 열리고,
 배지를 끌면 자리를 옮길 수 있다. 다시 돌아온 영상은 메모리에 있는 결과를 바로 보여준다(재요청 없음).
+위쪽 막대는 없다(유튜브가 전체 화면). 배지는 영상이 아닌 화면에서도 "쇼츠를 열면 확인해요"로 늘 떠 있고, 누르면 시트 아래에
+[뒤로] · [쇼츠 처음으로] · [나가기] 선 버튼이 있다.
 
 **휴대폰(Expo Go)에서만 동작한다.** 웹(`--web`)에서는 "휴대폰 앱에서만 동작해요" 안내만 나온다.
 
 실행 절차(탐지 서버 터널 + `expo start --tunnel`, 도구 설치, QR, 주의 사항)는 **루트 [`README.md`](../README.md)의 "3-B. 휴대폰으로 시연"**에 실제로 시연한 순서대로 정리돼 있다.
 
 - `--tunnel`은 Metro(앱 번들)용 터널이고, 탐지 서버 주소는 별도로 휴대폰에서 닿아야 한다. 메인 작업 폴더의 8081 웹 시연과 겹치지 않게 다른 포트가 필요하면 `--port 8082`.
-- 위쪽 막대: [뒤로](유튜브 안에서 뒤로, 더 갈 곳 없으면 앱 홈) · [쇼츠 처음으로] · [나가기]. Android 뒤로가기도 같은 순서(시트 → 유튜브 뒤로 → 앱 홈).
+- 화면 이동은 배지 → 시트 아래 버튼: [뒤로](유튜브 안에서 뒤로, 더 갈 곳 없으면 앱 홈) · [쇼츠 처음으로] · [나가기](앱 홈). Android 뒤로가기는 시트 → 유튜브 뒤로 → 앱 홈 순서.
 
 **알려진 한계 (시연용)**
 - 구글 로그인 불가: 구글은 WebView 안 로그인을 막는다. 로그인 없이 보는 쇼츠만 된다.

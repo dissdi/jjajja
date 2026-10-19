@@ -57,7 +57,7 @@ describe('금지어 (UX 명세 §7-7)', () => {
 describe('verdict 재계산 금지 (UX 명세 §7-3)', () => {
   it('앱 소스에 확률 구간 경계값/비교가 없다', () => {
     const files = ['App.tsx', ...['api', 'ux', 'screens', 'components'].flatMap((d) =>
-      fs.readdirSync(path.join(__dirname, '../src', d)).map((f) => path.join('src', d, f)),
+      fs.readdirSync(path.join(__dirname, '../src', d)).filter((f) => /\.(ts|tsx)$/.test(f)).map((f) => path.join('src', d, f)), // tokens.json(자간 -0.4 등)은 코드가 아니라 제외
     )];
     for (const f of files) {
       const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');

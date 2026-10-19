@@ -1,4 +1,4 @@
-// theme.ts = design/tokens.json (디자인 시스템 #21). 값이 어긋나면 실패 → `npm run tokens`로 다시 복사.
+// theme.ts = design/tokens.json (디자인 시스템 v2.0, #21). 값이 어긋나면 실패 → `npm run tokens`로 다시 복사.
 import * as fs from 'fs';
 import * as path from 'path';
 import { VERDICTS } from '../src/api/contract';
@@ -47,7 +47,7 @@ describe('theme.ts 값 = tokens.json', () => {
     expect(border).toEqual(designTokens.border);
     expect(size).toEqual(designTokens.size);
     expect(space.screenX).toBe(designTokens.space.screenX.app);
-    for (const k of ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'section', 'item', 'buttonGap'] as const) {
+    for (const k of ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'section', 'item', 'buttonGap', 'blockY'] as const) {
       expect(space[k]).toBe(designTokens.space[k]);
     }
     expect(MAX_FONT_SCALE).toBe(designTokens.font.maxFontScale);
@@ -62,7 +62,9 @@ describe('theme.ts 값 = tokens.json', () => {
       if (t.numeric === 'tabular-nums') expect(s.fontVariant).toEqual(['tabular-nums']);
       const expected =
         t.family === 'serif'
-          ? fam.serif.app.bold
+          ? t.weight === '700'
+            ? fam.serif.app.bold
+            : fam.serif.app.semibold
           : t.weight === '700'
             ? fam.sans.app.bold
             : t.weight === '600'
@@ -79,27 +81,38 @@ describe('theme.ts 값 = tokens.json', () => {
     for (const [k, s] of Object.entries(font)) {
       if (k === 'eyebrow') continue; // 영문 대문자 라벨 전용
       expect({ k, ok: (s.fontSize ?? 0) >= 16 }).toEqual({ k, ok: true });
-      if (s.fontFamily === designTokens.font.family.serif.app.bold) expect(s.fontSize).toBeGreaterThanOrEqual(24);
+      const serif = designTokens.font.family.serif.app;
+      if (s.fontFamily === serif.bold || s.fontFamily === serif.semibold) expect(s.fontSize).toBeGreaterThanOrEqual(24);
     }
   });
 });
 
 describe('글꼴 파일·라이선스', () => {
-  it('FONT_ASSETS 키 = tokens 앱 글꼴 이름 4개, 파일과 OFL.txt 존재', () => {
+  it('FONT_ASSETS 키 = tokens 앱 글꼴 이름 5개(명조 SemiBold 포함, v2 §0.2 V2), 파일과 OFL.txt 존재', () => {
     const fam = designTokens.font.family;
     expect(Object.keys(FONT_ASSETS).sort()).toEqual(
-      [fam.sans.app.regular, fam.sans.app.semibold, fam.sans.app.bold, fam.serif.app.bold].sort(),
+      [fam.sans.app.regular, fam.sans.app.semibold, fam.sans.app.bold, fam.serif.app.semibold, fam.serif.app.bold].sort(),
     );
-    for (const f of ['Pretendard-Regular.otf', 'Pretendard-SemiBold.otf', 'Pretendard-Bold.otf', 'NotoSerifKR-Bold.otf', 'OFL.txt']) {
+    for (const f of [
+      'Pretendard-Regular.otf',
+      'Pretendard-SemiBold.otf',
+      'Pretendard-Bold.otf',
+      'NotoSerifKR-SemiBold.otf',
+      'NotoSerifKR-Bold.otf',
+      'OFL.txt',
+    ]) {
       expect(fs.existsSync(path.join(ROOT, 'assets', 'fonts', f))).toBe(true);
     }
     const ofl = fs.readFileSync(path.join(ROOT, 'assets', 'fonts', 'OFL.txt'), 'utf8');
     expect(ofl).toContain('SIL OPEN FONT LICENSE Version 1.1');
     expect(ofl).toContain('Pretendard');
     expect(ofl).toContain('Noto Serif KR');
+    expect(ofl).toContain('NotoSerifKR-SemiBold.otf');
   });
-  it('명조 서브셋은 2MB 이하 (전체 약 6MB → 약 1MB 목표)', () => {
-    expect(fs.statSync(path.join(ROOT, 'assets', 'fonts', 'NotoSerifKR-Bold.otf')).size).toBeLessThan(2 * 1024 * 1024);
+  it('명조 서브셋은 각각 2MB 이하 (전체 약 6~7MB → 약 1MB 목표)', () => {
+    for (const f of ['NotoSerifKR-Bold.otf', 'NotoSerifKR-SemiBold.otf']) {
+      expect({ f, ok: fs.statSync(path.join(ROOT, 'assets', 'fonts', f)).size < 2 * 1024 * 1024 }).toEqual({ f, ok: true });
+    }
   });
 });
 

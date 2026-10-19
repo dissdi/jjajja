@@ -6,8 +6,8 @@ jjajja 앱에 번들한 글꼴은 모두 SIL Open Font License 1.1을 따른다.
    Copyright (c) 2021, Kil Hyung-jin (https://github.com/orioncactus/pretendard),
    with Reserved Font Name Pretendard.
 
-2) Noto Serif KR Bold  (NotoSerifKR-Bold.otf)
-   출처: https://github.com/notofonts/noto-cjk  (Serif/SubsetOTF/KR/NotoSerifKR-Bold.otf, Version 2.003)
+2) Noto Serif KR Bold / SemiBold  (NotoSerifKR-Bold.otf, NotoSerifKR-SemiBold.otf)
+   출처: https://github.com/notofonts/noto-cjk  (Serif/SubsetOTF/KR/NotoSerifKR-Bold.otf, NotoSerifKR-SemiBold.otf, Version 2.003)
    수정: ASCII + KS X 1001 기호 + KS X 1001 한글 2,350자 + 앱 문구(copy.ts) 글자만 남긴 서브셋
          (app/scripts/subset_serif.py). 글꼴 이름은 원본 그대로 "Noto Serif KR"이며 예약 이름 "Source"를 쓰지 않는다.
 
