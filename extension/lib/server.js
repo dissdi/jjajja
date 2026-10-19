@@ -42,3 +42,12 @@ export function detectEndpoint(origin) {
 export function healthEndpoint(origin) {
   return `${origin}/v1/health`;
 }
+
+/** 계약 v2.0 인증·기록 엔드포인트 */
+export const ENDPOINTS = {
+  signup: '/v1/auth/signup',
+  login: '/v1/auth/login',
+  logout: '/v1/auth/logout',
+  me: '/v1/me',
+  history: '/v1/history',
+};

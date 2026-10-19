@@ -68,15 +68,7 @@ export function toDisplayModel(res) {
 
   // 개발자용: 서버가 debug 를 하나라도 보냈을 때만 전체 신호를 그대로 보여준다.
   const hasDebug = res.signals.some((s) => s.debug !== undefined);
-  const debugRows = hasDebug
-    ? res.signals.map((s) => ({
-        id: s.id,
-        status: s.status,
-        score: s.score,
-        weight: s.weight,
-        reason: s.debug ? s.debug.reason : null,
-      }))
-    : null;
+  const debugRows = hasDebug ? toDebugRows(res.signals) : null;
 
   return {
     verdict: res.verdict,
@@ -89,6 +81,36 @@ export function toDisplayModel(res) {
     urlOnly,
     debugRows,
   };
+}
+
+/** 계산에 들어간 신호: weight > 0, status ok, score 숫자 */
+const isIncluded = (s) => s.weight > 0 && s.status === 'ok' && typeof s.score === 'number';
+
+/**
+ * 개발자용 행 (design-system.md §7.3). share = weight·score / Σweight(계산에 들어간 신호).
+ * chip: weight 0 → SKIP, status≠ok → FAIL, 그 밖 → OK.
+ */
+export function toDebugRows(signals) {
+  const total = signals.filter(isIncluded).reduce((a, s) => a + s.weight, 0);
+  return signals.map((s) => {
+    const included = isIncluded(s) && total > 0;
+    return {
+      id: s.id,
+      status: s.status,
+      score: s.score,
+      weight: s.weight,
+      reason: s.debug ? s.debug.reason : null,
+      chip: s.weight === 0 ? 'SKIP' : s.status !== 'ok' ? 'FAIL' : 'OK',
+      decisive: s.decisive === true,
+      included,
+      share: included ? (s.weight * s.score) / total : null,
+    };
+  });
+}
+
+/** 개발자용 숫자: 고정 소수 자리 (null → —) */
+export function fmtNum(v, digits) {
+  return typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits) : '—';
 }
 
 /** 캐시에서 꺼낸 결과 안내. at/now: ms */
@@ -107,6 +129,9 @@ const ERROR_TEXT = {
   invalid_file: '이 영상 파일은 열 수 없어요. 다른 영상으로 다시 확인해 주세요',
   rate_limited: '잠시 후 다시 시도해 주세요',
   detectors_down: '지금은 확인이 어려워요. 잠시 후 다시 시도해 주세요',
+  // v2.0 — 확인 화면에서는 보통 로그인 화면으로 넘어가지만 문구는 둔다
+  unauthorized: '다시 로그인해 주세요',
+  not_found: '찾는 기록이 없어요. 이미 지워졌을 수 있어요',
 };
 const FALLBACK = ERROR_TEXT.detectors_down;
 
@@ -120,7 +145,7 @@ export function errorToDisplay(err) {
   switch (kind) {
     case 'api': {
       const message = ERROR_TEXT[err.code] ?? FALLBACK;
-      const canRetry = !['invalid_url', 'unsupported_platform', 'video_unavailable'].includes(err.code);
+      const canRetry = !['invalid_url', 'unsupported_platform', 'video_unavailable', 'not_found'].includes(err.code);
       return { message, hint: null, showOptions: false, canRetry };
     }
     case 'network':
@@ -153,8 +178,130 @@ export function errorToDisplay(err) {
         showOptions: false,
         canRetry: false,
       };
+    case 'auth_required':
+      return { message: '다시 로그인해 주세요', hint: null, showOptions: false, canRetry: false };
     case 'bad_response':
     default:
       return { message: FALLBACK, hint: null, showOptions: false, canRetry: true };
   }
 }
+
+// ---- 로그인 (계약 v2.0) ----
+// senior-ux-korean 에 로그인 문구가 아직 없어 같은 원칙(~해요체, 사용자 탓 금지, 다음 행동 제시)으로 썼다.
+// NOTES.md "문구 가정" 참고 — senior-ux-designer 검토 대상.
+export const AUTH_COPY = {
+  login: {
+    title: '로그인해 주세요',
+    lead: '로그인하면 확인한 영상 기록을 휴대폰 앱에서도 볼 수 있어요',
+    submit: '로그인',
+    pending: '로그인하고 있어요…',
+    switchPrompt: '처음 쓰시나요?',
+    switchButton: '회원가입',
+  },
+  signup: {
+    title: '회원가입',
+    lead: '이메일과 비밀번호만 있으면 돼요',
+    submit: '가입하고 시작하기',
+    pending: '가입하고 있어요…',
+    switchPrompt: '이미 가입하셨나요?',
+    switchButton: '로그인',
+  },
+  emailLabel: '이메일',
+  emailPlaceholder: '예: hong@example.com',
+  passwordLabel: '비밀번호',
+  passwordHint: '비밀번호는 8자 이상으로 정해 주세요',
+  expired: '로그인이 끝났어요. 다시 로그인해 주세요',
+  loggedInAs: (email) => `${email} 로 로그인했어요`,
+  history: '내 기록',
+  logout: '로그아웃',
+};
+
+const AUTH_ERROR_TEXT = {
+  empty_email: '이메일을 넣어 주세요',
+  empty_password: '비밀번호를 넣어 주세요',
+  invalid_credentials: '이메일이나 비밀번호가 맞지 않아요. 다시 확인해 주세요',
+  email_taken: '이미 가입한 이메일이에요. 로그인해 주세요',
+  invalid_email: '이메일 주소를 다시 확인해 주세요. 예: hong@example.com',
+  weak_password: '비밀번호를 8자 이상으로 정해 주세요',
+  rate_limited: '잠시 후 다시 시도해 주세요',
+};
+
+/**
+ * 로그인/회원가입 실패 → 입력칸 아래 문구.
+ * @returns {{ message: string, field: 'email' | 'password' | null, switchTo: 'login' | null, showOptions: boolean }}
+ */
+export function authErrorToDisplay(err) {
+  const kind = err && err.kind;
+  if (kind === 'input' || kind === 'api') {
+    const code = err.code;
+    const message = AUTH_ERROR_TEXT[code];
+    if (message) {
+      const field =
+        err.field ?? (code === 'invalid_email' ? 'email' : code === 'weak_password' ? 'password' : null);
+      return { message, field, switchTo: code === 'email_taken' ? 'login' : null, showOptions: false };
+    }
+  }
+  if (kind === 'network' || kind === 'permission' || kind === 'no_server') {
+    const e = errorToDisplay(err);
+    return { message: e.hint ? `${e.message}. ${e.hint}` : e.message, field: null, switchTo: null, showOptions: true };
+  }
+  if (kind === 'timeout') return { message: FALLBACK, field: null, switchTo: null, showOptions: false };
+  return { message: FALLBACK, field: null, switchTo: null, showOptions: false };
+}
+
+// ---- 내 기록 ----
+
+/** ISO 시각 → "방금 / n분 전 / n시간 전 / 어제 / n일 전 / M월 D일" */
+export function formatWhen(iso, now) {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return '';
+  const min = Math.floor(Math.max(0, now - t) / 60000);
+  if (min < 1) return '방금';
+  if (min < 60) return `${min}분 전`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}시간 전`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return '어제';
+  if (d < 7) return `${d}일 전`;
+  const dt = new Date(t);
+  return `${dt.getMonth() + 1}월 ${dt.getDate()}일`;
+}
+
+/** 기록 링크는 유튜브 주소일 때만 연다(서버가 준 임의 주소를 열지 않음). */
+function safeVideoUrl(url) {
+  if (typeof url !== 'string') return null;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    return /(^|\.)youtube\.com$|^youtu\.be$/i.test(u.hostname) ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 기록 항목 → 한 줄 표시 */
+export function historyItemView(item, now) {
+  const view = VERDICT_VIEW[item.verdict] ?? VERDICT_VIEW.unknown;
+  const when = formatWhen(item.checked_at, now);
+  const meta = [when, item.device_name].filter(Boolean).join(' · ');
+  return {
+    id: item.id,
+    verdict: VERDICT_VIEW[item.verdict] ? item.verdict : 'unknown',
+    icon: view.icon,
+    headline: view.headline,
+    percent: item.verdict === 'unknown' ? null : formatPercent(item.ai_probability),
+    meta,
+    url: safeVideoUrl(item.url),
+    fileOnly: item.url === null,
+  };
+}
+
+export const HISTORY_COPY = {
+  title: '내 기록',
+  lead: '최근에 확인한 영상 10개예요. 휴대폰 앱에서 확인한 것도 함께 보여요',
+  empty: '아직 확인한 영상이 없어요',
+  fileOnly: '영상 파일로 확인했어요',
+  open: '영상 열기',
+  back: '돌아가기',
+  loading: '기록을 불러오고 있어요…',
+};

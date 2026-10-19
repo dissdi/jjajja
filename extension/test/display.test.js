@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseDetectResponse, errorFromHttp, ERROR_CODES } from '../lib/contract.js';
-import { toDisplayModel, errorToDisplay, formatPercent, formatCheckedAgo, VERDICT_VIEW } from '../lib/display.js';
+import { toDisplayModel, errorToDisplay, formatPercent, formatCheckedAgo, VERDICT_VIEW, toDebugRows, fmtNum } from '../lib/display.js';
 
 function sig(over = {}) {
   return {
@@ -120,11 +120,35 @@ test('debug: 서버가 주면 신호별 행을 그대로, 없으면 null', () =>
       ],
     }),
   );
-  assert.deepEqual(m.debugRows, [
-    { id: 'hive', status: 'error', score: null, weight: 0.6, reason: 'http 405: Organization paused' },
-    { id: 'platform_ai_label', status: 'ok', score: 0, weight: 1, reason: null },
-    { id: 'no_debug', status: 'ok', score: 0.3, weight: 0, reason: null },
+  const pick = (r) => ({ id: r.id, status: r.status, score: r.score, weight: r.weight, reason: r.reason, chip: r.chip, included: r.included });
+  assert.deepEqual(m.debugRows.map(pick), [
+    { id: 'hive', status: 'error', score: null, weight: 0.6, reason: 'http 405: Organization paused', chip: 'FAIL', included: false },
+    { id: 'platform_ai_label', status: 'ok', score: 0, weight: 1, reason: null, chip: 'OK', included: true },
+    { id: 'no_debug', status: 'ok', score: 0.3, weight: 0, reason: null, chip: 'SKIP', included: false },
   ]);
+});
+
+test('debug 기여도: weight·score / Σweight(계산에 들어간 신호), decisive 표시', () => {
+  const rows = toDebugRows(
+    parseDetectResponse(
+      resp({
+        signals: [
+          sig({ id: 'commfor', kind: 'model', score: 0.631, weight: 0.25, present: null }),
+          sig({ id: 'yt_label', score: 1, weight: 1, decisive: true }),
+          sig({ id: 'hive', kind: 'model', status: 'error', score: null, weight: 0.5, present: null }),
+          sig({ id: 'd3', kind: 'model', score: 0.9, weight: 0, present: null }),
+        ],
+      }),
+    ).signals,
+  );
+  assert.equal(rows[0].share.toFixed(3), (0.25 * 0.631 / 1.25).toFixed(3));
+  assert.equal(rows[1].share, 0.8);
+  assert.equal(rows[1].decisive, true);
+  assert.equal(rows[2].share, null);
+  assert.equal(rows[2].chip, 'FAIL');
+  assert.equal(rows[3].chip, 'SKIP');
+  assert.equal(fmtNum(0.12345, 3), '0.123');
+  assert.equal(fmtNum(null, 3), '—');
 });
 
 test('응답 검사: 형식이 틀리면 null', () => {

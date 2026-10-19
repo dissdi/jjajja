@@ -1,102 +1,104 @@
-:root {
-  --bg: #ffffff;
-  --fg: #111827;
-  --muted: #4b5563;
-  --line: #e5e7eb;
-  --red: #dc2626;
-  --yellow: #ca8a04;
-  --green: #16a34a;
-  --gray: #6b7280;
-  --primary: #1d4ed8;
-  --primary-fg: #ffffff;
-  color-scheme: light dark;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #111827;
-    --fg: #f9fafb;
-    --muted: #d1d5db;
-    --line: #374151;
-    --primary: #3b82f6;
-  }
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  width: 380px;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
-  font-size: 18px;
-  line-height: 1.5;
-}
-.top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--line);
-}
-.brand { font-weight: 700; font-size: 16px; }
-.link {
-  background: none;
-  border: none;
-  color: var(--primary);
-  font-size: 16px;
-  min-height: 40px;
-  padding: 0 8px;
-  cursor: pointer;
-  text-decoration: underline;
-}
-main { padding: 16px; }
-.state[hidden] { display: none; }
+/* 팝업 배치 (design-system.md §6.8, 폭 380px). 부품은 ui.css, 값은 tokens.css. */
+body { width: 380px; }
 
-/* 로딩 */
-#loading { text-align: center; padding: 24px 0; }
-.spinner {
-  width: 48px; height: 48px; margin: 0 auto 16px;
-  border: 5px solid var(--line); border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
+.top {
+  display: flex; justify-content: space-between; align-items: center;
+  height: 48px; padding: 0 var(--sp-screen-x);
+  border-bottom: var(--bw-hair) solid var(--line);
 }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
-.loading-text { font-size: 20px; font-weight: 600; margin: 0; }
+.top .btn-text { font-size: var(--fs-caption); }
+
+main { padding: var(--sp-4) var(--sp-screen-x) var(--sp-5); }
+.stack > * + * { margin-top: var(--sp-2); }
+
+/* 로그인 */
+#login .intro { margin-bottom: var(--sp-6); }
+#login .intro .rule { margin: var(--sp-2) 0; }
+#login .note { margin-bottom: var(--sp-4); }
+#login form { margin: 0; }
+#login .switch { display: flex; align-items: center; justify-content: center; gap: var(--sp-1); flex-wrap: wrap; margin-top: var(--sp-3); }
+#auth-form-error { margin: 0 0 var(--sp-3); }
+
+/* 확인 중 */
+#loading { text-align: center; padding: var(--sp-7) 0 var(--sp-6); }
+#loading .display { margin-top: var(--sp-6); }
+#loading .body { margin-top: var(--sp-1); }
+#elapsed { margin-top: var(--sp-2); min-height: var(--lh-caption); }
 
 /* 결과 */
-.verdict { display: flex; gap: 14px; align-items: flex-start; }
-.badge {
-  flex: 0 0 48px; height: 48px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 28px; font-weight: 800;
+.evidence-box { margin-top: var(--sp-6); }
+.evidence-box .title { font-size: 20px; line-height: 30px; margin-bottom: var(--sp-2); }
+.evidence { list-style: none; margin: 0; padding: 0; }
+.evidence li { position: relative; padding-left: 18px; }
+.evidence li + li { margin-top: var(--sp-3); }
+/* 글머리: 잉크 사각점 6×6 (인쇄물 느낌) */
+.evidence li::before {
+  content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; background: var(--ink);
 }
-.tone-red { background: var(--red); }
-.tone-yellow { background: var(--yellow); }
-.tone-green { background: var(--green); }
-.tone-gray { background: var(--gray); }
-h1 { font-size: 24px; line-height: 1.35; margin: 0 0 6px; }
-.sub { margin: 0 0 6px; color: var(--fg); }
-.percent { margin: 0; color: var(--muted); font-size: 16px; }
-.percent:empty { display: none; }
-h2 { font-size: 18px; margin: 18px 0 6px; }
-ul { margin: 0; padding-left: 22px; }
-li { margin-bottom: 4px; }
-.muted { color: var(--muted); }
-.small { font-size: 15px; }
+.result-foot { margin-top: var(--sp-4); }
+.result-foot .caption { margin-bottom: var(--sp-2); }
 
-button.primary, button.secondary {
-  display: block; width: 100%; min-height: 52px; margin-top: 16px;
-  font-size: 18px; font-weight: 700; border-radius: 10px; cursor: pointer;
+/* 에러: 마크(회색) + 명조 제목, 판정 블록 면·띠 없음, 빨강 금지 */
+#error { padding-top: var(--sp-6); }
+#error .mark { margin-bottom: var(--sp-4); }
+#error .rule { margin: var(--sp-2) 0; }
+#error .body { color: var(--ink-2); }
+#error .btns { margin-top: var(--sp-6); }
+
+/* 내 기록 */
+#history .rule { margin: var(--sp-2) 0; }
+#history .lead { margin-bottom: var(--sp-5); }
+.history-list { list-style: none; margin: 0; padding: 0; }
+.history-list li { display: flex; gap: var(--sp-3); align-items: flex-start; }
+.history-list li + li { margin-top: var(--sp-5); }
+.history-list .item-main { min-width: 0; flex: 1; }
+.history-list .item-head { color: var(--ink); }
+.history-list .figure { font-size: var(--fs-caption); line-height: var(--lh-caption); }
+.history-list .btn-text { min-height: 40px; padding-left: 0; font-size: var(--fs-caption); }
+#history-status { padding: var(--sp-4) 0; }
+#history .btns { margin-top: var(--sp-7); }
+
+/* 계정 줄 (로그인했을 때만) */
+.account {
+  border-top: var(--bw-hair) solid var(--line);
+  padding: var(--sp-2) var(--sp-screen-x) var(--sp-3);
 }
-button.primary { background: var(--primary); color: var(--primary-fg); border: none; }
-button.secondary { background: transparent; color: var(--primary); border: 2px solid var(--primary); }
-button[hidden] { display: none; }
-button:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.account .who { overflow-wrap: anywhere; }
+.account .links { display: flex; justify-content: space-between; align-items: center; }
 
-/* 개발자용 */
-details { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 8px; }
-summary { cursor: pointer; font-size: 15px; color: var(--muted); min-height: 32px; }
-.table-wrap { overflow-x: auto; }
-table { border-collapse: collapse; font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; width: 100%; }
-th, td { border: 1px solid var(--line); padding: 3px 5px; text-align: left; vertical-align: top; word-break: break-word; }
-th { background: color-mix(in srgb, var(--line) 50%, transparent); }
+/* 개발자용 자세히 §7.4 */
+details.dev { margin-top: var(--sp-6); }
+details.dev[open] { border-top: var(--bw-strong) solid var(--dev-band); padding-top: var(--sp-2); }
+details.dev summary {
+  display: flex; align-items: center; gap: var(--sp-2); min-height: var(--size-touch-min);
+  cursor: pointer; list-style: none;
+  font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--ink-2);
+}
+details.dev summary::-webkit-details-marker { display: none; }
+details.dev summary::after { content: "▸"; margin-left: auto; color: var(--ink); }
+details.dev[open] summary::after { content: "▾"; }
+.dev-meta { font-family: var(--font-mono); font-size: 12px; line-height: 16px; color: var(--ink-2); margin: var(--sp-1) 0 var(--sp-2); word-break: break-all; }
+.dev-table {
+  width: 100%; border-collapse: collapse; background: var(--surface);
+  font-family: var(--font-mono), "Pretendard", sans-serif; font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums;
+}
+.dev-table th, .dev-table td { border: var(--bw-hair) solid var(--line); padding: 4px 6px; vertical-align: middle; text-align: left; }
+.dev-table th {
+  background: var(--sunken); font-family: var(--font-sans);
+  font-size: var(--fs-dev-label); line-height: var(--lh-dev-label); font-weight: var(--fw-dev-label);
+}
+.dev-table td, .dev-table th { overflow-wrap: normal; white-space: nowrap; }
+.dev-table td.num { text-align: right; }
+.dev-table td.id { white-space: normal; word-break: break-all; font-size: 11px; }
+.dev-table tr.fail td { background: var(--dev-fail-tint); }
+.dev-table tr.fail td:first-child { border-left: 3px solid var(--dev-fail); }
+.dev-table tr.reason td { white-space: normal; overflow-wrap: anywhere; color: var(--ink-2); padding-top: 0; border-top: 0; }
+.dev-table tr.reason.fail td { color: var(--dev-fail); }
+.bar-cell { white-space: nowrap; }
+.bar { position: relative; display: inline-block; width: 80px; height: 6px; background: var(--dev-bar-track); vertical-align: middle; }
+.bar > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--dev-bar-fill); }
+.bar.decisive > i { border-right: 2px solid var(--dev-band); }
+.bar.excluded {
+  background: repeating-linear-gradient(45deg, var(--dev-bar-excluded) 0 1px, var(--dev-bar-track) 1px 4px);
+}
+.bar-val { display: inline-block; min-width: 44px; text-align: right; margin-left: 4px; }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { requestDetect } from '../lib/api.js';
+import { requestDetect, requestLogout } from '../lib/api.js';
 
 const okBody = {
   request_id: 'r',

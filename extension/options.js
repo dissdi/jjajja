@@ -1,12 +1,22 @@
 // 옵션 페이지: 서버 주소 저장 + 그 주소에 대해서만 런타임 권한 요청(optional_host_permissions).
 import { DEFAULT_SERVER, normalizeServer } from './lib/server.js';
+import { MARK_PATHS, svgIcon } from './lib/marks.js';
 
 const SERVER_KEY = 'serverUrl';
 const $ = (id) => document.getElementById(id);
 
 function status(text, cls = '') {
-  $('status').textContent = text;
-  $('status').className = cls;
+  const el = $('status');
+  el.className = cls;
+  if (cls === 'bad') el.replaceChildren(svgIcon(document, MARK_PATHS.likely_ai), document.createTextNode(text));
+  else if (cls === 'ok') el.replaceChildren(svgIcon(document, MARK_PATHS.likely_real), document.createTextNode(text));
+  else el.replaceChildren(document.createTextNode(text));
+}
+
+async function showAccount() {
+  const r = await chrome.runtime.sendMessage({ type: 'auth-status' }).catch(() => null);
+  $('account-state').textContent =
+    r && r.loggedIn ? `${r.email} 로 로그인했어요` : '로그인하지 않았어요';
 }
 
 async function currentServer() {
@@ -42,6 +52,7 @@ async function save(input) {
   }
   $('server').value = next.origin;
   status(`저장했어요: ${next.origin}`, 'ok');
+  showAccount(); // 서버가 바뀌면 이전 토큰은 service worker 가 지운다
   return true;
 }
 
@@ -65,4 +76,5 @@ $('reset').addEventListener('click', () => save(DEFAULT_SERVER));
 (async () => {
   const s = await currentServer();
   $('server').value = s ? s.origin : DEFAULT_SERVER;
+  showAccount();
 })();

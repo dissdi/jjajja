@@ -1,4 +1,74 @@
-# extension 작업 노트 (web-extension-engineer, 2026-10-13)
+# extension 작업 노트
+
+## 2026-10-19 — 디자인 시스템(#21) + 로그인 필수(#20, 계약 v2.0)
+
+### 결정
+- **토큰 → CSS**: `tools/gen-tokens.mjs` 가 `design/tokens.json` 을 읽어 `tokens.css` 를 만들고 커밋한다(빌드 도구 없이 로드).
+  변수 이름은 design-system.md §8.2(`--paper`, `--ink-2`, `--v-ai` …) 그대로, 없는 토큰은 같은 규칙으로 늘림
+  (`--fs-*/--lh-*/--fw-*`, `--sp-*`, `--r-*`, `--bw-*`, `--size-*`, `--dev-*`, `--motion-*`). `font.extensionOverride` 는 생성 때 적용
+  (display 26/34, headline 24/32, button 18/26). 판정 클래스 `.v-likely_ai` 등은 `--v-main/--v-tint` 만 다시 정의.
+  `test/tokens.test.js` 가 커밋본 = 생성 결과인지, CSS/HTML 에 hex·box-shadow·prefers-color-scheme 이 없는지 검사.
+- **CSS 구조**: `fonts.css`(@font-face) → `tokens.css`(자동) → `ui.css`(공통 부품) → `popup.css`(배치). 옵션 페이지도 같은 파일.
+- **글꼴**: Pretendard v1.3.9 woff2 3종 원본 그대로(약 2.3MB, 서버 문자열에도 쓰므로 서브셋하지 않음),
+  Noto Serif KR Bold v2.003 → KS X 1001 한글 2,350자 + ASCII + 문장부호 서브셋 woff2(413KB, `tools/subset-serif.py`).
+  명조는 고정 문구 헤드라인(판정·에러 제목·로그인 제목·"확인하고 있어요…"·"내 기록"·"설정")에만, `evidence_ko` 등 서버 문자열은 Pretendard.
+  `font-display: swap`. `fonts/OFL.txt` 에 두 글꼴 저작권 + OFL 1.1 전문.
+- **판정 마크**: 인라인 SVG(선 2) + CSS 도장 테두리. likely_ai 만 각진 사각 도장 + 삼각형 느낌표, 나머지는 원 도장 + ?/✓/–.
+  `aria-hidden`, 헤드라인은 `h1`. 에러는 모든 코드에 회색(unknown) 도장, 빨강 없음, 첫 문장을 명조 제목으로·나머지는 본문.
+- **개발자 영역**: 서버가 `debug` 를 보낼 때만 남색 DEV 띠(`DEV · api {origin} · v2.0`) + 접힌 `<details>`.
+  표: id / 상태 칩(OK·FAIL·SKIP) / score(3자리) / w / 기여도 막대 80×6(`weight·score / Σweight`, Σ는 계산에 들어간 신호 =
+  weight>0·ok·score 있음), 확정 신호 ◆ + 남색 눈금, 제외는 빗금, FAIL 행 failTint + 왼쪽 3px, reason 은 아래 행.
+  ※ 기여도는 디자인 문서 공식 그대로 — 서버 앙상블이 다른 식(규칙 신호 처리 등)이면 막대와 p 가 안 맞을 수 있다.
+- **툴바 아이콘**: `tools/gen-icons.py`(Pillow) — 활성 = 잉크 도장 + 크림 돋보기, 비활성 = disabledBg 면 + lineStrong 테두리·돋보기.
+- **로그인 구조**: 크롬 API 를 주입받는 `lib/service.js`(status/login/signup/logout/detect/history/health)를 background.js 가 라우팅.
+  팝업 화면 전이는 순수 리듀서 `lib/flow.js`. 둘 다 node 테스트.
+  - 토큰: `chrome.storage.local['auth'] = { token, email, origin, at }` 한 곳. 팝업 응답에는 토큰을 넣지 않는다(`{loggedIn,email,server}`).
+  - 토큰은 받은 서버 origin 과 묶는다. 서버 주소가 바뀌면 지운다(시연마다 터널 주소가 바뀌므로, 다른 서버로 토큰 유출 방지).
+  - 인증 필요 호출에서 401(코드가 `invalid_credentials` 가 아니면 본문이 없어도) → 토큰 + 세션 결과 캐시 삭제 → `auth_required/expired`.
+  - 토큰 없으면 캐시가 있어도 결과를 보여주지 않는다(로그인 필수). 로그아웃은 토큰을 먼저 지우고 `POST /v1/auth/logout` 은 best-effort.
+  - signup·login 둘 다 `device_name: "Chrome 확장"`(계약 v2.0 보완: signup 선택 필드). signup 201 토큰을 그대로 쓴다.
+  - 회원가입은 8자 미만이면 서버에 보내지 않고 바로 안내(서버도 `weak_password` 로 막음). 로그인 모드는 길이 검사 안 함.
+  - 메시지 출처 제한: 로그인·확인·기록 메시지는 `sender.url` 이 확장 페이지일 때만 처리(content script 는 yt-nav 만).
+- **계약 v2.0 보완 반영**: `not_found`(기록 삭제용) 문구 매핑만(확장은 삭제 기능 없음), history `source: null` 허용,
+  항목 하나가 이상하면 그 항목만 버림. 기록 링크는 유튜브 주소일 때만 `chrome.tabs.create`(서버가 준 임의 URL 을 열지 않음).
+
+### 문구 가정 (senior-ux-korean 에 로그인 문구가 없어 같은 원칙으로 작성 — senior-ux-designer 검토 요청)
+| 키 | 문구 |
+|----|------|
+| 로그인 제목 / 안내 | 로그인해 주세요 / 로그인하면 확인한 영상 기록을 휴대폰 앱에서도 볼 수 있어요 |
+| 회원가입 제목 / 안내 | 회원가입 / 이메일과 비밀번호만 있으면 돼요 |
+| 버튼 | 로그인 · 가입하고 시작하기 (진행 중: 로그인하고 있어요… / 가입하고 있어요…) |
+| 전환 | 처음 쓰시나요? [회원가입] / 이미 가입하셨나요? [로그인] |
+| 8자 안내(회원가입) | 비밀번호는 8자 이상으로 정해 주세요 |
+| `invalid_credentials` | 이메일이나 비밀번호가 맞지 않아요. 다시 확인해 주세요 |
+| `email_taken` | 이미 가입한 이메일이에요. 로그인해 주세요 (→ 로그인 모드로 전환) |
+| `invalid_email` | 이메일 주소를 다시 확인해 주세요. 예: hong@example.com |
+| `weak_password` | 비밀번호를 8자 이상으로 정해 주세요 |
+| 빈 칸 | 이메일을 넣어 주세요 / 비밀번호를 넣어 주세요 |
+| 401 만료 | 로그인이 끝났어요. 다시 로그인해 주세요 |
+| `not_found` | 찾는 기록이 없어요. 이미 지워졌을 수 있어요 |
+| 계정 줄 | {email} 로 로그인했어요 · [내 기록] [로그아웃] |
+| 내 기록 | 최근에 확인한 영상 10개예요. 휴대폰 앱에서 확인한 것도 함께 보여요 / 비었을 때: 아직 확인한 영상이 없어요 / 파일: 영상 파일로 확인했어요 / [영상 열기] [돌아가기] |
+
+### 검증
+- `node --test test/` **51개 통과**: 기존 22개 + 로그인 상태 전이(flow), 401 처리·토큰 저장 위치·서버 변경·로그아웃(service),
+  Bearer 헤더·204(api), 로그인 문구·기록 표시, tokens.css 일치·스타일 규칙·글꼴 파일·매니페스트(tokens).
+- 실제 크롬(Playwright chromium, headless)에 확장을 올리고 v2.0 흉내 서버로 확인: service worker 로드, 토큰 없음 → auth_required,
+  잘못된 비밀번호 → invalid_credentials, 로그인 → `storage.local` 에만 토큰(session 에 없음), detect 에 Bearer, history `limit=10`,
+  401 → 토큰 삭제·expired, 로그아웃 → 서버에 Bearer 로 logout 후 로그아웃 상태, 팝업 로그인 화면·글꼴 로드·배경 `#F5F0E6`.
+- 팝업 각 화면(로그인/회원가입 에러/확인 중/결과 3종/에러/네트워크/내 기록/DEV 표)과 옵션 페이지를 크롬으로 캡처해 확인.
+- 실제 v2.0 서버와는 아직 연결해 보지 않음(서버 인증은 다른 에이전트가 동시에 구현 중) → 아래 수동 확인.
+
+### 수동 확인 필요 (크롬 + v2.0 서버)
+1. 회원가입 → 바로 확인 시작, 휴대폰 앱 기기 목록(`GET /v1/me`)에 "Chrome 확장" 으로 보이는지
+2. 서버에서 토큰 폐기(다른 기기에서 로그아웃 아님 — 이 기기 토큰) 후 [다시 확인] → 로그인 화면 + 만료 안내
+3. [내 기록]에 휴대폰 앱에서 확인한 항목이 함께 보이는지, [영상 열기]가 새 탭으로 열리는지
+4. macOS/Windows 에서 명조 헤드라인·Pretendard 가 실제로 적용되는지(개발자 도구 → Rendered Fonts), 툴바 아이콘 밝은/어두운 테마
+5. 터널 주소로 바꾼 뒤 이전 로그인이 풀리고 다시 로그인되는지
+
+---
+
+## 2026-10-13 — 첫 구현
 
 ## 결정
 - **활성화 방식**: `declarativeContent` 대신 `action.disable()`(전역 기본) + 탭 단위 `enable/disable` + `setIcon`.

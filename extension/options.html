@@ -3,38 +3,58 @@
 <head>
   <meta charset="utf-8" />
   <title>jjajja 영상 확인 — 설정</title>
-  <link rel="stylesheet" href="popup.css" />
+  <link rel="stylesheet" href="fonts.css" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="ui.css" />
   <style>
-    body { width: auto; max-width: 640px; margin: 0 auto; }
-    label { display: block; font-weight: 700; margin: 16px 0 6px; }
-    input[type="text"] {
-      width: 100%; min-height: 52px; font-size: 18px; padding: 8px 12px;
-      border: 2px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg);
-    }
-    .row { display: flex; gap: 10px; }
-    .row button { flex: 1; }
-    #status { min-height: 1.5em; margin-top: 16px; font-weight: 600; }
-    #status.ok { color: var(--green); }
-    #status.bad { color: var(--red); }
-    code { font-size: 15px; }
+    body { max-width: 640px; margin: 0 auto; }
+    .top { height: 48px; display: flex; align-items: center; padding: 0 var(--sp-screen-x); border-bottom: var(--bw-hair) solid var(--line); }
+    main { padding: var(--sp-7) var(--sp-screen-x) var(--sp-9); }
+    h1 + .rule { margin: var(--sp-2) 0 var(--sp-3); }
+    .lead { margin-bottom: var(--sp-7); color: var(--ink-2); }
+    .card + .card { margin-top: var(--sp-6); }
+    .card .title { font-size: 20px; line-height: 30px; margin-bottom: var(--sp-3); }
+    .card .caption code { font-family: var(--font-mono); font-size: 15px; color: var(--ink); }
+    .row { display: flex; gap: var(--sp-3); margin-top: var(--sp-4); }
+    .row .btn { flex: 1; margin-top: 0; }
+    #reset { margin-top: var(--sp-2); }
+    #status { margin: var(--sp-2) 0 0; min-height: var(--lh-body); font-weight: var(--fw-body-strong); }
+    #status.ok { color: var(--ink); }
+    #status.bad { color: var(--v-ai); }
+    #status svg { width: 20px; height: 20px; vertical-align: -3px; margin-right: 6px; }
   </style>
 </head>
 <body>
-  <header class="top"><span class="brand">jjajja 영상 확인 — 설정</span></header>
+  <header class="top"><span class="eyebrow">JJAJJA</span></header>
   <main>
-    <label for="server">확인 서버 주소</label>
-    <input type="text" id="server" placeholder="http://localhost:8000" autocomplete="off" spellcheck="false" />
-    <p class="muted small">
-      기본값은 <code>http://localhost:8000</code> 이에요. 시연 때는 임시 터널 주소(예:
-      <code>https://abc-def.trycloudflare.com</code>)를 넣어 주세요.
-      localhost 가 아닌 주소는 저장할 때 크롬이 그 주소 사용 허락을 물어봐요. 그 주소 하나에만 허락을 받아요.
-    </p>
-    <div class="row">
-      <button type="button" class="primary" id="save">저장</button>
-      <button type="button" class="secondary" id="check">연결 확인</button>
-    </div>
-    <button type="button" class="secondary" id="reset">기본값으로 되돌리기</button>
-    <p id="status" role="status"></p>
+    <h1 class="display">설정</h1>
+    <div class="rule"></div>
+    <p class="body lead">확인 서버 주소를 바꿀 수 있어요. 시연 때마다 임시 주소가 바뀌면 여기에 다시 넣어 주세요.</p>
+
+    <section class="card">
+      <h2 class="title">확인 서버 주소</h2>
+      <label class="field" style="margin-bottom:0">
+        <span class="field-label">주소</span>
+        <input class="input" type="text" id="server" placeholder="http://localhost:8000" autocomplete="off" spellcheck="false" />
+      </label>
+      <p class="caption field-hint">
+        기본값은 <code>http://localhost:8000</code> 이에요. 시연 때는 임시 터널 주소(예:
+        <code>https://abc-def.trycloudflare.com</code>)를 넣어 주세요.
+        localhost 가 아닌 주소는 저장할 때 크롬이 그 주소 사용 허락을 물어봐요. 그 주소 하나에만 허락을 받아요.
+      </p>
+      <div class="row">
+        <button type="button" class="btn btn-primary" id="save">저장</button>
+        <button type="button" class="btn btn-secondary" id="check">연결 확인</button>
+      </div>
+      <button type="button" class="btn-text" id="reset">기본값으로 되돌리기</button>
+      <p id="status" role="status"></p>
+    </section>
+
+    <section class="card">
+      <h2 class="title">로그인</h2>
+      <p class="body" id="account-state">확인하고 있어요…</p>
+      <p class="caption field-hint">서버 주소를 바꾸면 다시 로그인해야 해요. 로그인은 확장 버튼을 눌러 열리는 창에서 해요.</p>
+    </section>
   </main>
   <script type="module" src="options.js"></script>
 </body>
