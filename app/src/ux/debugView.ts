@@ -240,6 +240,43 @@ export function debugGroupsFor(res: DetectResponse): { used: DebugGroup; exclude
 }
 
 // ---------------------------------------------------------------------------
+// 5b. 기여도 막대 표 (디자인 시스템 §7.3)
+//   막대 폭 = weight·score / Σweight (가중 평균에서 차지하는 몫 — 모두 더하면 계산된 AI 가능성).
+//   상태 칩: status≠ok → FAIL, ok인데 계산에서 빠짐(weight 0·점수 없음) → SKIP, 그 외 OK.
+// ---------------------------------------------------------------------------
+
+export interface DebugBarRow {
+  key: string;
+  id: string;
+  chip: 'OK' | 'FAIL' | 'SKIP';
+  score: string;
+  weight: string;
+  /** 0~1 막대 채움 비율. 계산에서 빠졌으면 null (빈 트랙 + 제외 표시) */
+  share: number | null;
+  /** 막대 오른쪽 숫자: 몫(소수 셋째) 또는 '(제외)' */
+  shareText: string;
+  decisive: boolean;
+}
+
+export function debugBarsFor(res: DetectResponse): DebugBarRow[] {
+  const sumW = res.signals.filter(isWeighted).reduce((a, s) => a + s.weight, 0);
+  return res.signals.map((s, i) => {
+    const used = isWeighted(s) && sumW > 0;
+    const share = used ? (s.weight * (s.score as number)) / sumW : null;
+    return {
+      key: `${s.id}-${i}`,
+      id: s.id,
+      chip: s.status !== 'ok' ? 'FAIL' : used ? 'OK' : 'SKIP',
+      score: s.score === null ? '—' : fmtNum(s.score, 3),
+      weight: fmtWeight(s.weight),
+      share,
+      shareText: share === null ? '(제외)' : `${fmtNum(share, 3)}${s.decisive ? ' ◆' : ''}`,
+      decisive: s.decisive,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // 6. 용어 설명
 // ---------------------------------------------------------------------------
 

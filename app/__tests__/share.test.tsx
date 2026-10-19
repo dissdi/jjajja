@@ -8,6 +8,7 @@ import { ResultScreen } from '../src/screens/ResultScreen';
 import { copy } from '../src/ux/copy';
 import { buildShareText } from '../src/ux/present';
 import { SAMPLE } from './fixtures';
+import { seedLoggedIn } from './authHelpers';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -40,6 +41,7 @@ const noop = () => {};
 beforeEach(() => {
   mockIntent = null;
   mockReset.mockClear();
+  seedLoggedIn();
 });
 
 describe('공유로 받은 텍스트 처리', () => {
@@ -181,10 +183,10 @@ describe('App: 공유로 열림 → 바로 확인 → 결과', () => {
     expect(screen.queryByText(copy.result.shareButton)).toBeNull();
   });
 
-  it('공유 없이 열림 → 평소 홈 (요청 없음)', () => {
+  it('공유 없이 열림 → 평소 홈 (요청 없음)', async () => {
     const f = setFetch(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(SAMPLE) }));
     render(<App />);
-    expect(screen.getByText(copy.home.pasteButton)).toBeTruthy();
+    expect(await screen.findByText(copy.home.pasteButton)).toBeTruthy();
     expect(f).not.toHaveBeenCalled();
   });
 });

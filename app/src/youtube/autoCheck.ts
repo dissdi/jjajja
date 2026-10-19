@@ -90,6 +90,9 @@ export class AutoChecker {
     if (out.ok) {
       this.cache.set(video.id, out.data);
       this.set({ status: 'done', video, data: out.data, fromCache: false });
+    } else if (out.code === 'unauthorized') {
+      // 401: 토큰은 이미 지워졌고 App이 로그인 화면으로 보낸다. 배지는 확인 전 상태로 되돌린다
+      this.set({ status: 'idle' });
     } else if (out.code !== 'cancelled') {
       this.set({ status: 'error', video, code: out.code });
     }

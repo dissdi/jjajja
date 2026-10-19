@@ -6,6 +6,7 @@ import { ErrorScreen } from '../src/screens/ErrorScreen';
 import { ResultScreen } from '../src/screens/ResultScreen';
 import { copy } from '../src/ux/copy';
 import { SAMPLE } from './fixtures';
+import { seedLoggedIn } from './authHelpers';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -127,13 +128,15 @@ describe('S4 에러', () => {
 });
 
 describe('App 흐름', () => {
+  beforeEach(() => seedLoggedIn());
+
   it('붙여넣기 → 즉시 확인 → 결과', async () => {
     (Clipboard.getStringAsync as jest.Mock).mockResolvedValue('https://youtube.com/shorts/abc123');
     (globalThis as unknown as { fetch: unknown }).fetch = jest.fn(() =>
       Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(SAMPLE) }),
     );
     render(<App />);
-    expect(screen.getByText(copy.home.firstRunHint)).toBeTruthy();
+    expect(await screen.findByText(copy.home.firstRunHint)).toBeTruthy();
     expect(screen.getByText(copy.home.uploadButton)).toBeTruthy();
     fireEvent.press(screen.getByText(copy.home.pasteButton));
     await waitFor(() => expect(screen.getByText(copy.result.verdict.likely_ai.headline)).toBeTruthy());
@@ -145,7 +148,7 @@ describe('App 흐름', () => {
   it('빈 클립보드 → 인라인 오류', async () => {
     (Clipboard.getStringAsync as jest.Mock).mockResolvedValue('');
     render(<App />);
-    fireEvent.press(screen.getByText(copy.home.pasteButton));
+    fireEvent.press(await screen.findByText(copy.home.pasteButton));
     await waitFor(() => expect(screen.getByText(copy.home.inlineError.clipboardEmpty)).toBeTruthy());
   });
 
@@ -159,7 +162,7 @@ describe('App 흐름', () => {
       }),
     );
     render(<App />);
-    fireEvent.press(screen.getByText(copy.home.pasteButton));
+    fireEvent.press(await screen.findByText(copy.home.pasteButton));
     await waitFor(() => expect(screen.getByText(copy.error.unsupported_platform.title)).toBeTruthy());
     expect(screen.queryByText('서버 문구')).toBeNull();
   });

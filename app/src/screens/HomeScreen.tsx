@@ -1,16 +1,16 @@
-// S1 홈 (UX 명세 §2.1) + [추가] 영상 파일로 확인하기 보조 버튼
+// S1 홈 (UX 명세 §2.1, 디자인 시스템 §6.1) + 영상 파일로 확인하기 + 앱 안 유튜브(시연) + 내 기록·내 계정(#20)
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { PickedVideo } from '../api/client';
-import { Button, T } from '../components/ui';
+import { Button, Divider, InlineError, Input, Rule, T, TextButton, TopBar } from '../components/ui';
 import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
 import { extractUrl } from '../ux/present';
-import { border, color, font, MAX_FONT_SCALE, radius, size, space } from '../ux/theme';
+import { border, color, font, radius, size, space, verdict } from '../ux/theme';
 
-type InlineError = keyof typeof copy.home.inlineError;
+type InlineErrorKey = keyof typeof copy.home.inlineError;
 
 interface Props {
   initialText: string;
@@ -19,11 +19,23 @@ interface Props {
   onSubmitVideo: (video: PickedVideo) => void;
   /** [추가·시연] 앱 안 유튜브 화면 열기. 없으면 버튼을 숨긴다 */
   onOpenYoutube?: () => void;
+  /** [추가·#20] 내 기록 / 내 계정. 없으면 숨긴다 */
+  onOpenHistory?: () => void;
+  onOpenAccount?: () => void;
 }
 
-export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmitVideo, onOpenYoutube }: Props) {
+export function HomeScreen({
+  initialText,
+  showFirstRunHint,
+  onSubmitUrl,
+  onSubmitVideo,
+  onOpenYoutube,
+  onOpenHistory,
+  onOpenAccount,
+}: Props) {
   const [text, setText] = useState(initialText);
-  const [inlineError, setInlineError] = useState<InlineError | null>(null);
+  const [focused, setFocused] = useState(false);
+  const [inlineError, setInlineError] = useState<InlineErrorKey | null>(null);
 
   const submit = (raw: string) => {
     const url = extractUrl(raw);
@@ -66,35 +78,45 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
   };
 
   const hasText = text.trim().length > 0;
+  const borderColor = inlineError ? verdict.likely_ai.main : focused ? color.ink : color.lineStrong;
+  const borderWidth = inlineError || focused ? border.strong : border.ink;
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <T style={[font.title, styles.primaryText]} accessibilityRole="header">
-        {copy.app.name}
-      </T>
+      <TopBar
+        right={
+          <>
+            {onOpenHistory && <TextButton label={copy.home.historyLink} onPress={onOpenHistory} />}
+            {onOpenAccount && <TextButton label={copy.home.accountLink} onPress={onOpenAccount} />}
+          </>
+        }
+      />
 
-      <View style={styles.section}>
-        <T style={[font.display, styles.primaryText]}>{copy.home.title}</T>
-        <T style={[font.body, styles.primaryText, { marginTop: 8 }]}>{copy.home.subtitle}</T>
+      <View style={{ marginTop: space.section }}>
+        <T style={[font.display, styles.ink]} accessibilityRole="header">
+          {copy.home.title}
+        </T>
+        <Rule style={{ marginTop: space[3] }} />
+        <T style={[font.body, styles.ink2, { marginTop: space[3] }]}>{copy.home.subtitle}</T>
       </View>
 
-      <View style={styles.section}>
-        <View style={[styles.inputWrap, inlineError && { borderColor: color.danger }]}>
-          <TextInput
+      <View style={{ marginTop: space[6] }}>
+        <View style={[styles.inputWrap, { borderColor, borderWidth }]}>
+          <Input
             value={text}
             onChangeText={(t) => {
               setText(t);
               if (inlineError) setInlineError(null);
             }}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             placeholder={copy.home.inputPlaceholder}
-            placeholderTextColor={color.textSecondary}
             accessibilityLabel={copy.home.inputA11yLabel}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
             returnKeyType="go"
             onSubmitEditing={() => hasText && submit(text)}
-            maxFontSizeMultiplier={MAX_FONT_SCALE}
             style={[font.body, styles.input]}
           />
           {hasText && (
@@ -108,19 +130,14 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
               style={styles.clear}
               hitSlop={4}
             >
-              <MaterialCommunityIcons name="close-circle" size={28} color={color.textSecondary} />
+              <MaterialCommunityIcons name="close" size={24} color={color.inkSecondary} />
             </Pressable>
           )}
         </View>
 
-        {inlineError && (
-          <View style={styles.inlineError} accessibilityLiveRegion="polite" accessibilityRole="alert">
-            <MaterialCommunityIcons name="alert" size={22} color={color.danger} style={{ marginTop: 3 }} />
-            <T style={[font.body, { color: color.danger, flex: 1 }]}>{copy.home.inlineError[inlineError]}</T>
-          </View>
-        )}
+        {inlineError && <InlineError text={copy.home.inlineError[inlineError]} />}
 
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: space[3] }}>
           {hasText ? (
             <Button label={copy.home.checkButton} onPress={() => submit(text)} />
           ) : (
@@ -128,50 +145,40 @@ export function HomeScreen({ initialText, showFirstRunHint, onSubmitUrl, onSubmi
           )}
         </View>
 
-        {showFirstRunHint && (
-          <View style={styles.hint}>
-            <MaterialCommunityIcons name="information" size={20} color={color.textSecondary} style={{ marginTop: 2 }} />
-            <T style={[font.caption, { color: color.textSecondary, flex: 1 }]}>{copy.home.firstRunHint}</T>
-          </View>
-        )}
+        {showFirstRunHint && <T style={[font.caption, styles.caption]}>{copy.home.firstRunHint}</T>}
       </View>
 
-      <View style={[styles.section, styles.divider]}>
+      <Divider style={{ marginTop: space.section }} />
+
+      <View style={{ marginTop: space.section }}>
         <Button variant="secondary" label={copy.home.uploadButton} onPress={onPickVideo} />
-        <T style={[font.caption, { color: color.textSecondary, textAlign: 'center', marginTop: 8 }]}>
-          {copy.home.uploadHint}
-        </T>
+        <T style={[font.caption, styles.caption]}>{copy.home.uploadHint}</T>
       </View>
 
       {onOpenYoutube && (
-        <View style={[styles.section, styles.divider]}>
-          <Button variant="secondary" label={copy.home.youtubeButton} onPress={onOpenYoutube} />
-          <T style={[font.caption, { color: color.textSecondary, textAlign: 'center', marginTop: 8 }]}>
-            {copy.home.youtubeHint}
-          </T>
+        <View style={{ marginTop: space[3] }}>
+          <TextButton label={copy.home.youtubeButton} onPress={onOpenYoutube} icon="chevron-right" accessibilityHint={copy.home.youtubeHint} />
+          <T style={[font.caption, { color: color.inkTertiary }]}>{copy.home.youtubeHint}</T>
         </View>
       )}
+
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: space.screenX, paddingVertical: 20, backgroundColor: color.background, flexGrow: 1 },
-  primaryText: { color: color.textPrimary },
-  section: { marginTop: space.section },
+  container: { paddingHorizontal: space.screenX, paddingBottom: space[8], backgroundColor: color.paper, flexGrow: 1 },
+  ink: { color: color.ink },
+  ink2: { color: color.inkSecondary },
+  caption: { color: color.inkTertiary, textAlign: 'center', marginTop: 6 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: size.inputMinHeight,
     backgroundColor: color.surface,
-    borderWidth: border.outline,
-    borderColor: color.border,
-    borderRadius: radius.button,
-    paddingLeft: 16,
+    borderRadius: radius.sm,
+    paddingLeft: space[4],
   },
-  input: { flex: 1, color: color.textPrimary, paddingVertical: 12 },
+  input: { flex: 1, minWidth: 0, color: color.ink, paddingVertical: space[3] },
   clear: { width: size.touchMin, height: size.touchMin, alignItems: 'center', justifyContent: 'center' },
-  inlineError: { flexDirection: 'row', gap: 6, marginTop: 8 },
-  hint: { flexDirection: 'row', gap: 6, marginTop: 16 },
-  divider: { borderTopWidth: 1, borderTopColor: color.surface, paddingTop: space.section },
 });

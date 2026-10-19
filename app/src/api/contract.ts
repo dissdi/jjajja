@@ -1,4 +1,4 @@
-// source: .claude/skills/detect-api-contract/SKILL.md (v1.3)
+// source: .claude/skills/detect-api-contract/SKILL.md (v2.0 — 보완 포함: signup device_name, 404 not_found, history.source nullable)
 //
 // 이 파일은 계약 문서의 스키마를 그대로 옮긴 것이다. 필드명은 snake_case 그대로 쓴다
 // (변환 레이어 금지). 필드를 바꾸려면 계약 문서를 먼저 고치고 이 파일을 맞춘다.
@@ -93,7 +93,13 @@ export function parseUploadLimits(v: unknown): UploadLimits {
   return { max_upload_mb, max_duration_s };
 }
 
-/** 에러 응답 code (계약) */
+/** 계약 버전 (개발자 모드 DEV 띠에 표시) */
+export const CONTRACT_VERSION = '2.0';
+
+/**
+ * 에러 응답 code (계약) 중 탐지(`POST /v1/detect`) 경로에서 오는 것 — 에러 화면 문구(copy.error)와 1:1.
+ * v2.0 인증 에러(401/409/400/404)는 아래 AuthErrorCode로 따로 둔다 (로그인·기록 화면에서 인라인으로 보여줌).
+ */
 export type ContractErrorCode =
   | 'invalid_url'
   | 'unsupported_platform'
@@ -194,4 +200,161 @@ export function parseDetectResponse(v: unknown): DetectResponse | null {
 export function parseErrorCode(v: unknown): string | null {
   if (!isObj(v) || !isObj(v.error)) return null;
   return typeof v.error.code === 'string' ? v.error.code : null;
+}
+
+// ---------------------------------------------------------------------------
+// 인증 (v2.0 — 로그인 필수). /v1/health, /v1/auth/signup, /v1/auth/login 외 모든 요청에
+// `Authorization: Bearer <token>`. 토큰이 없거나 만료·폐기면 401 unauthorized.
+// ---------------------------------------------------------------------------
+
+/** v2.0 인증·기록 에러 code */
+export type AuthErrorCode =
+  | 'unauthorized'
+  | 'invalid_credentials'
+  | 'email_taken'
+  | 'invalid_email'
+  | 'weak_password'
+  | 'not_found';
+export const AUTH_ERROR_CODES: readonly AuthErrorCode[] = [
+  'unauthorized',
+  'invalid_credentials',
+  'email_taken',
+  'invalid_email',
+  'weak_password',
+  'not_found',
+];
+
+/** POST /v1/auth/signup 요청. device_name은 선택(v2.0 보완) — 없으면 서버가 "이름 없는 기기" */
+export interface SignupRequest {
+  email: string;
+  password: string;
+  device_name?: string;
+}
+
+/** POST /v1/auth/login 요청 */
+export interface LoginRequest {
+  email: string;
+  password: string;
+  device_name: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  created_at: string;
+}
+
+/** signup 201 / login 200 */
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+/** GET /v1/me devices[] */
+export interface Device {
+  id: string;
+  device_name: string;
+  last_used_at: string;
+  /** 지금 이 요청의 토큰(이 기기)이면 true */
+  current: boolean;
+}
+
+/** GET /v1/me 200 */
+export interface MeResponse {
+  user: User;
+  devices: Device[];
+}
+
+/** GET /v1/history items[] */
+export interface HistoryItem {
+  id: string;
+  checked_at: string;
+  /** 계약의 네 값이 아니면 서버가 null로 저장 (v2.0 보완) */
+  source: DetectSource | null;
+  platform: Platform;
+  video_id: string | null;
+  /** 원래 입력 주소. 업로드는 null */
+  url: string | null;
+  verdict: Verdict;
+  ai_probability: number | null;
+  device_name: string;
+}
+
+/** GET /v1/history?limit=20&before=<cursor> 200. 읽을 수 없는 커서 → 빈 목록 (v2.0 보완) */
+export interface HistoryResponse {
+  items: HistoryItem[];
+  /** 다음 페이지 커서. 끝이면 null */
+  next: string | null;
+}
+/** limit 최대 50 (계약) */
+export const HISTORY_MAX_LIMIT = 50;
+
+function parseUser(v: unknown): User | null {
+  if (!isObj(v)) return null;
+  if (typeof v.id !== 'string' || typeof v.email !== 'string' || typeof v.created_at !== 'string') return null;
+  return { id: v.id, email: v.email, created_at: v.created_at };
+}
+
+/** signup/login 응답 본문 검증. 계약과 다르면 null */
+export function parseAuthResponse(v: unknown): AuthResponse | null {
+  if (!isObj(v) || typeof v.token !== 'string' || v.token === '') return null;
+  const user = parseUser(v.user);
+  return user ? { token: v.token, user } : null;
+}
+
+function parseDevice(v: unknown): Device | null {
+  if (!isObj(v)) return null;
+  if (typeof v.id !== 'string' || typeof v.device_name !== 'string') return null;
+  if (typeof v.last_used_at !== 'string' || typeof v.current !== 'boolean') return null;
+  return { id: v.id, device_name: v.device_name, last_used_at: v.last_used_at, current: v.current };
+}
+
+export function parseMeResponse(v: unknown): MeResponse | null {
+  if (!isObj(v) || !Array.isArray(v.devices)) return null;
+  const user = parseUser(v.user);
+  if (!user) return null;
+  const devices: Device[] = [];
+  for (const d of v.devices) {
+    const p = parseDevice(d);
+    if (!p) return null;
+    devices.push(p);
+  }
+  return { user, devices };
+}
+
+const SOURCES: readonly DetectSource[] = ['paste', 'share', 'clipboard', 'upload'];
+
+function parseHistoryItem(v: unknown): HistoryItem | null {
+  if (!isObj(v)) return null;
+  if (typeof v.id !== 'string' || typeof v.checked_at !== 'string') return null;
+  if (!(v.source === null || SOURCES.includes(v.source as DetectSource))) return null;
+  if (typeof v.platform !== 'string') return null;
+  if (!(v.video_id === null || typeof v.video_id === 'string')) return null;
+  if (!(v.url === null || typeof v.url === 'string')) return null;
+  if (!VERDICTS.includes(v.verdict as Verdict)) return null;
+  if (!(v.ai_probability === null || typeof v.ai_probability === 'number')) return null;
+  if (typeof v.device_name !== 'string') return null;
+  return {
+    id: v.id,
+    checked_at: v.checked_at,
+    source: v.source as DetectSource | null,
+    platform: v.platform as Platform,
+    video_id: v.video_id as string | null,
+    url: v.url as string | null,
+    verdict: v.verdict as Verdict,
+    ai_probability: v.ai_probability as number | null,
+    device_name: v.device_name,
+  };
+}
+
+export function parseHistoryResponse(v: unknown): HistoryResponse | null {
+  if (!isObj(v) || !Array.isArray(v.items)) return null;
+  if (!(v.next === null || typeof v.next === 'string')) return null;
+  const items: HistoryItem[] = [];
+  for (const it of v.items) {
+    const p = parseHistoryItem(it);
+    if (!p) return null;
+    items.push(p);
+  }
+  return { items, next: v.next as string | null };
 }
