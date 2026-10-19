@@ -37,6 +37,9 @@ def base_settings(tmp: Path, **kw) -> Settings:
     s.fetch_enabled = False
     s.cache_dir = tmp / "cache"
     s.rate_limit_per_min = 0
+    s.auth_rate_limit_per_min = 0
+    # detection tests run token-less (JJAJJA_AUTH_REQUIRED=0); auth itself: tests/test_auth.py
+    s.auth_required = False
     for k, v in kw.items():
         setattr(s, k, v)
     return s

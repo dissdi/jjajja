@@ -20,6 +20,13 @@ ERRORS: dict[str, tuple[int, str]] = {
     "video_unavailable": (404, "영상을 열 수 없어요. 삭제되었거나 비공개 영상일 수 있어요"),
     "file_too_large": (413, "영상이 너무 크거나 길어요. 3분 이내의 짧은 영상을 골라 주세요"),
     "rate_limited": (429, "잠시 후 다시 시도해 주세요"),
+    # v2.0 (#20) accounts
+    "unauthorized": (401, "다시 로그인해 주세요"),
+    "invalid_credentials": (401, "이메일이나 비밀번호가 맞지 않아요. 다시 확인해 주세요"),
+    "email_taken": (409, "이미 가입한 이메일이에요. 로그인해 주세요"),
+    "invalid_email": (400, "이메일 주소를 다시 확인해 주세요. 예: hong@naver.com"),
+    "weak_password": (400, "비밀번호는 8자 이상으로 정해 주세요"),
+    "not_found": (404, "이미 지워졌거나 찾을 수 없는 기록이에요"),  # not in contract v2.0 yet (requested)
     "detectors_down": (503, "지금은 확인이 어려워요. 잠시 후 다시 시도해 주세요"),
 }
 
@@ -34,7 +41,9 @@ class ApiError(Exception):
 
 def error_response(code: str) -> JSONResponse:
     status, msg = ERRORS[code]
-    return JSONResponse(status_code=status, content={"error": {"code": code, "message_ko": msg}})
+    headers = {"WWW-Authenticate": "Bearer"} if status == 401 else None
+    return JSONResponse(status_code=status, content={"error": {"code": code, "message_ko": msg}},
+                        headers=headers)
 
 
 def install_handlers(app: FastAPI) -> None:

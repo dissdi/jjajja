@@ -25,6 +25,10 @@
 | JJAJJA_CORS_ORIGINS | (off) | comma list of browser origins for the web demo, e.g. http://localhost:8081 |
 | JJAJJA_ENV_FILE | server/.env | KEY=VALUE file loaded at startup if it exists; never overrides variables already set. "" disables |
 | JJAJJA_DEBUG | 0 | 1 -> every signal carries `debug: {reason, raw}` (contract v1.3, dev only; secrets redacted). 0 -> key omitted |
+| JJAJJA_AUTH_REQUIRED | 1 | contract v2.0: /v1/detect needs `Authorization: Bearer`. 0 -> works without a token (local tools/tests only; token-less checks are not recorded) |
+| JJAJJA_AUTH_DB | <cache_dir>/auth.sqlite3 | accounts / device tokens / history (SQLite) |
+| JJAJJA_TOKEN_TTL_DAYS | 30 | device token lifetime, not extended on use |
+| JJAJJA_AUTH_RATE_LIMIT_PER_MIN | 10 | per client IP, signup + login together (stricter than detect); 0 disables |
 | HIVE_API_KEY | (none) | Hive commercial detector key (detector `hive`). Missing -> `hive` is "down", server still starts |
 | JJAJJA_INNERTUBE_CLIENT_VERSION | (code default) | YouTube innertube WEB client version; read by rules/youtube.py per request (#9) |
 """
@@ -105,6 +109,10 @@ class Settings:
     ffprobe: str | None = None
     cors_origins: list[str] = field(default_factory=list)
     debug: bool = False
+    auth_required: bool = True
+    auth_db: Path | None = None  # None -> cache_dir / "auth.sqlite3"
+    token_ttl_s: float = 30 * 24 * 3600.0
+    auth_rate_limit_per_min: int = 10
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -138,7 +146,15 @@ class Settings:
         s.ffprobe = os.environ.get("JJAJJA_FFPROBE") or None
         s.cors_origins = [o.strip() for o in os.environ.get("JJAJJA_CORS_ORIGINS", "").split(",") if o.strip()]
         s.debug = _env_bool("JJAJJA_DEBUG", False)
+        s.auth_required = _env_bool("JJAJJA_AUTH_REQUIRED", True)
+        if os.environ.get("JJAJJA_AUTH_DB"):
+            s.auth_db = Path(os.environ["JJAJJA_AUTH_DB"])
+        s.token_ttl_s = _env_float("JJAJJA_TOKEN_TTL_DAYS", 30) * 24 * 3600.0
+        s.auth_rate_limit_per_min = int(_env_float("JJAJJA_AUTH_RATE_LIMIT_PER_MIN", 10))
         return s
+
+    def auth_db_path(self) -> Path:
+        return Path(self.auth_db) if self.auth_db else Path(self.cache_dir) / "auth.sqlite3"
 
     def resolved_device(self) -> str:
         """GPU only when the operator pinned CUDA_VISIBLE_DEVICES after checking owners
