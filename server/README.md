@@ -1,6 +1,6 @@
 # jjajja 탐지 서버 (FastAPI)
 
-AI로 만든 쇼츠인지 확인하는 백엔드. 응답 형식은 **`.claude/skills/detect-api-contract/SKILL.md` (v1.2)** 가 단일 기준이다.
+AI로 만든 쇼츠인지 확인하는 백엔드. 응답 형식은 **`.claude/skills/detect-api-contract/SKILL.md` (v2.0)** 가 단일 기준이다. **v2.0부터 로그인 필수** — `/v1/detect`에 `Authorization: Bearer <token>`이 없으면 401.
 
 > **약관·법무 리스크 (출시 전 법무 검토 필수)**
 > - URL 방식은 `yt-dlp`로 플랫폼 영상을 내려받는다. YouTube·TikTok·Instagram 약관은 다운로드를 제한한다. **연구/프로토타입 용도**로만 둔다.
@@ -31,9 +31,40 @@ conda run -n jjajja --no-capture-output uvicorn app.main:app --host 0.0.0.0 --po
 
 ```sh
 curl localhost:8000/v1/health
-curl -H 'content-type: application/json' -d '{"url":"https://youtube.com/shorts/jzE0Rcb2hY4","source":"paste"}' localhost:8000/v1/detect
-curl -F file=@clip.mp4 -F source=upload localhost:8000/v1/detect
+TOKEN=$(curl -s -H 'content-type: application/json' -d '{"email":"me@example.com","password":"8자 이상 비밀번호","device_name":"터미널"}' localhost:8000/v1/auth/login | python -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+curl -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{"url":"https://youtube.com/shorts/jzE0Rcb2hY4","source":"paste"}' localhost:8000/v1/detect
+curl -H "Authorization: Bearer $TOKEN" -F file=@clip.mp4 -F source=upload localhost:8000/v1/detect
+curl -H "Authorization: Bearer $TOKEN" 'localhost:8000/v1/history?limit=20'
 ```
+(처음이면 `/v1/auth/signup`에 `{"email","password"}`로 가입. 응답의 `token`을 그대로 쓴다.)
+
+> **QA·평가 도구 실행 시 `JJAJJA_AUTH_REQUIRED=0`** 으로 서버를 띄운다
+> (`.claude/skills/detection-qa/scripts/eval_detect.py`, `check_contract.py`는 아직 토큰을 보내지 않는다).
+> 예: `JJAJJA_AUTH_REQUIRED=0 uvicorn app.main:app --port 8000`. 이 모드는 로컬 전용이며 토큰 없는 요청은 기록을 남기지 않는다.
+
+## 인증 (계약 v2.0, #20)
+
+이메일+비밀번호 계정, **기기별 토큰**(여러 기기 연동), 계정 단위 확인 기록. 표준 라이브러리만 쓴다(추가 의존성 없음, `app/auth.py`).
+
+| 엔드포인트 | 인증 | 설명 |
+|---|---|---|
+| `POST /v1/auth/signup` `{email, password}` | - | `201 {token, user}`. 이메일은 소문자·공백 제거. `409 email_taken` / `400 invalid_email` / `400 weak_password`(8자 미만) |
+| `POST /v1/auth/login` `{email, password, device_name}` | - | `200 {token, user}`. 실패는 이메일 유무와 관계없이 `401 invalid_credentials`. 로그인할 때마다 새 기기 토큰 |
+| `POST /v1/auth/logout` | Bearer | 현재 토큰만 폐기 → `204` |
+| `GET /v1/me` | Bearer | `{user, devices:[{id, device_name, last_used_at, current}]}` (유효한 토큰만) |
+| `GET /v1/history?limit=20&before=<cursor>` | Bearer | 모든 기기 합산, 최신순. `limit` 1~50, `next`가 다음 페이지 커서(없으면 `null`). 읽을 수 없는 커서는 빈 목록 |
+| `DELETE /v1/history/{id}` | Bearer | 본인 기록만 `204`. 남의 기록·없는 기록은 똑같이 `404 not_found` |
+| `POST /v1/detect` | Bearer (`JJAJJA_AUTH_REQUIRED=0`이면 선택) | 응답 형식은 v1.3 그대로. 200이면 기록 1건(캐시 적중 포함) |
+
+- **저장**: SQLite `server/.cache/auth.sqlite3`(`JJAJJA_AUTH_DB`로 변경). 테이블 `users`, `devices`(토큰 sha256·기기 이름·생성/마지막 사용/만료), `history`.
+  기록에는 판정 요약과 원래 입력 주소만 남는다. 업로드는 `url: null`, **영상 파일과 토큰은 저장하지 않는다.** 단일 프로세스 전제(SQLite WAL).
+- **비밀번호**: `hashlib.scrypt`(n=2^14, r=8, p=1, 솔트 16바이트) → `scrypt$n$r$p$salt$key`, `hmac.compare_digest`로 비교.
+  없는 이메일도 같은 scrypt 비용을 써서 응답 시간으로 가입 여부가 드러나지 않게 한다. 해시 계산은 워커 스레드에서 돈다.
+- **토큰**: `secrets.token_urlsafe(32)`. DB에는 sha256만. 30일 유효, 사용해도 연장하지 않음. 로그아웃하면 그 기기 행을 지운다.
+  토큰이 있는데 무효·만료면 `JJAJJA_AUTH_REQUIRED=0`이어도 401(조용히 무시하지 않음). 401에는 `WWW-Authenticate: Bearer` 헤더.
+- **속도 제한**: 가입·로그인은 IP당 분당 `JJAJJA_AUTH_RATE_LIMIT_PER_MIN`(기본 10, 둘 합산) → `429 rate_limited`. `/v1/detect`는 기존 한도.
+- **비밀 노출 금지**: 비밀번호·토큰은 로그·에러 메시지·debug 필드에 남기지 않는다(로그에는 user id만). `app/debug.py`가 Bearer/Authorization 값을 가린다.
+  CORS(웹 시연)는 `Authorization` 헤더와 `DELETE`를 허용한다.
 
 ### GPU (공용 서버 규칙)
 기본은 **CPU**다(D3 ~1초, Community Forensics ~0.2초 / 영상 1편, 64코어 서버 기준). GPU를 쓰려면 먼저 GPU별 소유자를 확인하고,
@@ -58,6 +89,10 @@ CUDA_VISIBLE_DEVICES=<빈 GPU> JJAJJA_DEVICE=cuda uvicorn app.main:app --port 80
 | `JJAJJA_FETCH_TIMEOUT_S` / `JJAJJA_RULES_TIMEOUT_S` / `JJAJJA_DETECTOR_TIMEOUT_S` | `60` / `20` / `120` | 단계별 상한. 실제로는 남은 예산과 둘 중 짧은 값 |
 | `JJAJJA_RATE_LIMIT_PER_MIN` | `30` | IP당 분당 요청(429) |
 | `JJAJJA_CACHE_DIR` | `server/.cache` | 결과 캐시(7일, partial 6시간) |
+| `JJAJJA_AUTH_REQUIRED` | `1` | `0`이면 `/v1/detect`가 토큰 없이 동작(로컬 도구·테스트 전용, 기록 안 남김). 출시 서버는 반드시 `1` |
+| `JJAJJA_AUTH_DB` | `<CACHE_DIR>/auth.sqlite3` | 계정·기기 토큰·기록 SQLite 파일 |
+| `JJAJJA_TOKEN_TTL_DAYS` | `30` | 기기 토큰 유효기간(사용해도 연장 안 함) |
+| `JJAJJA_AUTH_RATE_LIMIT_PER_MIN` | `10` | 가입·로그인 IP당 분당 요청(429). `0`이면 끔 |
 | `JJAJJA_CORS_ORIGINS` | (꺼짐) | 웹 시연용 브라우저 origin, 예: `http://localhost:8081` |
 | `JJAJJA_DEBUG` | `0` | **개발 전용.** `1`이면 모든 `signals[]`에 `debug: {reason, raw}`(계약 v1.3)를 넣는다. `reason`은 영어 원인 한 줄(`http 405: <Hive 메시지>`, `timeout after 25.0s`, `budget cut`, `not loaded (...)`, `weight 0 (disabled)`, `video not fetched (blocked: ...)`, 규칙은 `innertube blocked (http 429); ...`/`parse failed`, 정상은 `null`), `raw`는 원점수 요약(hive: mean/top25/frames/top_generator/audio/deepfake, commfor: mean/top25/frames, d3: raw). 캐시 적중 시 `reason: "cached result"`(debug는 캐시에 저장하지 않음). API 키·Authorization·쿠키는 `app/debug.py`에서 가림. `0`이면 필드 자체가 없다. 출시 빌드에서는 켜지 말 것 |
 
@@ -84,7 +119,7 @@ API 키가 필요한 탐지기(상용)는 키를 **환경변수로만** 받는�
 
 ## 구조
 ```
-app/        main.py(엔드포인트) pipeline.py ensemble.py cache.py schemas.py(계약 pydantic) errors.py settings.py
+app/        main.py(엔드포인트) auth.py(계정·기기 토큰·기록 SQLite) pipeline.py ensemble.py cache.py schemas.py(계약 pydantic) errors.py settings.py
 detectors/  base.py(어댑터 인터페이스) __init__.py(레지스트리) mock.py d3.py commfor.py hive.py(상용 API)
 media/      fetch.py(yt-dlp, 차단 시 쿨다운) ffmpeg.py(프로브·프레임 샘플링) workdir.py(예산 초과 스레드용 임시 폴더 정리)
 config/weights.yaml   앙상블 가중치·구간·캘리브레이션 (코드 상수 아님)
@@ -96,9 +131,10 @@ tools/score_file.py   로컬 영상의 탐지기 원점수 출력 (QA 캘리브�
 ## 테스트
 ```sh
 cd server
-conda run -n jjajja python -m pytest -q                       # 계약·앙상블·미디어·응답 예산·규칙 통합 (네트워크 없음)
+conda run -n jjajja python -m pytest -q                       # 계약·인증·앙상블·미디어·응답 예산·규칙 통합 (네트워크 없음)
 JJAJJA_TEST_MODELS=1 conda run -n jjajja python -m pytest -q tests/test_models.py   # 실제 모델 (CPU)
 ```
+탐지 테스트는 `tests/helpers.base_settings`에서 `auth_required=False`로 돌고, 인증은 `tests/test_auth.py`가 따로 검증한다.
 테스트 영상은 ffmpeg로 합성한다(`*.mp4`는 gitignore). YouTube에는 요청하지 않는다(규칙 쪽은 innertube fixture).
 
 ## 캘리브레이션

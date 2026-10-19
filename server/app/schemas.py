@@ -1,4 +1,4 @@
-"""Pydantic models that mirror .claude/skills/detect-api-contract/SKILL.md (v1.3).
+"""Pydantic models that mirror .claude/skills/detect-api-contract/SKILL.md (v2.0).
 
 Do not add/rename fields here without updating the contract first.
 """
@@ -72,9 +72,59 @@ class HealthResponse(BaseModel):
 
 class ErrorBody(BaseModel):
     code: Literal["invalid_url", "unsupported_platform", "video_unavailable",
-                  "file_too_large", "rate_limited", "detectors_down", "invalid_file"]
+                  "file_too_large", "rate_limited", "detectors_down", "invalid_file",
+                  # v2.0 accounts (+ not_found: requested contract addition)
+                  "unauthorized", "invalid_credentials", "email_taken", "invalid_email",
+                  "weak_password", "not_found"]
     message_ko: str
 
 
 class ErrorResponse(BaseModel):
     error: ErrorBody
+
+
+# ---------------------------------------------------------------- v2.0 accounts (#20)
+class User(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    email: str
+    created_at: str
+
+
+class AuthResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str
+    user: User
+
+
+class Device(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    device_name: str
+    last_used_at: str
+    current: bool
+
+
+class MeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    user: User
+    devices: list[Device]
+
+
+class HistoryItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: str
+    checked_at: str
+    source: Optional[str]
+    platform: Platform
+    video_id: Optional[str]
+    url: Optional[str]
+    verdict: Verdict
+    ai_probability: Optional[float]
+    device_name: str
+
+
+class HistoryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    items: list[HistoryItem]
+    next: Optional[str]
