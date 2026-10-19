@@ -1,5 +1,30 @@
 # extension 작업 노트
 
+## 2026-10-19 — 디자인 시스템 v2 적용(#21, 실기기 피드백 "버튼 너무 큼, 굵어서 싸 보임")
+
+### 결정
+- `tools/gen-tokens.mjs`: `color.lineUi` → `--line-ui`, 공간 키 kebab(`--sp-block-y`), 잉크 번짐 `--motion-ink-bloom-dot/ring-border` 추가.
+  판정 `tint` 는 v2 예약값이라 CSS 변수(`--v-*-tint`, `.v-* { --v-tint }`)로 내보내지 않음(§8.2). 확장 override: display/headline 24/32, title 18/26, button 16/22.
+- 버튼(§5.1): `.btn` min-height 44(`--size-button-min-height-ext`), 16/22 600 자간 -0.2, 모서리 8. 주 버튼은 내용 폭(340, 최대 400, 가운데) 화면당 1개.
+  선 버튼 = 1px `lineUi`, 글자 폭(`fit-content`), 좌우 20. 텍스트 버튼 = accent 밑줄 1px, 눌림은 글자색만 ink.
+  선·텍스트 버튼은 `::before` 로 사방 4px 클릭 영역 확장(hitSlop 4), 버튼 사이 12.
+  ※ "폭 가득 금지"는 문서 §0.3·§6.9 대로 해석: 주 버튼은 좌우 여백 20 안의 내용 폭(340), 그 밖의 버튼은 글자 폭.
+- 선: 기본 1px. 입력칸 1px `lineUi`(포커스 1.5 ink, 에러 1.5 v-ai), 카드(`.card`) 삭제 → 옵션 페이지 섹션은 여백 40 + 1px `line`, 내 기록은 행 + 헤어라인(`.rows`).
+  2px 는 `:focus-visible` 포커스 링과 개발자 영역(details 윗선)만.
+- 판정 블록(§5.4): 면·왼쪽 띠·괘선 제거. 위 1px `--v-main` 선 + 도장 36(1.5) + 명조 헤드라인 24/32 **700**(실사용자 화면 유일) → 퍼센트(8) → 보조 문장 body 18 400 ink(12).
+- 큰 제목(로그인·회원가입·확인 중·에러·내 기록·설정)은 명조 **600**. Noto Serif KR SemiBold 를 같은 서브셋 스크립트로 번들
+  (`fonts/NotoSerifKR-SemiBold.subset.woff2`, 376KB, 원본은 앱 브랜치의 NotoSerifKR-SemiBold.otf v2.003). OFL.txt 갱신.
+- 기록 행: 도장 테두리 없이 아이콘 20(`markElement(..., { bare: true })`), 제목 subhead, 퍼센트·날짜 caption ink-2. 아이콘 SVG 선 2 → 1.75.
+- 안내 줄(`.note`): 위아래 선 제거, 아이콘 18 + caption ink-2. 잉크 번짐 점 16·링 1px. 괘선 24×1, 본문 자간 -0.2·행간 29, 좌우 20.
+- 옵션 페이지: [저장] 주 버튼 1개(최대 400), 아래 [연결 확인] 선 버튼 + [기본값으로 되돌리기] 텍스트 버튼(왼쪽 정렬). 예시 주소의 mono 제거(개발자 글꼴을 실사용자 화면에 섞지 않음).
+- 문구·화면 흐름·계약 처리는 바꾸지 않음(V4).
+
+### 검증
+- `node --test test/` 55개 통과. 새 검사: 700 은 `.verdict-block .headline`·개발자 선택자에만, 2px/3px 선은 포커스 링·개발자 영역만,
+  `--v-tint`·`--line-strong`·`--bw-verdict-stripe` 사용 없음, 판정 블록 = 1px 판정색 윗선·면 없음, `.card` 없음,
+  버튼 높이·모서리·최대 폭·선 버튼 1px lineUi·글자 폭, 화면(section)마다 주 버튼 ≤ 1, 옵션 페이지 주 버튼 1개.
+- headless 크롬(chrome-headless-shell, chrome API 흉내)으로 로그인/로그인 에러/회원가입/확인 중/결과 4종/에러 2종/내 기록/DEV 표/옵션 페이지 캡처 점검.
+
 ## 2026-10-19 — 디자인 시스템(#21) + 로그인 필수(#20, 계약 v2.0)
 
 ### 결정

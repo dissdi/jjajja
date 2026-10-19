@@ -1,5 +1,6 @@
-/* 공통 부품 — 잉크 & 크림 (design-system.md §4, §5). 값은 tokens.css 변수만 쓴다.
-   그림자·그라데이션·다크 모드 없음(A1: 라이트 전용). */
+/* 공통 부품 — 잉크 & 크림 v2 정제·에디토리얼 (design-system.md §0, §4, §5). 값은 tokens.css 변수만 쓴다.
+   그림자·그라데이션·다크 모드 없음(A1: 라이트 전용).
+   v2 규칙: 선은 1px 헤어라인, 2px 는 포커스 링·개발 영역만, 700 은 판정 헤드라인(.verdict-block .headline)만. */
 * { box-sizing: border-box; }
 html { background: var(--paper); }
 body {
@@ -10,6 +11,7 @@ body {
   font-size: var(--fs-body);
   line-height: var(--lh-body);
   font-weight: var(--fw-body);
+  letter-spacing: var(--ls-body);
   -webkit-font-smoothing: antialiased;
   word-break: keep-all; /* 한국어는 어절 단위로 줄바꿈 */
   overflow-wrap: anywhere;
@@ -17,109 +19,145 @@ body {
 [hidden] { display: none !important; }
 :focus-visible { outline: var(--bw-focus) solid var(--focus); outline-offset: 2px; }
 
-/* ---- 글자 단계 ---- */
+/* ---- 글자 단계 §3.2 ---- */
 .eyebrow {
   font-size: var(--fs-eyebrow); line-height: var(--lh-eyebrow); font-weight: var(--fw-eyebrow);
   letter-spacing: var(--ls-eyebrow); text-transform: uppercase; color: var(--ink-2);
 }
-/* 명조: 고정 문구 24px 이상 Bold 에만. 서버 문자열 금지 */
-.display, .headline { font-family: var(--font-serif); font-weight: 700; margin: 0; }
+/* 명조: 고정 문구 24px 이상에만(서버 문자열 금지). 판정이 아닌 큰 제목은 SemiBold 600,
+   판정 헤드라인만 Bold 700(§0.2 V2) */
+.display, .headline { font-family: var(--font-serif); font-weight: var(--fw-display); margin: 0; }
 .display { font-size: var(--fs-display); line-height: var(--lh-display); letter-spacing: var(--ls-display); }
 .headline { font-size: var(--fs-headline); line-height: var(--lh-headline); letter-spacing: var(--ls-headline); }
-.title { font-size: var(--fs-title); line-height: var(--lh-title); font-weight: var(--fw-title); margin: 0; }
-.subhead { font-size: var(--fs-subhead); line-height: var(--lh-subhead); font-weight: var(--fw-subhead); margin: 0; }
+.title { font-size: var(--fs-title); line-height: var(--lh-title); font-weight: var(--fw-title); letter-spacing: var(--ls-title); margin: 0; }
+.subhead { font-size: var(--fs-subhead); line-height: var(--lh-subhead); font-weight: var(--fw-subhead); letter-spacing: var(--ls-subhead); margin: 0; }
 .body { font-size: var(--fs-body); line-height: var(--lh-body); margin: 0; }
 .body-strong { font-size: var(--fs-body-strong); line-height: var(--lh-body-strong); font-weight: var(--fw-body-strong); margin: 0; }
 .figure {
-  font-size: var(--fs-figure); line-height: var(--lh-figure); font-weight: var(--fw-figure);
+  font-size: var(--fs-figure); line-height: var(--lh-figure); font-weight: var(--fw-figure); letter-spacing: var(--ls-figure);
   font-variant-numeric: tabular-nums; color: var(--ink-2); margin: 0;
 }
-.caption { font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--ink-3); margin: 0; }
+.caption { font-size: var(--fs-caption); line-height: var(--lh-caption); letter-spacing: var(--ls-caption); color: var(--ink-3); margin: 0; }
 .ink-2 { color: var(--ink-2); }
-/* 헤드라인 아래 잉크 괘선 32×2 */
-.rule { width: 32px; height: var(--bw-rule); background: var(--ink); border: 0; margin: 0; }
+/* 제목 아래 짧은 괘선 24×1 (홈·확인 중·에러·로그인 제목 아래에만. 판정 블록에는 쓰지 않음) */
+.rule { width: var(--size-rule-width); height: var(--size-rule-height); background: var(--ink); border: 0; margin: 0; }
 .divider { height: var(--bw-hair); background: var(--line); border: 0; margin: 0; }
 
-/* ---- 버튼 §5.1 ---- */
+/* ---- 버튼 §5.1 ----
+   주: 잉크 면, 보이는 높이 44(확장), 내용 폭(최대 400, 가운데), 한 화면 1개.
+   선: 1px lineUi, 글자 폭. 텍스트: accent 밑줄, 글자 폭. 모두 16/22 600(확장), 모서리 8.
+   선·텍스트 버튼은 ::before 로 클릭 영역을 사방 4px 넓힌다(hitSlop 4). 인접 버튼 간격 12 이상. */
+.btn, .btn-text {
+  position: relative;
+  font-family: var(--font-sans); font-size: var(--fs-button); line-height: var(--lh-button);
+  font-weight: var(--fw-button); letter-spacing: var(--ls-button);
+  cursor: pointer;
+}
 .btn {
   display: flex; align-items: center; justify-content: center; gap: var(--sp-2);
-  width: 100%; min-height: var(--size-button-min-height-ext);
-  padding: var(--sp-2) var(--sp-4);
-  font-family: var(--font-sans); font-size: var(--fs-button); line-height: var(--lh-button); font-weight: var(--fw-button);
-  border-radius: var(--r-md); cursor: pointer;
+  min-height: var(--size-button-min-height-ext);
+  padding: var(--sp-2) var(--size-button-padding-x-primary);
+  border-radius: var(--r-button);
   transition: background-color var(--motion-press-duration) linear;
 }
-.btn-primary { background: var(--ink); color: var(--on-ink); border: 0; }
+.btn-primary {
+  width: 100%; max-width: var(--size-button-max-width); margin-left: auto; margin-right: auto;
+  background: var(--ink); color: var(--on-ink); border: 0;
+}
 .btn-primary:hover, .btn-primary:active { background: var(--ink-pressed); }
 .btn-primary:disabled { background: var(--disabled-bg); color: var(--disabled-fg); cursor: default; }
-.btn-secondary { background: transparent; color: var(--ink); border: var(--bw-strong) solid var(--ink); }
+.btn-secondary {
+  width: fit-content; margin-left: auto; margin-right: auto;
+  min-height: var(--size-button-secondary-height);
+  padding: var(--sp-2) var(--size-button-padding-x-secondary);
+  background: transparent; color: var(--ink); border: var(--bw-hair) solid var(--line-ui);
+}
 .btn-secondary:hover, .btn-secondary:active { background: var(--sunken); }
 .btn-secondary:disabled { color: var(--disabled-fg); border-color: var(--disabled-fg); background: transparent; cursor: default; }
 .btn-text {
-  display: inline-flex; align-items: center; min-height: var(--size-touch-min);
-  padding: 0 var(--sp-1); background: none; border: 0; cursor: pointer;
-  font-family: var(--font-sans); font-size: var(--fs-body-strong); line-height: var(--lh-body-strong); font-weight: var(--fw-body-strong);
+  display: inline-flex; align-items: center; min-height: var(--size-text-button-height);
+  padding: 0 var(--sp-1); background: none; border: 0; border-radius: var(--r-sm);
   color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
 }
-.btn-text:hover, .btn-text:active { text-decoration-thickness: 2px; }
-.btn + .btn { margin-top: var(--sp-button-gap); }
-.btn-hint { text-align: center; margin-top: 6px; }
+/* 눌림은 밑줄을 굵히지 않고 글자색만 ink 로 */
+.btn-text:hover, .btn-text:active { color: var(--ink); }
+.btn-text:disabled { color: var(--disabled-fg); cursor: default; }
+.btn-secondary::before, .btn-text::before {
+  content: ""; position: absolute; inset: calc(-1 * var(--size-hit-slop-secondary));
+}
+/* 버튼 묶음: 가운데 정렬 세로 쌓기, 간격 12 */
+.btns { display: flex; flex-direction: column; align-items: center; gap: var(--sp-button-gap); }
+.btns > .btn-primary { align-self: stretch; }
+.btn-hint { text-align: center; margin-top: var(--sp-2); }
 
 /* ---- 입력칸 §5.2 ---- */
 .field { display: block; margin: 0 0 var(--sp-4); }
-.field-label { display: block; font-weight: var(--fw-body-strong); margin-bottom: var(--sp-1); }
+/* 라벨은 subhead 18/600 그대로(작은 캡션 라벨로 줄이지 않는다, §6.7) */
+.field-label {
+  display: block; margin-bottom: var(--sp-2);
+  font-size: var(--fs-subhead); line-height: var(--lh-subhead); font-weight: var(--fw-subhead); letter-spacing: var(--ls-subhead);
+}
 .input {
   width: 100%; min-height: var(--size-input-min-height); padding: 0 var(--sp-4);
-  font-family: var(--font-sans); font-size: var(--fs-body); color: var(--ink);
-  background: var(--surface); border: var(--bw-ink) solid var(--line-strong); border-radius: var(--r-sm);
+  font-family: var(--font-sans); font-size: var(--fs-body); letter-spacing: var(--ls-body); color: var(--ink);
+  background: var(--surface); border: var(--bw-hair) solid var(--line-ui); border-radius: var(--r-md);
 }
 .input::placeholder { color: var(--ink-3); opacity: 1; }
-.input:focus { outline: none; border: var(--bw-strong) solid var(--ink); padding: 0 calc(var(--sp-4) - 0.5px); }
-.input:focus-visible { outline: var(--bw-focus) solid var(--focus); outline-offset: 2px; }
-.input[aria-invalid="true"] { border: var(--bw-strong) solid var(--v-ai); }
-.field-hint { margin-top: 6px; }
-/* 인라인 에러: likely_ai.main 글자 + 경고 삼각형 20 */
-.inline-error { display: flex; gap: var(--sp-2); align-items: flex-start; color: var(--v-ai); margin: 6px 0 0; }
-.inline-error svg { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 4px; }
+/* 포커스·에러는 1.5. 두께가 바뀌어도 글자가 밀리지 않게 안쪽 패딩을 0.5 줄인다 */
+.input:focus, .input:focus-visible {
+  outline: none; border: var(--bw-emphasis) solid var(--ink); padding: 0 calc(var(--sp-4) - 0.5px);
+}
+.input[aria-invalid="true"] { border: var(--bw-emphasis) solid var(--v-ai); padding: 0 calc(var(--sp-4) - 0.5px); }
+.input:disabled { color: var(--disabled-fg); }
+.field-hint { display: block; margin-top: var(--sp-2); }
+/* 인라인 에러: likely_ai.main 글자 + 경고 삼각형 18, 입력칸 아래 8 */
+.inline-error { display: flex; gap: var(--sp-2); align-items: flex-start; color: var(--v-ai); margin: var(--sp-2) 0 0; }
+.inline-error svg { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 5px; }
 
-/* ---- 카드 / 안내 줄 §5.3 ---- */
-.card { background: var(--surface); border: var(--bw-ink) solid var(--line-strong); border-radius: var(--r-sm); padding: var(--sp-4); }
+/* ---- 목록 / 안내 줄 §5.3 ----
+   카드 외곽선 없음. 행은 위아래 16, 사이에 1px line 한 줄(맨 위·아래 없음). */
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows > li { padding: var(--sp-4) 0; }
+.rows > li + li { border-top: var(--bw-hair) solid var(--line); }
+/* 안내 줄: 면·테두리 없이 아이콘 18 + caption ink-2 */
 .note {
-  display: flex; gap: var(--sp-2); align-items: flex-start;
-  padding: var(--sp-3) 0; border-top: var(--bw-hair) solid var(--line); border-bottom: var(--bw-hair) solid var(--line);
-  font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--ink-2);
+  display: flex; gap: var(--sp-2); align-items: flex-start; margin: 0;
+  font-size: var(--fs-caption); line-height: var(--lh-caption); letter-spacing: var(--ls-caption); color: var(--ink-2);
 }
-.note svg { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 2px; color: var(--ink-2); }
+.note svg { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 3px; color: var(--ink-2); }
 
-/* ---- 판정 마크(도장) §5.4 ---- */
+/* ---- 판정 도장 §5.4 (팝업 36, §6.9) ---- */
 .mark {
-  flex: none; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
-  border: var(--bw-strong) solid var(--v-main); border-radius: var(--r-round); color: var(--v-main);
+  flex: none; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  border: var(--bw-mark) solid var(--v-main); border-radius: var(--r-round); color: var(--v-main);
 }
-.mark svg { width: 28px; height: 28px; }
-/* likely_ai 만 각진 정사각 도장 — 모양 차이 하나 더 */
+.mark svg { width: 22px; height: 22px; }
+/* likely_ai 만 각진 도장 — 모양 차이 하나 더 */
 .v-likely_ai .mark, .mark.v-likely_ai { border-radius: var(--r-sm); }
-.mark.sm { width: 32px; height: 32px; }
-.mark.sm svg { width: 20px; height: 20px; }
+/* 기록 목록: 도장 테두리 없이 아이콘 20만 (§6.7) */
+.mark.bare { width: 20px; height: 20px; border: 0; }
+.mark.bare svg { width: 20px; height: 20px; }
 
-/* ---- 판정 블록 §5.4 ---- */
+/* ---- 판정 블록 §5.4: 면·띠 없음. 위 1px 판정색 선 + 도장 + 명조 헤드라인 ---- */
 .verdict-block {
-  background: var(--v-tint); border-left: var(--bw-verdict-stripe) solid var(--v-main); border-radius: var(--r-none);
-  padding: var(--sp-4) var(--sp-4) var(--sp-4) var(--sp-4);
-  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2);
+  border-top: var(--bw-verdict-line) solid var(--v-main); border-radius: var(--r-none);
+  padding: var(--sp-block-y) 0;
+  display: flex; flex-direction: column; align-items: flex-start;
 }
-.verdict-block .mark { margin-bottom: var(--sp-1); }
-.verdict-block .headline { color: var(--v-main); }
-.verdict-block .sub { font-size: var(--fs-subhead); line-height: var(--lh-subhead); font-weight: var(--fw-subhead); color: var(--ink); margin: 0; }
+.verdict-block .mark { margin-bottom: var(--sp-4); }
+/* 실사용자 화면에서 700 은 여기 한 곳뿐 */
+.verdict-block .headline { color: var(--v-main); font-weight: var(--fw-headline); }
+.verdict-block .figure { margin-top: var(--sp-2); }
+.verdict-block .sub { margin-top: var(--sp-3); font-size: var(--fs-body); line-height: var(--lh-body); font-weight: var(--fw-body); color: var(--ink); }
 
-/* ---- 로딩: 잉크 번짐 §5.7 (애니메이션은 이것 하나) ---- */
-.ink-bloom { position: relative; width: 20px; height: 20px; margin: 0 auto; }
+/* ---- 로딩: 잉크 번짐 §5.7 (애니메이션은 이것 하나). 점 16, 링 1px ---- */
+.ink-bloom { position: relative; width: var(--motion-ink-bloom-dot); height: var(--motion-ink-bloom-dot); margin: 0 auto; }
 .ink-bloom::before, .ink-bloom::after {
   content: ""; position: absolute; inset: 0; border-radius: var(--r-round);
 }
 .ink-bloom::before { background: var(--ink); }
 .ink-bloom::after {
-  border: var(--bw-strong) solid var(--ink);
+  border: var(--motion-ink-bloom-ring-border) solid var(--ink);
   animation: ink-bloom var(--motion-ink-bloom-duration) var(--motion-ink-bloom-easing) infinite;
 }
 @keyframes ink-bloom {
@@ -131,7 +169,7 @@ body {
   .btn { transition: none; }
 }
 
-/* ---- 개발자 모드 §7 ---- */
+/* ---- 개발자 모드 §7 (밀도 우선 — v2 정제 대상 아님) ---- */
 .dev-band {
   height: var(--size-dev-band); display: flex; align-items: center; padding: 0 var(--sp-screen-x);
   background: var(--dev-band); color: var(--dev-band-text);
@@ -141,7 +179,7 @@ body {
 }
 .dev-chip {
   display: inline-block; padding: 2px 6px; border-radius: var(--r-sm);
-  font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 700;
+  font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: 0;
 }
 .dev-chip.DEV { background: var(--dev-band); color: var(--on-ink); }
 .dev-chip.OK { color: var(--dev-ok); border: 1px solid var(--dev-ok); }

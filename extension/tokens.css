@@ -1,5 +1,5 @@
 /* 자동 생성 파일 — 직접 고치지 마세요. */
-/* source: design/tokens.json (jjajja ink & cream v1.0.0, light-only) */
+/* source: design/tokens.json (jjajja ink & cream v2.0.0, light-only) */
 /* 다시 만들기: node extension/tools/gen-tokens.mjs */
 :root {
   color-scheme: light;
@@ -8,6 +8,7 @@
   --surface: #FBF8F2;
   --sunken: #ECE5D7;
   --line: #D6CCBA;
+  --line-ui: #857D70;
   --line-strong: #665F55;
   --ink: #1A1814;
   --ink-2: #4A453E;
@@ -21,13 +22,9 @@
   --scrim: rgba(26,24,20,0.55);
   /* verdict */
   --v-ai: #842820;
-  --v-ai-tint: #F2E0D8;
   --v-unc: #664610;
-  --v-unc-tint: #F0E5CB;
   --v-real: #2A5434;
-  --v-real-tint: #E1E7D6;
   --v-unk: #4F4A43;
-  --v-unk-tint: #E7E2D8;
   /* dev */
   --dev-band: #1F3A5F;
   --dev-band-text: #F5F0E6;
@@ -43,39 +40,46 @@
   --font-serif: "Noto Serif KR", "Nanum Myeongjo", "AppleMyungjo", "Batang", serif;
   --font-mono: ui-monospace, "D2Coding", Menlo, Consolas, monospace;
   /* font scale (확장 override 적용) */
-  --fs-display: 26px;
-  --lh-display: 34px;
-  --fw-display: 700;
-  --ls-display: -0.3px;
+  --fs-display: 24px;
+  --lh-display: 32px;
+  --fw-display: 600;
+  --ls-display: -0.4px;
   --fs-headline: 24px;
   --lh-headline: 32px;
   --fw-headline: 700;
-  --ls-headline: -0.2px;
-  --fs-title: 22px;
-  --lh-title: 32px;
-  --fw-title: 700;
-  --fs-subhead: 20px;
-  --lh-subhead: 30px;
+  --ls-headline: -0.3px;
+  --fs-title: 18px;
+  --lh-title: 26px;
+  --fw-title: 600;
+  --ls-title: -0.3px;
+  --fs-subhead: 18px;
+  --lh-subhead: 28px;
   --fw-subhead: 600;
-  --fs-button: 18px;
-  --lh-button: 26px;
-  --fw-button: 700;
+  --ls-subhead: -0.2px;
+  --fs-button: 16px;
+  --lh-button: 22px;
+  --fw-button: 600;
+  --ls-button: -0.2px;
   --fs-body: 18px;
-  --lh-body: 28px;
+  --lh-body: 29px;
   --fw-body: 400;
+  --ls-body: -0.2px;
   --fs-body-strong: 18px;
-  --lh-body-strong: 28px;
+  --lh-body-strong: 29px;
   --fw-body-strong: 600;
-  --fs-figure: 18px;
-  --lh-figure: 28px;
+  --ls-body-strong: -0.2px;
+  --fs-figure: 17px;
+  --lh-figure: 24px;
   --fw-figure: 600;
+  --ls-figure: 0;
   --fs-caption: 16px;
   --lh-caption: 24px;
   --fw-caption: 400;
-  --fs-eyebrow: 15px;
-  --lh-eyebrow: 20px;
-  --fw-eyebrow: 700;
-  --ls-eyebrow: 1.5px;
+  --ls-caption: -0.1px;
+  --fs-eyebrow: 14px;
+  --lh-eyebrow: 18px;
+  --fw-eyebrow: 600;
+  --ls-eyebrow: 2px;
   --fs-dev-mono: 14px;
   --lh-dev-mono: 20px;
   --fw-dev-mono: 400;
@@ -87,7 +91,7 @@
   --fw-dev-label: 600;
   --fs-dev-title: 16px;
   --lh-dev-title: 22px;
-  --fw-dev-title: 700;
+  --fw-dev-title: 600;
   --fs-dev-band: 13px;
   --lh-dev-band: 18px;
   --fw-dev-band: 700;
@@ -101,38 +105,54 @@
   --sp-5: 20px;
   --sp-6: 24px;
   --sp-7: 32px;
-  --sp-8: 40px;
-  --sp-9: 56px;
-  --sp-section: 32px;
-  --sp-item: 12px;
-  --sp-buttonGap: 12px;
-  --sp-screen-x: 16px;
-  --sp-section: 32px;
+  --sp-8: 48px;
+  --sp-9: 64px;
+  --sp-section: 40px;
   --sp-item: 12px;
   --sp-button-gap: 12px;
+  --sp-block-y: 24px;
+  --sp-screen-x: 20px;
   /* radius */
   --r-none: 0;
   --r-sm: 4px;
   --r-md: 6px;
-  --r-sheet: 12px;
+  --r-button: 8px;
+  --r-sheet: 16px;
   --r-round: 999px;
   /* border width */
   --bw-hair: 1px;
-  --bw-ink: 1.5px;
+  --bw-ink: 1px;
+  --bw-emphasis: 1.5px;
   --bw-strong: 2px;
-  --bw-focus: 3px;
-  --bw-verdict-stripe: 6px;
-  --bw-rule: 2px;
+  --bw-focus: 2px;
+  --bw-verdict-line: 1px;
+  --bw-verdict-stripe: 0;
+  --bw-rule: 1px;
+  --bw-mark: 1.5px;
   /* size */
-  --size-button-min-height: 60px;
-  --size-button-min-height-ext: 52px;
-  --size-input-min-height: 64px;
+  --size-button-min-height: 48px;
+  --size-button-secondary-height: 44px;
+  --size-text-button-height: 44px;
+  --size-button-min-height-ext: 44px;
+  --size-button-padding-x-primary: 24px;
+  --size-button-padding-x-secondary: 20px;
+  --size-button-max-width: 400px;
+  --size-input-min-height: 56px;
   --size-touch-min: 48px;
-  --size-verdict-mark: 56px;
-  --size-verdict-icon: 32px;
-  --size-badge-height: 48px;
-  --size-badge-icon: 22px;
-  --size-sheet-handle-width: 40px;
+  --size-hit-slop-primary: 0;
+  --size-hit-slop-secondary: 4px;
+  --size-hit-slop-text: 4px;
+  --size-hit-slop-icon: 8px;
+  --size-verdict-mark: 40px;
+  --size-verdict-icon: 24px;
+  --size-badge-height: 40px;
+  --size-badge-icon: 20px;
+  --size-button-icon: 20px;
+  --size-bullet: 4px;
+  --size-rule-width: 24px;
+  --size-rule-height: 1px;
+  --size-top-bar: 52px;
+  --size-sheet-handle-width: 36px;
   --size-sheet-handle-height: 4px;
   --size-dev-band: 28px;
   --size-dev-bar-width: 120px;
@@ -142,13 +162,15 @@
   --motion-ink-bloom-easing: cubic-bezier(0.22,1,0.36,1);
   --motion-ink-bloom-scale-from: 0.6;
   --motion-ink-bloom-scale-to: 1.5;
-  --motion-ink-bloom-opacity-from: 0.85;
+  --motion-ink-bloom-opacity-from: 0.6;
   --motion-ink-bloom-opacity-to: 0;
+  --motion-ink-bloom-dot: 16px;
+  --motion-ink-bloom-ring-border: 1px;
   --motion-press-duration: 80ms;
 }
 
-/* 판정 클래스: contract verdict 이름 그대로. 블록·마크는 var(--v-main)/var(--v-tint) 를 쓴다 */
-.v-likely_ai { --v-main: var(--v-ai); --v-tint: var(--v-ai-tint); }
-.v-uncertain { --v-main: var(--v-unc); --v-tint: var(--v-unc-tint); }
-.v-likely_real { --v-main: var(--v-real); --v-tint: var(--v-real-tint); }
-.v-unknown { --v-main: var(--v-unk); --v-tint: var(--v-unk-tint); }
+/* 판정 클래스: contract verdict 이름 그대로. 윗선·도장·헤드라인은 var(--v-main) 만 쓴다(v2: 면 없음) */
+.v-likely_ai { --v-main: var(--v-ai); }
+.v-uncertain { --v-main: var(--v-unc); }
+.v-likely_real { --v-main: var(--v-real); }
+.v-unknown { --v-main: var(--v-unk); }

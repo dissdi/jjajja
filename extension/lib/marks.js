@@ -1,4 +1,4 @@
-// 판정 마크 안의 아이콘(인라인 SVG, 24 viewBox, 선 2). 도장 테두리는 CSS(.mark)가 그린다.
+// 판정 마크 안의 아이콘(인라인 SVG, 24 viewBox, 선 1.75 — v2 가는 선). 도장 테두리는 CSS(.mark)가 그린다.
 // 모양: likely_ai 삼각형+느낌표 / uncertain 물음표 / likely_real 체크 / unknown 가로줄 (design-system.md §2.2)
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -25,7 +25,7 @@ export function svgIcon(doc, paths) {
     el.setAttribute('d', p.d);
     el.setAttribute('fill', 'none');
     el.setAttribute('stroke', 'currentColor');
-    el.setAttribute('stroke-width', '2');
+    el.setAttribute('stroke-width', '1.75');
     el.setAttribute('stroke-linecap', 'round');
     el.setAttribute('stroke-linejoin', 'round');
     svg.appendChild(el);
@@ -33,11 +33,14 @@ export function svgIcon(doc, paths) {
   return svg;
 }
 
-/** 판정 마크(도장) 요소. 스크린리더에서는 숨기고 헤드라인이 읽히게 한다. */
-export function markElement(doc, verdict, { small = false } = {}) {
+/**
+ * 판정 마크(도장) 요소. 스크린리더에서는 숨기고 헤드라인이 읽히게 한다.
+ * bare: 도장 테두리 없이 아이콘 20만(기록 목록, design-system.md §6.7)
+ */
+export function markElement(doc, verdict, { bare = false } = {}) {
   const v = MARK_PATHS[verdict] ? verdict : 'unknown';
   const box = doc.createElement('div');
-  box.className = `mark v-${v}${small ? ' sm' : ''}`;
+  box.className = `mark v-${v}${bare ? ' bare' : ''}`;
   box.setAttribute('aria-hidden', 'true');
   box.appendChild(svgIcon(doc, MARK_PATHS[v]));
   return box;

@@ -1,73 +1,91 @@
-/* 팝업 배치 (design-system.md §6.8, 폭 380px). 부품은 ui.css, 값은 tokens.css. */
+/* 팝업 배치 (design-system.md §6.9, 폭 380px, 좌우 20). 부품은 ui.css, 값은 tokens.css.
+   v2: 카드 테두리 없음, 구분은 여백 우선 + 1px line, 주 버튼 화면당 1개(44, 내용 폭). */
 body { width: 380px; }
 
 .top {
   display: flex; justify-content: space-between; align-items: center;
-  height: 48px; padding: 0 var(--sp-screen-x);
+  height: var(--size-touch-min); padding: 0 var(--sp-screen-x);
   border-bottom: var(--bw-hair) solid var(--line);
 }
-.top .btn-text { font-size: var(--fs-caption); }
 
-main { padding: var(--sp-4) var(--sp-screen-x) var(--sp-5); }
-.stack > * + * { margin-top: var(--sp-2); }
+main { padding: var(--sp-5) var(--sp-screen-x) var(--sp-6); }
 
-/* 로그인 */
-#login .intro { margin-bottom: var(--sp-6); }
-#login .intro .rule { margin: var(--sp-2) 0; }
-#login .note { margin-bottom: var(--sp-4); }
+/* 제목 묶음: 제목 → 12 → 괘선 24×1 → 12 → 설명 */
+.title-group .rule { margin: var(--sp-3) 0; }
+
+/* 로그인 / 회원가입 */
+#login { padding-top: var(--sp-2); }
+#login .intro { margin-bottom: var(--sp-7); }
+#login .note { margin-bottom: var(--sp-5); }
 #login form { margin: 0; }
-#login .switch { display: flex; align-items: center; justify-content: center; gap: var(--sp-1); flex-wrap: wrap; margin-top: var(--sp-3); }
-#auth-form-error { margin: 0 0 var(--sp-3); }
+#auth-submit { margin-top: var(--sp-6); }
+#login .switch { display: flex; align-items: center; justify-content: center; gap: var(--sp-2); flex-wrap: wrap; margin-top: var(--sp-5); }
+#auth-form-error { margin: 0 0 var(--sp-4); }
 
-/* 확인 중 */
-#loading { text-align: center; padding: var(--sp-7) 0 var(--sp-6); }
-#loading .display { margin-top: var(--sp-6); }
-#loading .body { margin-top: var(--sp-1); }
-#elapsed { margin-top: var(--sp-2); min-height: var(--lh-caption); }
+/* 확인 중: 점 16 → 32 → 제목 → 8 → 안내 */
+#loading { text-align: center; padding: var(--sp-8) 0 var(--sp-8); }
+#loading .display { margin-top: var(--sp-7); }
+#loading .body { margin-top: var(--sp-2); }
+#elapsed { margin-top: var(--sp-1); min-height: var(--lh-caption); }
 
-/* 결과 */
-.evidence-box { margin-top: var(--sp-6); }
-.evidence-box .title { font-size: 20px; line-height: 30px; margin-bottom: var(--sp-2); }
+/* 결과: 판정 블록 → 32 → 근거 → 20 → 안내 + 주 버튼 */
+#result .verdict-block { margin-top: 0; }
+.evidence-box { margin-top: var(--sp-2); } /* 판정 블록 아래 안쪽 24 + 8 = 32 */
+.evidence-box .title { margin-bottom: var(--sp-3); }
 .evidence { list-style: none; margin: 0; padding: 0; }
-.evidence li { position: relative; padding-left: 18px; }
+.evidence li { position: relative; padding-left: var(--sp-4); }
 .evidence li + li { margin-top: var(--sp-3); }
-/* 글머리: 잉크 사각점 6×6 (인쇄물 느낌) */
+/* 글머리: 잉크 사각점 4×4 (인쇄물 느낌) */
 .evidence li::before {
-  content: ""; position: absolute; left: 0; top: 11px; width: 6px; height: 6px; background: var(--ink);
+  content: ""; position: absolute; left: 0; top: 13px;
+  width: var(--size-bullet); height: var(--size-bullet); background: var(--ink);
 }
-.result-foot { margin-top: var(--sp-4); }
-.result-foot .caption { margin-bottom: var(--sp-2); }
+.result-foot { margin-top: var(--sp-7); }
+/* 근거가 없으면 판정 블록 아래 24 + 16 = 섹션 40 */
+#evidence-box[hidden] + .result-foot { margin-top: var(--sp-4); }
+.result-foot .caption + .caption { margin-top: var(--sp-1); }
+.result-foot .btns { margin-top: var(--sp-6); }
 
-/* 에러: 마크(회색) + 명조 제목, 판정 블록 면·띠 없음, 빨강 금지 */
-#error { padding-top: var(--sp-6); }
-#error .mark { margin-bottom: var(--sp-4); }
-#error .rule { margin: var(--sp-2) 0; }
+/* 에러: 회색 도장 + 명조 600 제목, 판정 윗선 없음, 빨강 금지 */
+#error { padding-top: var(--sp-7); }
+#error .mark { margin-bottom: var(--sp-5); }
+#error .rule { margin: var(--sp-3) 0; }
 #error .body { color: var(--ink-2); }
-#error .btns { margin-top: var(--sp-6); }
+#error .body + .body { margin-top: var(--sp-2); }
+#error .btns { margin-top: var(--sp-7); }
 
-/* 내 기록 */
-#history .rule { margin: var(--sp-2) 0; }
-#history .lead { margin-bottom: var(--sp-5); }
-.history-list { list-style: none; margin: 0; padding: 0; }
+/* 내 기록: 카드 대신 행 + 헤어라인 (§5.3, §6.7) */
+#history { padding-top: var(--sp-2); }
+#history .rule { margin: var(--sp-3) 0; }
+#history .lead { margin-bottom: var(--sp-4); }
 .history-list li { display: flex; gap: var(--sp-3); align-items: flex-start; }
-.history-list li + li { margin-top: var(--sp-5); }
+.history-list .mark { margin-top: 4px; }
 .history-list .item-main { min-width: 0; flex: 1; }
-.history-list .item-head { color: var(--ink); }
-.history-list .figure { font-size: var(--fs-caption); line-height: var(--lh-caption); }
-.history-list .btn-text { min-height: 40px; padding-left: 0; font-size: var(--fs-caption); }
+.history-list .item-head {
+  font-size: var(--fs-subhead); line-height: var(--lh-subhead); font-weight: var(--fw-subhead); letter-spacing: var(--ls-subhead);
+  color: var(--ink);
+}
+.history-list .figure {
+  font-size: var(--fs-caption); line-height: var(--lh-caption); font-weight: var(--fw-caption); color: var(--ink-2);
+}
+.history-list .caption { color: var(--ink-2); }
+.history-list .btn-text { margin-top: var(--sp-1); margin-left: calc(-1 * var(--sp-1)); }
 #history-status { padding: var(--sp-4) 0; }
 #history .btns { margin-top: var(--sp-7); }
 
 /* 계정 줄 (로그인했을 때만) */
 .account {
   border-top: var(--bw-hair) solid var(--line);
-  padding: var(--sp-2) var(--sp-screen-x) var(--sp-3);
+  padding: var(--sp-3) var(--sp-screen-x) var(--sp-3);
 }
-.account .who { overflow-wrap: anywhere; }
-.account .links { display: flex; justify-content: space-between; align-items: center; }
+.account .who { overflow-wrap: anywhere; color: var(--ink-2); }
+.account .links { display: flex; justify-content: space-between; align-items: center; margin-top: var(--sp-1); }
+.account .btn-text:first-child { margin-left: calc(-1 * var(--sp-1)); }
+/* [내 기록]이 숨겨져도 [로그아웃]은 오른쪽에 */
+#logout { margin-left: auto; margin-right: calc(-1 * var(--sp-1)); }
 
 /* 개발자용 자세히 §7.4 */
-details.dev { margin-top: var(--sp-6); }
+details.dev { margin-top: var(--sp-section); }
 details.dev[open] { border-top: var(--bw-strong) solid var(--dev-band); padding-top: var(--sp-2); }
 details.dev summary {
   display: flex; align-items: center; gap: var(--sp-2); min-height: var(--size-touch-min);

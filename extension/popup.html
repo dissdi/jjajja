@@ -20,7 +20,7 @@
 
     <!-- 로그인 / 회원가입 -->
     <section id="login" hidden>
-      <div class="intro">
+      <div class="intro title-group">
         <h1 class="display" id="auth-title">로그인해 주세요</h1>
         <div class="rule"></div>
         <p class="body ink-2" id="auth-lead"></p>
@@ -62,7 +62,6 @@
       <div class="verdict-block" id="verdict-block">
         <div id="mark-slot"></div>
         <h1 class="headline" id="headline"></h1>
-        <div class="rule"></div>
         <p class="figure" id="percent"></p>
         <p class="sub" id="sub"></p>
       </div>
@@ -75,7 +74,9 @@
       <div class="result-foot">
         <p class="caption" id="cache-note" hidden></p>
         <p class="caption">자동으로 확인한 결과라 틀릴 수 있어요</p>
-        <button type="button" class="btn btn-primary" id="recheck">다시 확인</button>
+        <div class="btns">
+          <button type="button" class="btn btn-primary" id="recheck">다시 확인</button>
+        </div>
       </div>
 
       <details class="dev" id="debug" hidden>
@@ -107,7 +108,7 @@
       <div class="rule"></div>
       <p class="caption lead" id="history-lead"></p>
       <p class="body ink-2" id="history-status" hidden></p>
-      <ul class="history-list" id="history-list"></ul>
+      <ul class="rows history-list" id="history-list"></ul>
       <div class="btns">
         <button type="button" class="btn btn-secondary" id="history-back">돌아가기</button>
       </div>
