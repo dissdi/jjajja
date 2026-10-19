@@ -1,25 +1,18 @@
 // 앱 안 유튜브(시연, 출시용 아님) — 유튜브 모바일 웹을 WebView로 거의 전체 화면에 띄우고,
 // 쇼츠를 넘길 때마다 자동으로 확인해 오버레이 배지로 보여준다. 배지를 누르면 바텀시트로 결과 화면.
 // 웹 번들은 YoutubeScreen.web.tsx(안내 화면)를 쓴다.
+// 디자인 시스템 §5.5(배지: 불투명 surface 면 + 2px ink 테두리), §5.6(바텀시트: paper 면 + 윗선 2px ink), §6.7.
+// 자동 확인도 로그인 토큰을 쓴다(api/client가 Bearer를 붙임). 401이면 App이 로그인 화면으로 보낸다.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useKeepAwake } from 'expo-keep-awake';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  BackHandler,
-  type LayoutChangeEvent,
-  Modal,
-  PanResponder,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { BackHandler, type LayoutChangeEvent, Modal, PanResponder, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react-native-webview';
 import { detect } from '../api/client';
-import { Button, T } from '../components/ui';
+import { Button, InkBloom, Rule, T, useReduceMotion, VerdictMark } from '../components/ui';
 import { copy, errorCopyFor } from '../ux/copy';
-import { color, font, radius, size, space, verdictColor, verdictIcon } from '../ux/theme';
+import { border, color, font, radius, size, space, verdict as verdictTokens, verdictIcon } from '../ux/theme';
 import { useAutoCheck, type CheckState } from '../youtube/autoCheck';
 import { badgeFor, clampBadgePos, DEFAULT_BADGE_POS, type BadgePos } from '../youtube/badge';
 import { INJECTED_JS, isAllowedInWebView, parseBridgeMessage } from '../youtube/bridge';
@@ -27,7 +20,7 @@ import { YOUTUBE_START_URL, type YoutubeScreenProps } from '../youtube/screenPro
 import { youtubeVideoFromUrl } from '../youtube/videoId';
 import { ResultScreen } from './ResultScreen';
 
-// 계약 값 추가 금지 — 진입 경로는 기존 'paste'로 보낸다 (계약 v1.3 DetectSource)
+// 계약 값 추가 금지 — 진입 경로는 기존 'paste'로 보낸다 (계약 DetectSource)
 const detectPaste = (url: string, signal: AbortSignal) => detect(url, 'paste', signal);
 
 // 유튜브가 WebView를 낯선 브라우저로 보고 재생을 막는 것을 줄이기 위한 UA 조정 (시연용).
@@ -38,6 +31,7 @@ const ANDROID_UA =
 
 export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
   useKeepAwake();
+  const reduceMotion = useReduceMotion();
   const web = useRef<WebView>(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -121,8 +115,8 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
         />
         {loadFailed && (
           <View style={styles.loadError}>
-            <T style={[font.body, { color: color.textPrimary, textAlign: 'center' }]}>{copy.youtube.loadError}</T>
-            <View style={{ marginTop: 16, alignSelf: 'stretch' }}>
+            <T style={[font.body, { color: color.ink, textAlign: 'center' }]}>{copy.youtube.loadError}</T>
+            <View style={{ marginTop: space[4], alignSelf: 'stretch' }}>
               <Button label={copy.youtube.reloadButton} onPress={reload} />
             </View>
           </View>
@@ -130,11 +124,15 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
         <Badge state={state} onPress={() => setSheetOpen(true)} />
       </View>
 
-      <Modal visible={sheetOpen} transparent animationType="slide" onRequestClose={() => setSheetOpen(false)}>
+      <Modal
+        visible={sheetOpen}
+        transparent
+        animationType={reduceMotion ? 'fade' : 'slide'}
+        onRequestClose={() => setSheetOpen(false)}
+      >
         <View style={styles.sheetRoot}>
           <Pressable style={styles.backdrop} accessibilityLabel={copy.youtube.sheetClose} onPress={() => setSheetOpen(false)} />
-          <View style={[styles.sheet, state.status === 'done' && { height: '88%' }]} accessibilityViewIsModal accessibilityLabel={copy.youtube.sheetA11yLabel}>
-            <View style={styles.grabber} />
+          <Sheet expanded={state.status === 'done'}>
             <SheetBody
               state={state}
               onClose={() => setSheetOpen(false)}
@@ -144,9 +142,25 @@ export function YoutubeScreen({ onExit, onSubmitVideo }: YoutubeScreenProps) {
                 onSubmitVideo(v);
               }}
             />
-          </View>
+          </Sheet>
         </View>
       </Modal>
+    </View>
+  );
+}
+
+/** 바텀시트 면 §5.6 — paper, 윗모서리 12, 윗선 2px ink, 손잡이 40×4 lineStrong. 그림자 없음 */
+function Sheet({ expanded, children }: { expanded: boolean; children: ReactNode }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      testID="youtube-sheet"
+      style={[styles.sheet, expanded && { height: '88%' }, { paddingBottom: insets.bottom }]}
+      accessibilityViewIsModal
+      accessibilityLabel={copy.youtube.sheetA11yLabel}
+    >
+      <View style={styles.grabber} />
+      {children}
     </View>
   );
 }
@@ -167,15 +181,15 @@ function BarButton({
       accessibilityRole="button"
       accessibilityLabel={a11yLabel ?? label}
       onPress={onPress}
-      style={({ pressed }) => [styles.barButton, pressed && { backgroundColor: color.surface }]}
+      style={({ pressed }) => [styles.barButton, pressed && { backgroundColor: color.sunken }]}
     >
-      <MaterialCommunityIcons name={icon} size={24} color={color.textPrimary} />
-      <T style={[styles.barLabel]}>{label}</T>
+      <MaterialCommunityIcons name={icon} size={24} color={color.ink} />
+      <T style={[font.caption, { color: color.ink }]}>{label}</T>
     </Pressable>
   );
 }
 
-/** WebView 위에 떠 있는 배지. 탭 → 바텀시트, 끌기 → 자리 옮기기 */
+/** WebView 위에 떠 있는 배지 §5.5. 탭 → 바텀시트, 끌기 → 자리 옮기기 */
 function Badge({ state, onPress }: { state: CheckState; onPress: () => void }) {
   const view = badgeFor(state);
   const [pos, setPos] = useState<BadgePos>(DEFAULT_BADGE_POS);
@@ -208,7 +222,6 @@ function Badge({ state, onPress }: { state: CheckState; onPress: () => void }) {
   );
 
   if (view.kind === 'hidden') return null;
-  const vc = view.kind === 'result' ? verdictColor[view.verdict] : null;
   return (
     <View
       style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' }]}
@@ -230,20 +243,25 @@ function Badge({ state, onPress }: { state: CheckState; onPress: () => void }) {
           accessibilityHint={copy.youtube.badgeA11yHint}
           accessibilityLiveRegion="polite"
           onPress={onPress}
-          style={({ pressed }) => [styles.badge, vc && { borderColor: vc.main }, pressed && { opacity: 0.85 }]}
+          style={({ pressed }) => [styles.badge, pressed && { backgroundColor: color.sunken }]}
         >
-          {view.kind === 'checking' && <ActivityIndicator size="small" color={color.primary} />}
-          {view.kind === 'error' && <MaterialCommunityIcons name="refresh" size={22} color={color.neutral} />}
-          {view.kind === 'result' && vc && (
-            <View style={[styles.dot, { backgroundColor: vc.main }]}>
-              <MaterialCommunityIcons
-                name={view.verdict === 'uncertain' ? 'help' : verdictIcon[view.verdict]}
-                size={16}
-                color={view.verdict === 'uncertain' ? vc.text : '#FFFFFF'}
-              />
+          {view.kind === 'checking' && (
+            <View style={styles.badgeIconBox}>
+              <InkBloom dot={10} />
             </View>
           )}
-          <T style={[styles.badgeText, vc && { color: vc.text }]} numberOfLines={1}>
+          {view.kind === 'error' && (
+            <MaterialCommunityIcons name={verdictIcon.unknown} size={size.badgeIcon} color={verdictTokens.unknown.main} />
+          )}
+          {view.kind === 'result' && (
+            <MaterialCommunityIcons
+              testID={`badge-icon-${view.verdict}`}
+              name={verdictIcon[view.verdict]}
+              size={size.badgeIcon}
+              color={verdictTokens[view.verdict].main}
+            />
+          )}
+          <T style={[font.bodyStrong, { color: color.ink }]} numberOfLines={1}>
             {view.label}
           </T>
         </Pressable>
@@ -272,15 +290,21 @@ function SheetBody({
         onAgain={onClose}
         againLabel={copy.youtube.sheetClose}
         onSubmitVideo={onSubmitVideo}
+        inSheet
       />
     );
   }
   if (state.status === 'error') {
     const c = errorCopyFor(state.code);
+    // §6.4 모양: unknown 마크 + 명조 제목 + 괘선 + 본문 (빨강 없음)
     return (
-      <View style={styles.sheetPad} accessible={false}>
-        <T style={[font.headline, styles.center]}>{c.title}</T>
-        <T style={[font.body, styles.center, { marginTop: 8 }]}>{c.body}</T>
+      <View style={styles.sheetPad}>
+        <View accessible accessibilityLabel={`${c.title}. ${c.body}`}>
+          <VerdictMark verdict="unknown" />
+          <T style={[font.headline, { color: color.ink, marginTop: space[4] }]}>{c.title}</T>
+          <Rule style={{ marginTop: space[2] }} />
+          <T style={[font.body, { color: color.inkSecondary, marginTop: space[3] }]}>{c.body}</T>
+        </View>
         <View style={{ marginTop: space.section }}>
           <Button label={copy.youtube.retryButton} onPress={onRetry} />
         </View>
@@ -290,13 +314,13 @@ function SheetBody({
       </View>
     );
   }
-  // 확인 중 (또는 영상 화면이 아님)
+  // 확인 중 (또는 영상 화면이 아님) — §6.2 축소판
   return (
-    <View style={styles.sheetPad}>
-      <ActivityIndicator size="large" color={color.primary} />
-      <T style={[font.display, styles.center, { marginTop: 16 }]}>{copy.loading.title}</T>
-      <T style={[font.body, styles.center, { marginTop: 8 }]}>{copy.loading.subtitle}</T>
-      <View style={{ marginTop: space.section }}>
+    <View style={[styles.sheetPad, { alignItems: 'center' }]}>
+      <InkBloom />
+      <T style={[font.display, styles.center, { marginTop: space[4] }]}>{copy.loading.title}</T>
+      <T style={[font.body, styles.center2, { marginTop: space[2] }]}>{copy.loading.subtitle}</T>
+      <View style={{ marginTop: space.section, alignSelf: 'stretch' }}>
         <Button variant="secondary" label={copy.youtube.sheetClose} onPress={onClose} />
       </View>
     </View>
@@ -304,63 +328,71 @@ function SheetBody({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000000' },
+  root: { flex: 1, backgroundColor: color.ink },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: color.background,
-    paddingHorizontal: 4,
-    minHeight: size.touchMin + 4,
+    backgroundColor: color.paper,
+    paddingHorizontal: space[1],
+    minHeight: 56,
+    borderBottomWidth: border.hair,
+    borderBottomColor: color.line,
   },
   barButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    minHeight: size.touchMin,
-    paddingHorizontal: 10,
-    borderRadius: radius.button,
-    gap: 2,
+    justifyContent: 'center',
+    minHeight: 56,
+    minWidth: size.touchMin + space[4],
+    paddingHorizontal: space[2],
+    borderRadius: radius.md,
   },
-  barLabel: { fontSize: 16, fontWeight: '600', color: color.textPrimary },
   webArea: { flex: 1 },
-  webview: { flex: 1, backgroundColor: '#000000' },
+  webview: { flex: 1, backgroundColor: color.ink },
   loadError: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: color.background,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: color.paper,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.screenX,
   },
   badgeWrap: { position: 'absolute' },
+  // 불투명 크림 면 + 2px 잉크 테두리 (어두운 영상 위 18:1, 흰 화면 위 17.7:1). 그림자·반투명 금지
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    minHeight: size.touchMin,
+    gap: space[2],
+    minHeight: size.badgeHeight,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderWidth: 2,
-    borderColor: color.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 6,
+    borderRadius: radius.md,
+    backgroundColor: color.surface,
+    borderWidth: border.strong,
+    borderColor: color.ink,
   },
-  dot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  badgeText: { fontSize: 18, fontWeight: '700', color: color.textPrimary },
+  badgeIconBox: { width: size.badgeIcon, height: size.badgeIcon, alignItems: 'center', justifyContent: 'center' },
   sheetRoot: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: color.scrim },
   sheet: {
     maxHeight: '88%',
-    backgroundColor: color.background,
-    borderTopLeftRadius: radius.card,
-    borderTopRightRadius: radius.card,
-    paddingTop: 8,
+    backgroundColor: color.paper,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    borderTopWidth: border.rule,
+    borderColor: color.ink,
     overflow: 'hidden',
   },
-  grabber: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: color.border, marginBottom: 4 },
-  sheetPad: { paddingHorizontal: space.screenX, paddingVertical: 24, alignItems: 'stretch' },
-  center: { color: color.textPrimary, textAlign: 'center' },
+  grabber: {
+    alignSelf: 'center',
+    width: size.sheetHandle.width,
+    height: size.sheetHandle.height,
+    borderRadius: 2,
+    backgroundColor: color.lineStrong,
+    marginTop: space[2],
+  },
+  sheetPad: { paddingHorizontal: space.screenX, paddingTop: space[4], paddingBottom: space[5], alignItems: 'stretch' },
+  center: { color: color.ink, textAlign: 'center' },
+  center2: { color: color.inkSecondary, textAlign: 'center' },
 });

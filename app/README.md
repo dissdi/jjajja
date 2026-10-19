@@ -34,6 +34,29 @@ npx expo start --web    # 브라우저에서 빠르게 확인
 - 휴대폰과 PC가 다른 네트워크면 `npx expo start --tunnel`. 이때도 **서버 주소는 휴대폰에서 닿는 주소**여야 한다.
 - 원격 서버(SSH)에서 개발 중이면: 서버 포트를 휴대폰이 닿는 곳으로 노출하거나(예: `ngrok http 8000` 후 그 https 주소를 `EXPO_PUBLIC_API_BASE`로), `--tunnel`로 Metro를 연다.
 
+## 로그인 (계약 v2.0 — 로그인 필수, GitHub #20)
+
+`/v1/health`·`/v1/auth/*`을 뺀 모든 요청에 `Authorization: Bearer <token>`을 붙인다(`src/api/client.ts`). 서버도 v2.0(인증) 이어야 한다.
+
+- **첫 화면**: 저장된 토큰이 없으면 로그인. [처음이에요, 가입할게요] → 회원가입(이메일·비밀번호 8자 이상·비밀번호 한 번 더). 가입·로그인 요청에 `device_name`("Android 앱 (Pixel 8)", "iPhone 앱", "웹 브라우저")을 보낸다.
+- **토큰 저장**: 휴대폰은 `expo-secure-store`(Expo Go에서도 동작), 웹은 `localStorage`(막히면 메모리). `src/auth/tokenStore.ts`, `src/auth/session.ts`.
+- **401**: 토큰을 지우고 로그인 화면("로그인이 풀렸어요")으로. 확인 중이던 주소·공유 문구·영상은 로그인 후 자동으로 이어서 확인한다.
+- **공유로 들어왔는데 로그인 전**: 로그인 화면에 "로그인하면 보내 주신 영상을 바로 확인해 드려요" → 로그인 직후 그 공유를 확인.
+- **내 기록**(홈 오른쪽 위): `GET /v1/history` 무한 스크롤(`before` 커서) → 항목 탭 → 결과 요약(판정 블록·확인한 때·기기·주소) → [이 영상 다시 확인하기] / [이 기록 지우기](확인 후 `DELETE`, 404 `not_found`는 이미 지워진 것으로 처리).
+- **내 계정**: 로그인한 이메일, 로그인된 기기 목록(`GET /v1/me`, 이 기기 표시), [로그아웃](`POST /v1/auth/logout` 후 기기에서도 삭제).
+- 앱 안 유튜브 자동 확인도 같은 토큰을 쓴다.
+- 에러 code → 문구: `copy.auth.error` (invalid_credentials, email_taken, invalid_email, weak_password, unauthorized, not_found + 네트워크).
+
+## 디자인 (잉크 & 크림, GitHub #21)
+
+기준: `.claude/skills/senior-ux-korean/references/design-system.md`, 토큰 원본 `../design/tokens.json`. 라이트 모드만.
+
+- `src/ux/theme.ts`는 `src/ux/tokens.json`(= `design/tokens.json` 복사본)에서 값을 가져온다. 색·크기 숫자를 코드에 적지 않는다. 토큰이 바뀌면 `npm run tokens`로 다시 복사 — 어긋나면 `__tests__/theme.test.ts`가 실패한다(색 hex·그림자 사용도 검사).
+- 글꼴(SIL OFL 1.1, `assets/fonts/OFL.txt`): Pretendard Regular/SemiBold/Bold(본문·버튼), Noto Serif KR Bold(헤드라인 24pt 이상, copy.ts 고정 문구 전용). 명조는 KS X 1001 한글 2,350자 + ASCII + 기호 + copy.ts 글자로 서브셋(약 1.1MB): `python scripts/subset_serif.py <원본 NotoSerifKR-Bold.otf>` (fonttools 필요). **copy.ts에 새 명조 문구를 넣으면 서브셋을 다시 만든다.**
+- `expo-font`로 불러오고 그동안 스플래시를 유지한다(최대 4초, 실패하면 시스템 글꼴). 로드 전에는 `T`/`Input`이 시스템 글꼴 + 굵기로 대신 그린다.
+- 부품(`src/components/ui.tsx`): 주/보조/텍스트 버튼, 입력칸, 판정 블록(도장 마크·괘선), 안내 줄, 잉크 번짐 로딩(유일한 애니메이션, 동작 줄이기 설정이면 정지), DEV 띠·칩.
+- 앱 안 유튜브 배지는 불투명 크림 면 + 2px 잉크 테두리, 바텀시트는 크림 면 + 윗선 2px 잉크. 그림자 없음.
+
 ## 개발 모드 (탐지기 원시 수치 보기)
 
 "API 연결이 안 된 건지, 점수가 낮은 건지"를 구분할 때 쓴다. 기본은 off이며, off일 때 화면은 전혀 바뀌지 않는다.
@@ -45,6 +68,7 @@ JJAJJA_DEBUG=1 <서버 실행 명령>
 EXPO_PUBLIC_DEBUG=1 npx expo start --web --port 8081 -c
 ```
 
+- 개발 모드가 켜지면 모든 화면 맨 위에 남색 DEV 띠(`DEV · api {host} · v2.0`), 결과 화면 아래에 DEV 영역(고정폭 숫자, 신호별 기여도 막대 `weight·score ÷ Σweight`, OK/FAIL/SKIP 칩)
 - 표 상단: `verdict`, `ai_probability`(소수 넷째), `partial`, `cached`, `request_id`
 - 신호마다(가중치 0·unavailable·error 포함, 서버 순서): `id`, `kind`, `status`, `score`(소수 셋째, 없으면 `null`), `weight`, `present`, `decisive`, `reason`(있으면 빨간색), `raw`(key=value 한 줄)
 - `reason=-` 이면 서버가 `JJAJJA_DEBUG=1` 없이 떠 있는 것. 예: `status=error reason=http 405: ...` → 연결 문제, `status=ok score=0.041` → 연결은 됐고 점수가 낮은 것
@@ -115,15 +139,18 @@ npx expo export --platform web   # 번들 확인
 ## 구조
 
 ```
-App.tsx                  화면 전환 (홈 → 확인 중 → 결과/에러)
-src/api/contract.ts      API 계약 타입 (detect-api-contract v1 그대로, snake_case)
-src/api/client.ts        detect(url, source) / uploadVideo(file)
+App.tsx                  화면 전환 (로그인/가입 → 홈 → 확인 중 → 결과/에러, 내 기록, 내 계정)
+src/api/contract.ts      API 계약 타입 (detect-api-contract v2.0 그대로, snake_case)
+src/api/client.ts        detect / uploadVideo / signup / login / logout / getMe / getHistory / deleteHistory (Bearer, 401 처리)
+src/auth/                토큰 저장(secure-store·웹 localStorage), 세션, device_name
 src/ux/copy.ts           화면 문구 (UX 명세 §5 키 1:1)
-src/ux/theme.ts          색·글자·간격 토큰 (UX 명세 §6)
+src/ux/theme.ts          디자인 토큰 (tokens.json에서 생성) + 글꼴 매핑
+assets/fonts/            Pretendard·Noto Serif KR(서브셋) + OFL.txt
+scripts/                 sync-tokens.js(토큰 복사), subset_serif.py(명조 서브셋)
 src/ux/present.ts        퍼센트·근거 선택·공유 문구 규칙 (순수 함수)
 src/capture/share.ts     공유하기로 받은 텍스트 처리·진입 결정 (순수 함수)
 src/capture/useShareEntry.ts  공유 수신 훅 (expo-share-intent)
-src/screens/             Home / Loading / Result / Error / Youtube(.web)
+src/screens/             Auth(로그인·가입) / Home / Loading / Result / Error / History / Account / Youtube(.web)
 src/youtube/             앱 안 유튜브(시연): 영상 ID 추출, WebView 주입 스크립트, 자동 확인(디바운스·취소·캐시), 배지
 __tests__/               jest
 ```

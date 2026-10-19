@@ -1,17 +1,25 @@
-// S3 결과 (UX 명세 §2.3, §3, §3.1a(D1), §4, §5.6)
+// S3 결과 (UX 명세 §2.3, §3, §3.1a(D1), §4, §5.6 / 디자인 시스템 §6.3, §6.5, §6.6, §7)
 // verdict는 서버 값을 그대로 쓴다 — ai_probability로 재계산하지 않는다.
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import type { PickedVideo } from '../api/client';
 import type { DetectResponse } from '../api/contract';
-import { Button, T } from '../components/ui';
+import { Button, DevChip, Divider, InlineError, Note, StatusChip, T, TopBar, VerdictBlock } from '../components/ui';
 import { pickVideo } from '../media/pickVideo';
 import { copy } from '../ux/copy';
 import { DEBUG_MODE } from '../debug';
-import { DEBUG_GLOSSARY, debugCalcFor, debugGroupsFor, debugSummaryFor, type DebugGroup } from '../ux/debugView';
+import {
+  DEBUG_GLOSSARY,
+  debugBarsFor,
+  debugCalcFor,
+  debugGroupsFor,
+  debugSummaryFor,
+  type DebugBarRow,
+  type DebugGroup,
+} from '../ux/debugView';
 import { buildShareText, detailRowsFor, headlineFor, partialNoteFor, percentLabel, resultModeFor, selectEvidence } from '../ux/present';
-import { border, color, font, radius, size, space, verdictColor, verdictIcon } from '../ux/theme';
+import { border, color, dev, devFont, font, radius, size, space } from '../ux/theme';
 
 interface Props {
   data: DetectResponse;
@@ -27,13 +35,24 @@ interface Props {
   debug?: boolean;
   /** 맨 아래 보조 버튼 이름. 기본 '다른 영상 확인하기'. 앱 안 유튜브 바텀시트에선 '닫고 계속 보기' */
   againLabel?: string;
+  /** 바텀시트 안에서는 맨 위 JJAJJA 줄을 숨긴다 */
+  inSheet?: boolean;
 }
 
-export function ResultScreen({ data, url, fromShare = false, onRetry, onAgain, onSubmitVideo, debug = DEBUG_MODE, againLabel = copy.result.againButton }: Props) {
+export function ResultScreen({
+  data,
+  url,
+  fromShare = false,
+  onRetry,
+  onAgain,
+  onSubmitVideo,
+  debug = DEBUG_MODE,
+  againLabel = copy.result.againButton,
+  inSheet = false,
+}: Props) {
   const [shareError, setShareError] = useState(false);
   const [pickerFailed, setPickerFailed] = useState(false);
   const v = data.verdict;
-  const vc = verdictColor[v];
   const vCopy = headlineFor(data);
   const linkOnly = resultModeFor(data) === 'linkOnly';
   const isUnknown = v === 'unknown';
@@ -44,8 +63,6 @@ export function ResultScreen({ data, url, fromShare = false, onRetry, onAgain, o
   const [detailsOpen, setDetailsOpen] = useState(debug); // 기본 접힘 (명세 §2.3a). 개발 모드만 기본 펼침
 
   const shareMessage = buildShareText(data, url); // unknown이면 null → 버튼 없음
-
-  const cardLabel = [vCopy.headline, pl, vCopy.sub].filter(Boolean).join('. ');
 
   const onShare = async () => {
     setShareError(false);
@@ -67,172 +84,159 @@ export function ResultScreen({ data, url, fromShare = false, onRetry, onAgain, o
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View
-        style={[styles.card, { backgroundColor: vc.bg, borderLeftColor: vc.main }]}
-        accessible
-        accessibilityLabel={cardLabel}
-      >
-        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {v === 'uncertain' ? (
-            // 노랑은 대비가 낮아 채운 원 + 진한 물음표로 모양 식별 (§6.1)
-            <View style={[styles.uncertainIcon, { backgroundColor: vc.main }]}>
-              <MaterialCommunityIcons name="help" size={32} color={vc.text} />
-            </View>
-          ) : (
-            <MaterialCommunityIcons name={verdictIcon[v]} size={size.verdictIcon} color={vc.main} />
-          )}
-        </View>
-        <T style={[font.headline, { color: vc.text, marginTop: 12 }]}>{vCopy.headline}</T>
-        {pl !== null && <T style={[font.body, { color: color.textSecondary, marginTop: 4 }]}>{pl}</T>}
-        <T style={[font.subhead, { color: color.textPrimary, marginTop: 8 }]}>{vCopy.sub}</T>
+    <ScrollView contentContainerStyle={[styles.container, inSheet && { paddingTop: space[4] }]}>
+      {!inSheet && <TopBar />}
+
+      <View style={{ marginTop: inSheet ? 0 : space[5] }}>
+        <VerdictBlock testID="verdict-block" verdict={v} headline={vCopy.headline} percent={pl} sub={vCopy.sub} />
       </View>
 
-      {linkOnly && (
-        <View style={[styles.note, { marginTop: 20 }]}>
-          <MaterialCommunityIcons name="information" size={20} color={color.textSecondary} style={{ marginTop: 2 }} />
-          <T style={[font.caption, styles.secondaryText, { flex: 1 }]}>{copy.result.linkOnly.saveHint}</T>
-        </View>
-      )}
+      {linkOnly && <Note text={copy.result.linkOnly.saveHint} style={{ marginTop: space[5] }} />}
 
       {!isUnknown && (
         <View style={styles.section}>
           {evidence.length > 0 ? (
             <>
-              <T style={[font.subhead, styles.primaryText]} accessibilityRole="header">
+              <T style={[font.title, styles.ink]} accessibilityRole="header">
                 {copy.result.evidenceTitle}
               </T>
               {evidence.map((e, i) => (
                 <View key={i} style={styles.bullet}>
-                  <T style={[styles.evidenceText]}>•</T>
-                  <T style={[styles.evidenceText, { flex: 1 }]}>{e}</T>
+                  <View style={styles.bulletMark} />
+                  <T style={[font.body, styles.ink, { flex: 1 }]}>{e}</T>
                 </View>
               ))}
             </>
           ) : (
-            <T style={[font.body, styles.primaryText]}>{copy.result.evidenceEmpty}</T>
+            <T style={[font.body, styles.ink]}>{copy.result.evidenceEmpty}</T>
           )}
         </View>
       )}
 
       {(debug || detailRows.length > 0) && (
-        <View style={{ marginTop: 20 }}>
+        <View style={{ marginTop: space[6] }}>
+          <Divider />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={copy.result.details.toggle}
             accessibilityHint={detailsOpen ? copy.result.details.toggleCloseA11yHint : copy.result.details.toggleOpenA11yHint}
             accessibilityState={{ expanded: detailsOpen }}
             onPress={() => setDetailsOpen((o) => !o)}
-            style={({ pressed }) => [styles.detailsToggle, pressed && { backgroundColor: color.surface }]}
+            style={({ pressed }) => [styles.detailsToggle, pressed && { backgroundColor: color.sunken }]}
           >
-            <T style={[font.subhead, styles.primaryText, { flex: 1 }]}>{copy.result.details.toggle}</T>
+            <T style={[font.subhead, styles.ink, { flex: 1 }]}>{copy.result.details.toggle}</T>
             <MaterialCommunityIcons
               name={detailsOpen ? 'chevron-up' : 'chevron-down'}
-              size={28}
-              color={color.textPrimary}
+              size={24}
+              color={color.ink}
               accessibilityElementsHidden
               importantForAccessibility="no"
             />
           </Pressable>
-          {detailsOpen && debug && <DebugTable data={data} />}
-          {detailsOpen &&
-            !debug &&
-            detailRows.map((r) => (
-              <View key={r.key} style={styles.detailRow} accessible>
-                {r.kind === 'rule'
-                  ? r.name !== null && (
-                      <T style={[font.body, styles.primaryText, { fontWeight: '700' }]}>
-                        {r.value !== null ? `${r.name}: ${r.value}` : r.name}
-                      </T>
+          <Divider />
+          {detailsOpen && !debug && detailRows.length > 0 && (
+            <View style={styles.detailsBox}>
+              {detailRows.map((r, i) => (
+                <View key={r.key} style={[i > 0 && { marginTop: space[4] }]} accessible>
+                  {r.kind === 'rule' ? (
+                    r.name !== null && (
+                      <View style={styles.detailHead}>
+                        <T style={[font.bodyStrong, styles.ink, { flex: 1 }]}>{r.name}</T>
+                        {r.value !== null && <T style={[font.figure, styles.ink]}>{r.value}</T>}
+                      </View>
                     )
-                  : (
-                      <>
-                        {r.name !== null && <T style={[font.body, styles.primaryText, { fontWeight: '700' }]}>{r.name}</T>}
-                        {r.value !== null && <T style={[font.subhead, styles.primaryText]}>{r.value}</T>}
-                      </>
-                    )}
-                {r.detail !== null && <T style={[font.body, styles.primaryText, { marginTop: 2 }]}>{r.detail}</T>}
-                {r.caution !== null && (
-                  <T style={[font.caption, styles.secondaryText, { marginTop: 4 }]}>{r.caution}</T>
-                )}
-              </View>
-            ))}
+                  ) : (
+                    <View style={styles.detailHead}>
+                      {r.name !== null && <T style={[font.bodyStrong, styles.ink, { flex: 1 }]}>{r.name}</T>}
+                      {r.value !== null && <T style={[font.figure, styles.ink]}>{r.value}</T>}
+                    </View>
+                  )}
+                  {r.detail !== null && <T style={[font.body, styles.ink, { marginTop: 2 }]}>{r.detail}</T>}
+                  {r.caution !== null && <T style={[font.caption, styles.ink3, { marginTop: space[1] }]}>{r.caution}</T>}
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       )}
 
-      {partial && (
-        <View style={[styles.note, { marginTop: 20 }]}>
-          <MaterialCommunityIcons name="information" size={20} color={color.textSecondary} style={{ marginTop: 2 }} />
-          <T style={[font.caption, styles.secondaryText, { flex: 1 }]}>{partial}</T>
-        </View>
-      )}
+      {partial && <Note text={partial} style={{ marginTop: space[5] }} />}
 
-      <T style={[font.caption, styles.secondaryText, { marginTop: 16 }]}>{copy.result.disclaimer}</T>
+      <T style={[font.caption, styles.ink3, { marginTop: space[4] }]}>{copy.result.disclaimer}</T>
 
       <View style={styles.section}>
         {linkOnly ? (
           <>
             <Button label={copy.result.linkOnly.uploadButton} onPress={onPickVideo} />
-            {pickerFailed && (
-              <T style={[font.body, { color: color.danger, marginTop: 6 }]} accessibilityLiveRegion="polite">
-                {copy.home.inlineError.pickerFailed}
-              </T>
-            )}
+            {pickerFailed && <InlineError text={copy.home.inlineError.pickerFailed} />}
           </>
         ) : isUnknown ? (
           <Button label={copy.result.retryButton} onPress={onRetry} />
         ) : shareMessage === null ? null : (
           <>
-            <Button label={fromShare ? copy.result.reshareButton : copy.result.shareButton} onPress={onShare} />
-            <T style={[font.caption, styles.secondaryText, { textAlign: 'center', marginTop: 6 }]}>
+            <Button
+              label={fromShare ? copy.result.reshareButton : copy.result.shareButton}
+              icon="share-variant-outline"
+              onPress={onShare}
+            />
+            <T style={[font.caption, styles.ink3, { textAlign: 'center', marginTop: 6 }]}>
               {fromShare ? copy.result.reshareHint : copy.result.shareHint}
             </T>
-            {shareError && (
-              <T style={[font.body, { color: color.danger, marginTop: 6 }]} accessibilityLiveRegion="polite">
-                {copy.result.shareError}
-              </T>
-            )}
+            {shareError && <InlineError text={copy.result.shareError} />}
           </>
         )}
         <View style={{ marginTop: space.buttonGap }}>
           <Button variant="secondary" label={againLabel} onPress={onAgain} />
         </View>
       </View>
+
+      {debug && detailsOpen && <DebugTable data={data} />}
     </ScrollView>
   );
 }
 
-/** 개발 모드 표 (계약 v1.3 signals[].debug). 개발자용 설명 — 판정은 서버 값 그대로, 계산식은 설명용 재현 */
+/**
+ * 개발 모드 영역 (계약 v1.3 signals[].debug, 디자인 시스템 §7). 실사용자 부분과 32 간격 + 2px 남색 선으로 끊는다.
+ * 판정은 서버 값 그대로, 계산식·기여도는 설명용 재현.
+ */
 function DebugTable({ data }: { data: DetectResponse }) {
   const sum = debugSummaryFor(data);
   const calc = debugCalcFor(data);
   const groups = debugGroupsFor(data);
+  const bars = debugBarsFor(data);
   const [glossOpen, setGlossOpen] = useState(false);
   return (
-    <View testID="debug-table" style={styles.debugBox}>
+    <View testID="debug-table" style={styles.debugArea}>
+      <DevChip />
       <View style={styles.debugCard}>
-        <T style={[styles.dbg, { fontWeight: '700', fontSize: 16 }]} selectable>{sum.verdict}</T>
-        <T style={[styles.dbg, { fontWeight: '700' }]} selectable>{sum.probability}</T>
-        <T style={styles.dbg}>{sum.partial}</T>
-        <T style={styles.dbg}>{sum.cached}</T>
-        <T style={[styles.dbgSmall, styles.secondaryText]} selectable>{sum.requestId}</T>
+        <T style={[devFont.title, styles.ink]} selectable>{sum.verdict}</T>
+        <T style={[devFont.monoStrong, styles.ink]} selectable>{sum.probability}</T>
+        <T style={[devFont.label, styles.ink2]}>{sum.partial}</T>
+        <T style={[devFont.label, styles.ink2]}>{sum.cached}</T>
+        <T style={[devFont.mono, styles.ink3]} selectable>{sum.requestId}</T>
       </View>
       <View style={styles.debugCard}>
-        <T style={[styles.dbg, { fontWeight: '700' }]}>계산식 (가중 평균, 설명용)</T>
-        <T style={styles.mono} selectable>{calc.formula}</T>
-        {calc.adjusted !== null && <T style={[styles.dbg, { color: color.danger }]} selectable>{calc.adjusted}</T>}
-        {calc.decisive !== null && <T style={[styles.dbg, { fontWeight: '700' }]} selectable>{calc.decisive}</T>}
+        <T style={[devFont.title, styles.ink]}>계산식 (가중 평균, 설명용)</T>
+        <T style={[devFont.mono, styles.ink]} selectable>{calc.formula}</T>
+        {calc.adjusted !== null && <T style={[devFont.label, { color: dev.warn, fontWeight: '700' }]} selectable>{calc.adjusted}</T>}
+        {calc.decisive !== null && <T style={[devFont.monoStrong, styles.ink]} selectable>{calc.decisive}</T>}
+      </View>
+      <View style={styles.debugCard} testID="debug-bars">
+        <T style={[devFont.title, styles.ink]}>기여도 (weight·score ÷ Σweight)</T>
+        {bars.map((b) => (
+          <DebugBar key={b.key} row={b} />
+        ))}
       </View>
       <DebugGroupView testID="debug-group-used" group={groups.used} />
       <DebugGroupView testID="debug-group-excluded" group={groups.excluded} />
       <Pressable accessibilityRole="button" onPress={() => setGlossOpen((o) => !o)} style={styles.glossToggle}>
-        <T style={[styles.dbg, { fontWeight: '700' }]}>{glossOpen ? '용어 설명 접기 ▲' : '용어 설명 펼치기 ▼'}</T>
+        <T style={[devFont.title, { color: color.accent }]}>{glossOpen ? '용어 설명 접기 ▲' : '용어 설명 펼치기 ▼'}</T>
       </Pressable>
       {glossOpen && (
         <View testID="debug-glossary" style={styles.debugCard}>
           {DEBUG_GLOSSARY.map((g) => (
-            <T key={g.term} style={styles.dbg}>
-              <T style={[styles.dbg, { fontWeight: '700' }]}>{g.term}</T>
+            <T key={g.term} style={[devFont.label, styles.ink, { fontFamily: devFont.mono.fontFamily, fontWeight: '400' }]}>
+              <T style={[devFont.monoStrong, styles.ink]}>{g.term}</T>
               {` — ${g.desc}`}
             </T>
           ))}
@@ -242,31 +246,59 @@ function DebugTable({ data }: { data: DetectResponse }) {
   );
 }
 
+function DebugBar({ row }: { row: DebugBarRow }) {
+  const failed = row.chip === 'FAIL';
+  return (
+    <View style={[styles.barRow, failed && styles.barRowFail]}>
+      <View style={styles.barHead}>
+        <T style={[devFont.monoStrong, { color: failed ? dev.fail : color.ink, flex: 1 }]} selectable>
+          {row.id}
+        </T>
+        <StatusChip status={row.chip} />
+      </View>
+      <View style={styles.barHead}>
+        <T style={[devFont.mono, styles.ink2]}>{`score ${row.score} · w ${row.weight}`}</T>
+      </View>
+      <View style={styles.barHead}>
+        <View style={[styles.barTrack, row.share === null && styles.barExcluded]}>
+          {row.share !== null && (
+            <View style={{ width: `${Math.max(0, Math.min(1, row.share)) * 100}%`, height: '100%', backgroundColor: dev.barFill }} />
+          )}
+          {row.share !== null && row.decisive && <View style={styles.barTick} />}
+        </View>
+        <T style={[devFont.mono, styles.ink, { marginLeft: space[2] }]}>{row.shareText}</T>
+      </View>
+    </View>
+  );
+}
+
 function DebugGroupView({ group, testID }: { group: DebugGroup; testID: string }) {
   return (
-    <View testID={testID} style={{ marginTop: 14 }}>
-      <T style={[styles.dbg, { fontWeight: '700', fontSize: 16 }]}>{`${group.title} (${group.cards.length})`}</T>
-      <T style={[styles.dbgSmall, styles.secondaryText]}>{group.desc}</T>
-      {group.cards.length === 0 && <T style={[styles.dbg, styles.secondaryText]}>(없음)</T>}
+    <View testID={testID} style={{ marginTop: space[3] }}>
+      <T style={[devFont.title, styles.ink]}>{`${group.title} (${group.cards.length})`}</T>
+      <T style={[devFont.label, styles.ink3]}>{group.desc}</T>
+      {group.cards.length === 0 && <T style={[devFont.label, styles.ink3]}>(없음)</T>}
       {group.cards.map((c) => (
-        <View key={c.key} style={styles.debugCard}>
-          <T style={[styles.dbg, { fontWeight: '700' }, c.alert && { color: color.danger }]} selectable>
+        <View key={c.key} style={[styles.debugCard, c.alert && styles.barRowFail]}>
+          <T style={[devFont.title, { color: c.alert ? dev.fail : color.ink }]} selectable>
             {c.title}
-            {c.title !== c.id && <T style={[styles.dbgSmall, styles.secondaryText]}>{`  ${c.id}`}</T>}
+            {c.title !== c.id && <T style={[devFont.mono, styles.ink3]}>{`  ${c.id}`}</T>}
           </T>
           {c.fields.map((f) => (
             <View key={f.label} style={styles.debugField}>
-              <T style={[styles.dbg, styles.secondaryText, { width: 96 }]}>{f.label}</T>
-              <T style={[styles.dbg, { flex: 1 }, f.alert && { color: color.danger, fontWeight: '700' }]} selectable>
+              <T style={[devFont.label, styles.ink2, { width: 104 }]}>{f.label}</T>
+              <T style={[f.alert ? devFont.monoStrong : devFont.mono, { flex: 1, color: f.alert ? dev.fail : color.ink }]} selectable>
                 {f.value}
               </T>
             </View>
           ))}
           {c.rawLines.length > 0 && (
             <View style={styles.debugRaw}>
-              <T style={[styles.dbgSmall, styles.secondaryText]}>원점수 상세</T>
+              <T style={[devFont.label, styles.ink3]}>원점수 상세</T>
               {c.rawLines.map((l, i) => (
-                <T key={i} style={styles.dbg} selectable>{l}</T>
+                <T key={i} style={[devFont.mono, styles.ink]} selectable>
+                  {l}
+                </T>
               ))}
             </View>
           )}
@@ -277,43 +309,47 @@ function DebugGroupView({ group, testID }: { group: DebugGroup; testID: string }
 }
 
 const styles = StyleSheet.create({
-  container: { paddingHorizontal: space.screenX, paddingVertical: 20, backgroundColor: color.background, flexGrow: 1 },
-  card: { borderRadius: radius.card, borderLeftWidth: border.verdictStripe, padding: 20 },
-  uncertainIcon: {
-    width: size.verdictIcon,
-    height: size.verdictIcon,
-    borderRadius: size.verdictIcon / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { paddingHorizontal: space.screenX, paddingBottom: space[8], backgroundColor: color.paper, flexGrow: 1 },
   section: { marginTop: space.section },
-  bullet: { flexDirection: 'row', gap: 8, marginTop: space.item },
-  evidenceText: { fontSize: 20, fontWeight: '400', lineHeight: 30, color: color.textPrimary },
-  note: { flexDirection: 'row', gap: 6 },
-  detailsToggle: {
-    minHeight: size.touchMin,
+  ink: { color: color.ink },
+  ink2: { color: color.inkSecondary },
+  ink3: { color: color.inkTertiary },
+  bullet: { flexDirection: 'row', gap: space[3], marginTop: space.item, alignItems: 'flex-start' },
+  // 글머리: 잉크 사각점 6×6 (•보다 인쇄물 느낌, §6.3). 본문 28 행간 가운데에 맞춘다
+  bulletMark: { width: 6, height: 6, backgroundColor: color.ink, marginTop: 11 },
+  detailsToggle: { minHeight: 56, flexDirection: 'row', alignItems: 'center', paddingHorizontal: space[1] },
+  detailsBox: { backgroundColor: color.sunken, padding: space[4] },
+  detailHead: { flexDirection: 'row', alignItems: 'baseline', gap: space[3] },
+  // 개발자 모드
+  debugArea: {
+    marginTop: space.section,
+    paddingTop: space[3],
+    borderTopWidth: border.strong,
+    borderTopColor: dev.band,
+  },
+  debugCard: {
+    marginTop: space[2],
+    padding: space[3],
+    backgroundColor: color.surface,
+    borderRadius: radius.sm,
+    borderWidth: border.hair,
+    borderColor: color.lineStrong,
+  },
+  debugField: { flexDirection: 'row', paddingVertical: space[1], paddingHorizontal: 0 },
+  debugRaw: { marginTop: 6, paddingTop: 6, borderTopWidth: border.hair, borderTopColor: color.line },
+  glossToggle: { marginTop: space[3], minHeight: size.touchMin, justifyContent: 'center' },
+  barRow: { marginTop: space[2], paddingVertical: space[1], paddingLeft: space[2] },
+  barRowFail: { backgroundColor: dev.failTint, borderLeftWidth: 3, borderLeftColor: dev.fail },
+  barHead: { flexDirection: 'row', alignItems: 'center', gap: space[2], marginTop: 2 },
+  barTrack: {
+    width: size.devBar.width,
+    height: size.devBar.height,
+    backgroundColor: dev.barTrack,
+    borderRadius: radius.none,
+    overflow: 'hidden',
     flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: border.outline,
-    borderColor: color.border,
-    borderRadius: radius.button,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
   },
-  detailRow: { marginTop: space.item, paddingBottom: space.item, borderBottomWidth: 1, borderBottomColor: color.surface },
-  primaryText: { color: color.textPrimary },
-  secondaryText: { color: color.textSecondary },
-  debugBox: { marginTop: space.item, padding: 10, backgroundColor: color.surface, borderRadius: 6 },
-  debugCard: { marginTop: 8, padding: 10, backgroundColor: color.background, borderRadius: 6, borderWidth: 1, borderColor: color.border },
-  debugField: { flexDirection: 'row', marginTop: 2 },
-  debugRaw: { marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: color.surface },
-  glossToggle: { marginTop: 14, paddingVertical: 8 },
-  dbg: { fontSize: 14, lineHeight: 20, color: color.textPrimary },
-  dbgSmall: { fontSize: 12, lineHeight: 16 },
-  mono: {
-    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
-    fontSize: 13,
-    lineHeight: 18,
-    color: color.textPrimary,
-  },
+  // RN에서 45° 빗금 대신 1px barExcluded 테두리만 그린 빈 트랙 (§7.3 허용 대안)
+  barExcluded: { borderWidth: border.hair, borderColor: dev.barExcluded },
+  barTick: { width: 2, height: '100%', backgroundColor: dev.band },
 });

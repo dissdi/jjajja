@@ -47,6 +47,101 @@ export const copy = {
     // [추가·시연] 앱 안 유튜브 진입 버튼 (NOTES-in-app-youtube.md)
     youtubeButton: '유튜브 보면서 확인하기 (시연)',
     youtubeHint: '쇼츠를 넘길 때마다 자동으로 확인해 드려요',
+    // [추가·#20] 맨 위 줄 오른쪽 텍스트 버튼
+    historyLink: '내 기록',
+    accountLink: '내 계정',
+  },
+  // [추가·#20 로그인] 계약 v2.0 — 로그인 필수. senior-ux-designer 검토 대상
+  auth: {
+    login: {
+      title: '로그인해 주세요',
+      subtitle: '로그인하면 확인한 영상 기록을 다른 휴대폰에서도 볼 수 있어요',
+      submit: '로그인하기',
+      toSignup: '처음이에요, 가입할게요',
+      toSignupHint: '이메일과 비밀번호만 있으면 가입할 수 있어요',
+      // 공유하기로 들어왔는데 로그인 전일 때
+      pendingNote: '로그인하면 보내 주신 영상을 바로 확인해 드려요',
+      // 401로 로그인이 풀렸을 때
+      expiredNote: '로그인이 풀렸어요. 다시 로그인해 주세요',
+    },
+    signup: {
+      title: '처음 오셨군요',
+      subtitle: '자주 쓰는 이메일과 비밀번호를 정해 주세요',
+      submit: '가입하기',
+      toLogin: '이미 가입했어요, 로그인할게요',
+      passwordHint: '비밀번호는 8자 이상으로 정해 주세요',
+    },
+    emailLabel: '이메일',
+    emailPlaceholder: '예: hong@naver.com',
+    passwordLabel: '비밀번호',
+    passwordPlaceholder: '비밀번호를 넣어 주세요',
+    passwordConfirmLabel: '비밀번호 한 번 더',
+    passwordConfirmPlaceholder: '같은 비밀번호를 한 번 더 넣어 주세요',
+    showPassword: '비밀번호 보기',
+    hidePassword: '비밀번호 숨기기',
+    submitting: '잠시만 기다려 주세요…',
+    /** 계약 v2.0 인증 에러 code + 앱 검사 → 입력칸 아래 문구 */
+    error: {
+      invalid_credentials: '이메일이나 비밀번호가 맞지 않아요. 다시 확인해 주세요',
+      email_taken: '이미 가입된 이메일이에요. 아래 버튼을 눌러 로그인해 주세요',
+      invalid_email: "이메일 주소가 맞지 않는 것 같아요. 'hong@naver.com'처럼 넣어 주세요",
+      weak_password: '비밀번호는 8자 이상으로 정해 주세요',
+      unauthorized: '로그인이 풀렸어요. 다시 로그인해 주세요',
+      not_found: '이미 지워졌거나 찾을 수 없는 기록이에요',
+      rate_limited: '잠시 후 다시 시도해 주세요',
+      network: '인터넷 연결을 확인한 뒤 다시 눌러 주세요',
+      timeout: '시간이 너무 오래 걸렸어요. 잠시 후 다시 시도해 주세요',
+      unknown: '지금은 처리하기 어려워요. 잠시 후 다시 시도해 주세요',
+      // 앱에서 먼저 거르는 경우
+      emailEmpty: '이메일을 넣어 주세요',
+      passwordEmpty: '비밀번호를 넣어 주세요',
+      passwordMismatch: '두 비밀번호가 서로 달라요. 같은 비밀번호를 넣어 주세요',
+    },
+  },
+  // [추가·#20] 내 기록 (GET /v1/history)
+  history: {
+    title: '내가 확인한 영상',
+    subtitle: '다른 휴대폰에서 확인한 영상도 함께 보여요',
+    backButton: '처음으로',
+    emptyTitle: '아직 확인한 영상이 없어요',
+    emptyBody: '처음 화면에서 영상 주소를 넣어 확인해 보세요',
+    loading: '기록을 불러오고 있어요…',
+    loadMore: '더 불러오고 있어요…',
+    loadFailed: '기록을 불러오지 못했어요',
+    retryButton: '다시 불러오기',
+    uploadedVideo: '휴대폰에 저장된 영상',
+    /** {when} · {device} */
+    meta: '{when} · {device}',
+    itemA11yHint: '눌러서 자세히 봐요',
+    detail: {
+      title: '확인 기록',
+      whenLabel: '확인한 때',
+      deviceLabel: '확인한 기기',
+      linkLabel: '영상 주소',
+      recheckButton: '이 영상 다시 확인하기',
+      deleteButton: '이 기록 지우기',
+      deleteConfirm: '이 기록을 지울까요? 지우면 되돌릴 수 없어요',
+      deleteYes: '지우기',
+      deleteNo: '그만두기',
+      deleting: '지우고 있어요…',
+      backButton: '목록으로',
+      unknownSub: '기록에는 결과만 남아 있어요',
+    },
+  },
+  // [추가·#20] 내 계정 (GET /v1/me, 로그아웃)
+  account: {
+    title: '내 계정',
+    emailLabel: '로그인한 이메일',
+    devicesTitle: '로그인된 기기',
+    devicesHint: '같은 이메일로 로그인한 휴대폰·컴퓨터는 확인 기록을 함께 봐요',
+    currentDevice: '지금 이 기기',
+    lastUsed: '마지막 사용: {when}',
+    loading: '계정 정보를 불러오고 있어요…',
+    loadFailed: '계정 정보를 불러오지 못했어요',
+    retryButton: '다시 불러오기',
+    logoutButton: '로그아웃',
+    logoutHint: '로그아웃하면 다시 로그인해야 확인할 수 있어요',
+    backButton: '처음으로',
   },
   // [추가·시연] 앱 안 유튜브 화면 (WebView + 오버레이 배지). senior-ux-designer 검토 대상
   youtube: {
@@ -76,6 +171,8 @@ export const copy = {
     // [추가] 영상 파일로 확인할 때의 subtitle (보내는 시간이 더 걸림)
     uploadSubtitle: '영상을 보내는 중이라 조금 더 걸릴 수 있어요',
     slow: '조금 더 걸리고 있어요. 조금만 기다려 주세요',
+    // [추가] 경과 시간 (디자인 시스템 §6.2)
+    elapsed: '({sec}초 지남)',
     cancelButton: '그만두기',
   },
   result: {

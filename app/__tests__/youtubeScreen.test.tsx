@@ -5,6 +5,8 @@ import { YoutubeScreen as YoutubeScreenWeb } from '../src/screens/YoutubeScreen.
 import { copy } from '../src/ux/copy';
 import { BRIDGE_MESSAGE_TYPE } from '../src/youtube/bridge';
 import { SAMPLE } from './fixtures';
+import { seedLoggedIn } from './authHelpers';
+import { __setTokenForTest } from '../src/auth/session';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -100,6 +102,43 @@ describe('앱 안 유튜브 화면', () => {
     expect(screen.getByText(copy.youtube.retryButton)).toBeTruthy();
   });
 
+  it('자동 확인도 로그인 토큰을 쓴다 (Authorization: Bearer)', async () => {
+    __setTokenForTest('yt-token');
+    const fetchMock = jest.fn(() => jsonRes(SAMPLE));
+    (globalThis as unknown as { fetch: unknown }).fetch = fetchMock;
+    render(<YoutubeScreen onExit={noop} onSubmitVideo={noop} />);
+    act(() => mockWebProps.current!.onMessage(msg('https://m.youtube.com/shorts/Vid000000e5')));
+    await act(async () => {
+      jest.advanceTimersByTime(800);
+    });
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer yt-token');
+    __setTokenForTest(null);
+  });
+
+  it('배지는 불투명 크림 면 + 2px 잉크 테두리, 판정 아이콘은 outline', async () => {
+    (globalThis as unknown as { fetch: unknown }).fetch = jest.fn(() => jsonRes(SAMPLE));
+    render(<YoutubeScreen onExit={noop} onSubmitVideo={noop} />);
+    act(() => mockWebProps.current!.onMessage(msg('https://m.youtube.com/shorts/Vid000000f6')));
+    await act(async () => {
+      jest.advanceTimersByTime(800);
+    });
+    await screen.findByTestId('badge-icon-likely_ai');
+    const { StyleSheet } = require('react-native');
+    const { color, border } = require('../src/ux/theme');
+    const badge = screen.getByTestId('youtube-badge');
+    const style = StyleSheet.flatten(typeof badge.props.style === 'function' ? badge.props.style({ pressed: false }) : badge.props.style);
+    expect(style.backgroundColor).toBe(color.surface);
+    expect(style.borderColor).toBe(color.ink);
+    expect(style.borderWidth).toBe(border.strong);
+    expect(style.shadowOpacity).toBeUndefined();
+    fireEvent.press(badge);
+    const sheet = StyleSheet.flatten(screen.getByTestId('youtube-sheet').props.style);
+    expect(sheet.backgroundColor).toBe(color.paper);
+    expect(sheet.borderTopWidth).toBe(border.rule);
+    expect(sheet.borderColor).toBe(color.ink);
+  });
+
   it('앱 열기 주소는 WebView 안에서 막는다', () => {
     render(<YoutubeScreen onExit={noop} onSubmitVideo={noop} />);
     const allow = mockWebProps.current!.onShouldStartLoadWithRequest;
@@ -123,9 +162,10 @@ describe('앱 안 유튜브 화면', () => {
     expect(onExit).toHaveBeenCalled();
   });
 
-  it('홈의 진입 버튼 → 유튜브 화면 → 나가기 → 홈', () => {
+  it('홈의 진입 버튼 → 유튜브 화면 → 나가기 → 홈', async () => {
+    seedLoggedIn();
     render(<App />);
-    fireEvent.press(screen.getByText(copy.home.youtubeButton));
+    fireEvent.press(await screen.findByText(copy.home.youtubeButton));
     expect(screen.getByTestId('youtube-webview')).toBeTruthy();
     fireEvent.press(screen.getByLabelText(copy.youtube.exitA11yLabel));
     expect(screen.getByText(copy.home.youtubeButton)).toBeTruthy();

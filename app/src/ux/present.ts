@@ -118,6 +118,20 @@ export function buildShareText(res: DetectResponse, url: string | null): string 
 }
 
 /**
+ * 내 기록 한 줄·요약 (계약 v2.0 GET /v1/history). 기록에는 verdict·ai_probability만 있고 신호·partial이 없다.
+ * verdict는 서버 값 그대로. unknown이면 퍼센트를 숨기고 보조 문장은 history.detail.unknownSub.
+ */
+export function historySummaryFor(item: { verdict: Verdict; ai_probability: number | null }): {
+  headline: string;
+  sub: string;
+  percent: string | null;
+} {
+  const v = copy.result.verdict[item.verdict];
+  if (item.verdict === 'unknown') return { headline: v.headline, sub: copy.history.detail.unknownSub, percent: null };
+  return { headline: v.headline, sub: v.sub, percent: percentLabel(item.ai_probability) };
+}
+
+/**
  * 자세히 보기 한 줄 (명세 §2.3a). 기본 화면은 그대로, 접힌 섹션을 펼치면 신호별로 보여준다.
  * - model: 이름 + 'AI 가능성 n%'(percentOf 규칙 재사용) + evidence + 참고용 경고
  * - modelUnavailable: 이름 + '화면 속 장면은 확인하지 못했어요'
