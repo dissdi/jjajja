@@ -1,0 +1,31 @@
+/* 확장 패키지 안의 글꼴만 쓴다(원격 로드 금지 — 확장 CSP·오프라인). 라이선스: fonts/OFL.txt */
+/* font-display: swap — 로드 전·실패 시 시스템 글꼴로 먼저 그린다(첫 화면을 막지 않음) */
+@font-face {
+  font-family: "Pretendard";
+  src: url("fonts/Pretendard-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("fonts/Pretendard-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("fonts/Pretendard-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+/* 서브셋(KS X 1001 한글 + ASCII). 고정 문구(헤드라인)에만 쓴다 — 서버 문자열 금지 */
+@font-face {
+  font-family: "Noto Serif KR";
+  src: url("fonts/NotoSerifKR-Bold.subset.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

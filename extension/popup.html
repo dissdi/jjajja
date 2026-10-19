@@ -3,62 +3,124 @@
 <head>
   <meta charset="utf-8" />
   <title>jjajja 영상 확인</title>
+  <link rel="stylesheet" href="fonts.css" />
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
+  <div class="dev-band" id="dev-band" hidden></div>
   <header class="top">
-    <span class="brand">jjajja 영상 확인</span>
-    <button type="button" class="link" id="open-options">설정</button>
+    <span class="eyebrow">JJAJJA</span>
+    <button type="button" class="btn-text" id="open-options">설정</button>
   </header>
 
   <main>
-    <section id="loading" class="state" aria-live="polite">
-      <div class="spinner" aria-hidden="true"></div>
-      <p class="loading-text">확인하고 있어요…<br /><span class="muted">보통 10초 정도 걸려요</span></p>
-      <p class="muted small" id="elapsed"></p>
+    <section id="boot" aria-hidden="true"></section>
+
+    <!-- 로그인 / 회원가입 -->
+    <section id="login" hidden>
+      <div class="intro">
+        <h1 class="display" id="auth-title">로그인해 주세요</h1>
+        <div class="rule"></div>
+        <p class="body ink-2" id="auth-lead"></p>
+      </div>
+      <p class="note" id="auth-notice" role="status" hidden></p>
+      <form id="auth-form" novalidate>
+        <p class="inline-error body" id="auth-form-error" role="alert" hidden></p>
+        <label class="field">
+          <span class="field-label">이메일</span>
+          <input class="input" type="email" id="email" name="email" autocomplete="username"
+                 placeholder="예: hong@example.com" inputmode="email" spellcheck="false" aria-describedby="email-error" />
+          <span class="inline-error body" id="email-error" role="alert" hidden></span>
+        </label>
+        <label class="field">
+          <span class="field-label">비밀번호</span>
+          <input class="input" type="password" id="password" name="password" autocomplete="current-password"
+                 aria-describedby="password-hint password-error" />
+          <span class="caption field-hint" id="password-hint" hidden>비밀번호는 8자 이상으로 정해 주세요</span>
+          <span class="inline-error body" id="password-error" role="alert" hidden></span>
+        </label>
+        <button type="submit" class="btn btn-primary" id="auth-submit">로그인</button>
+      </form>
+      <div class="switch">
+        <span class="caption" id="auth-switch-prompt">처음 쓰시나요?</span>
+        <button type="button" class="btn-text" id="auth-switch">회원가입</button>
+      </div>
     </section>
 
-    <section id="result" class="state" hidden aria-live="polite">
-      <div class="verdict">
-        <div class="badge" id="badge" aria-hidden="true"></div>
-        <div>
-          <h1 id="headline"></h1>
-          <p class="sub" id="sub"></p>
-          <p class="percent" id="percent"></p>
-        </div>
+    <!-- 확인 중 -->
+    <section id="loading" hidden aria-live="polite">
+      <div class="ink-bloom" aria-hidden="true"></div>
+      <p class="display">확인하고 있어요…</p>
+      <p class="body ink-2">보통 10초 정도 걸려요</p>
+      <p class="caption" id="elapsed"></p>
+    </section>
+
+    <!-- 결과 -->
+    <section id="result" hidden aria-live="polite">
+      <div class="verdict-block" id="verdict-block">
+        <div id="mark-slot"></div>
+        <h1 class="headline" id="headline"></h1>
+        <div class="rule"></div>
+        <p class="figure" id="percent"></p>
+        <p class="sub" id="sub"></p>
       </div>
 
-      <div id="evidence-box" hidden>
-        <h2>이렇게 확인했어요</h2>
-        <ul id="evidence"></ul>
+      <div class="evidence-box" id="evidence-box" hidden>
+        <h2 class="title">이렇게 판단했어요</h2>
+        <ul class="evidence body" id="evidence"></ul>
       </div>
 
-      <p class="muted small" id="cache-note" hidden></p>
-      <button type="button" class="primary" id="recheck">다시 확인</button>
+      <div class="result-foot">
+        <p class="caption" id="cache-note" hidden></p>
+        <p class="caption">자동으로 확인한 결과라 틀릴 수 있어요</p>
+        <button type="button" class="btn btn-primary" id="recheck">다시 확인</button>
+      </div>
 
-      <details id="debug" hidden>
-        <summary>자세히 (개발자용)</summary>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>id</th><th>status</th><th>score</th><th>weight</th><th>reason</th></tr></thead>
-            <tbody id="debug-rows"></tbody>
-          </table>
-        </div>
+      <details class="dev" id="debug" hidden>
+        <summary><span class="dev-chip DEV">DEV</span>자세히 (개발자용)</summary>
+        <p class="dev-meta" id="debug-meta"></p>
+        <table class="dev-table">
+          <thead><tr><th>id</th><th>상태</th><th>score</th><th>w</th><th>기여도</th></tr></thead>
+          <tbody id="debug-rows"></tbody>
+        </table>
       </details>
     </section>
 
-    <section id="error" class="state" hidden aria-live="polite">
-      <div class="verdict">
-        <div class="badge tone-gray" aria-hidden="true">–</div>
-        <div>
-          <h1 id="error-message"></h1>
-          <p class="sub" id="error-hint" hidden></p>
-        </div>
+    <!-- 에러 -->
+    <section id="error" hidden aria-live="polite">
+      <div id="error-mark-slot"></div>
+      <h1 class="headline" id="error-title"></h1>
+      <div class="rule"></div>
+      <p class="body" id="error-body" hidden></p>
+      <p class="body" id="error-hint" hidden></p>
+      <div class="btns">
+        <button type="button" class="btn btn-primary" id="retry" hidden>다시 확인</button>
+        <button type="button" class="btn btn-secondary" id="error-options" hidden>설정 열기</button>
       </div>
-      <button type="button" class="primary" id="retry" hidden>다시 확인</button>
-      <button type="button" class="secondary" id="error-options" hidden>설정 열기</button>
+    </section>
+
+    <!-- 내 기록 -->
+    <section id="history" hidden aria-live="polite">
+      <h1 class="headline">내 기록</h1>
+      <div class="rule"></div>
+      <p class="caption lead" id="history-lead"></p>
+      <p class="body ink-2" id="history-status" hidden></p>
+      <ul class="history-list" id="history-list"></ul>
+      <div class="btns">
+        <button type="button" class="btn btn-secondary" id="history-back">돌아가기</button>
+      </div>
     </section>
   </main>
+
+  <footer class="account" id="account" hidden>
+    <p class="caption who" id="account-who"></p>
+    <div class="links">
+      <button type="button" class="btn-text" id="open-history">내 기록</button>
+      <button type="button" class="btn-text" id="logout">로그아웃</button>
+    </div>
+  </footer>
 
   <script type="module" src="popup.js"></script>
 </body>

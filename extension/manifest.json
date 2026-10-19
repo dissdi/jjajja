@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "jjajja 영상 확인",
-  "version": "0.1.0",
-  "description": "유튜브에서 보고 있는 영상이 AI로 만든 영상인지 한 번에 확인해요. (내부 시연용)",
+  "version": "0.2.0",
+  "description": "유튜브에서 보고 있는 영상이 AI로 만든 영상인지 한 번에 확인해요. 로그인이 필요해요. (내부 시연용)",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/active-16.png",
