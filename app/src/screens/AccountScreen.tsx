@@ -1,12 +1,13 @@
 // 내 계정 (계약 v2.0 GET /v1/me, POST /v1/auth/logout) — GitHub #20
 // 로그인한 이메일, 로그인된 기기 목록(여러 기기 연동), 로그아웃.
+// 디자인 시스템 v2 §6.7: 카드 테두리 없이 라벨+값 행, 기기 목록은 행(위아래 16) + 1px line, '이 기기'는 caption 글자만.
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, ScrollView, StyleSheet, View } from 'react-native';
 import { getMe, type AuthFailCode } from '../api/client';
 import type { MeResponse } from '../api/contract';
-import { Button, Divider, InlineError, LoadingBlock, Rule, T, TextButton, TopBar } from '../components/ui';
+import { Button, Divider, InlineError, LoadingBlock, ScreenTitle, T, TextButton, TopBar } from '../components/ui';
 import { copy, fill } from '../ux/copy';
-import { border, color, font, radius, space } from '../ux/theme';
+import { color, font, space } from '../ux/theme';
 import { formatWhen } from '../ux/when';
 import { authErrorText } from './AuthScreens';
 
@@ -49,28 +50,27 @@ export function AccountScreen({ onBack, onLogout }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.container} testID="account-screen">
       <TopBar right={<TextButton label={a.backButton} onPress={onBack} />} />
-      <T style={[font.headline, styles.ink, { marginTop: space.section }]} accessibilityRole="header">
-        {a.title}
-      </T>
-      <Rule style={{ marginTop: space[2] }} />
+      <View style={{ marginTop: space.section }}>
+        <ScreenTitle title={a.title} rule={false} />
+      </View>
 
       {loading && !me && <LoadingBlock text={a.loading} />}
 
       {error && !me && (
-        <View style={{ marginTop: space[5] }}>
+        <View style={{ marginTop: space[7] }}>
           <T style={[font.bodyStrong, styles.ink]}>{a.loadFailed}</T>
           <InlineError text={authErrorText(error)} />
           <View style={{ marginTop: space[4] }}>
-            <Button variant="secondary" label={a.retryButton} onPress={load} />
+            <Button variant="secondary" label={a.retryButton} onPress={load} align="left" />
           </View>
         </View>
       )}
 
       {me && (
         <>
-          <View style={[styles.card, { marginTop: space[5] }]}>
-            <T style={[font.caption, styles.ink3]}>{a.emailLabel}</T>
-            <T style={[font.bodyStrong, styles.ink]} selectable>
+          <View style={{ marginTop: space[7] }}>
+            <T style={[font.caption, styles.ink2]}>{a.emailLabel}</T>
+            <T style={[font.body, styles.ink]} selectable>
               {me.user.email}
             </T>
           </View>
@@ -78,18 +78,14 @@ export function AccountScreen({ onBack, onLogout }: Props) {
           <T style={[font.title, styles.ink, { marginTop: space.section }]} accessibilityRole="header">
             {a.devicesTitle}
           </T>
-          <T style={[font.caption, styles.ink2, { marginTop: space[1], marginBottom: space[3] }]}>{a.devicesHint}</T>
+          <T style={[font.caption, styles.ink2, { marginTop: space[1], marginBottom: space[2] }]}>{a.devicesHint}</T>
           {devices.map((d, i) => (
             <View key={d.id} testID={`device-${d.id}`}>
               {i > 0 && <Divider />}
               <View style={styles.deviceRow} accessible>
                 <View style={styles.deviceHead}>
-                  <T style={[font.bodyStrong, styles.ink, { flexShrink: 1 }]}>{d.device_name}</T>
-                  {d.current && (
-                    <View style={styles.currentChip}>
-                      <T style={[font.caption, styles.ink]}>{a.currentDevice}</T>
-                    </View>
-                  )}
+                  <T style={[font.subhead, styles.ink, { flexShrink: 1 }]}>{d.device_name}</T>
+                  {d.current && <T style={[font.caption, styles.ink2]}>{a.currentDevice}</T>}
                 </View>
                 <T style={[font.caption, styles.ink3]}>{fill(a.lastUsed, { when: formatWhen(d.last_used_at) })}</T>
               </View>
@@ -103,13 +99,14 @@ export function AccountScreen({ onBack, onLogout }: Props) {
           variant="secondary"
           label={a.logoutButton}
           icon="logout"
+          align="left"
           disabled={leaving}
           onPress={async () => {
             setLeaving(true);
             await onLogout();
           }}
         />
-        <T style={[font.caption, styles.ink3, { textAlign: 'center', marginTop: 6 }]}>{a.logoutHint}</T>
+        <T style={[font.caption, styles.ink3, { marginTop: space[2] }]}>{a.logoutHint}</T>
       </View>
     </ScrollView>
   );
@@ -120,19 +117,6 @@ const styles = StyleSheet.create({
   ink: { color: color.ink },
   ink2: { color: color.inkSecondary },
   ink3: { color: color.inkTertiary },
-  card: {
-    backgroundColor: color.surface,
-    borderWidth: border.ink,
-    borderColor: color.lineStrong,
-    borderRadius: radius.sm,
-    padding: space[4],
-  },
-  deviceRow: { paddingVertical: space[3] },
-  deviceHead: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: space[2] },
-  currentChip: {
-    borderWidth: border.strong,
-    borderColor: color.ink,
-    borderRadius: radius.sm,
-    paddingHorizontal: space[2],
-  },
+  deviceRow: { paddingVertical: space[4] },
+  deviceHead: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: space[2] },
 });

@@ -6,7 +6,7 @@ import { headlineFor, percentLabel, resultModeFor } from '../ux/present';
 import type { CheckState } from './autoCheck';
 
 export type BadgeView =
-  | { kind: 'hidden' }
+  | { kind: 'idle'; label: string; a11yLabel: string }
   | { kind: 'checking'; label: string; a11yLabel: string }
   | { kind: 'result'; verdict: Verdict; label: string; a11yLabel: string }
   | { kind: 'error'; label: string; a11yLabel: string };
@@ -14,7 +14,8 @@ export type BadgeView =
 export function badgeFor(state: CheckState): BadgeView {
   switch (state.status) {
     case 'idle':
-      return { kind: 'hidden' };
+      // 영상이 아닌 화면에서도 배지는 늘 보인다 — 상단 막대 대신 뒤로·나가기를 여는 손잡이 (시연 화면)
+      return { kind: 'idle', label: copy.youtube.badgeIdle, a11yLabel: copy.youtube.badgeIdleA11y };
     case 'waiting':
     case 'loading':
       return { kind: 'checking', label: copy.youtube.badgeChecking, a11yLabel: copy.youtube.badgeChecking };

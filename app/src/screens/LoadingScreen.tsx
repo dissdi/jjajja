@@ -1,4 +1,4 @@
-// S2 확인 중 (UX 명세 §2.2, 디자인 시스템 §6.2) — 잉크 번짐 하나 + 명조 제목 + 예상 시간 + 경과 시간
+// S2 확인 중 (UX 명세 §2.2, 디자인 시스템 v2 §6.2) — 잉크 번짐(점 16) + 명조 600 제목 + 예상 시간 + 경과 시간 + [그만두기] 선 버튼
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -29,21 +29,23 @@ export function LoadingScreen({ isUpload, onCancel }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.center} accessible accessibilityLiveRegion="polite" accessibilityLabel={`${copy.loading.title} ${subtitle}`}>
-        <InkBloom />
-        <T style={[font.display, styles.text, { marginTop: space[6] }]}>{copy.loading.title}</T>
-        <T style={[font.body, styles.text2, { marginTop: space[2] }]}>{subtitle}</T>
-        {secs > 0 && <T style={[font.caption, styles.text3, { marginTop: space[1] }]}>{fill(copy.loading.elapsed, { sec: secs })}</T>}
-      </View>
-      <View style={{ marginTop: space[8] }}>
-        <Button variant="secondary" label={copy.loading.cancelButton} onPress={onCancel} />
+      <View style={styles.center}>
+        <View style={{ alignItems: 'center' }} accessible accessibilityLiveRegion="polite" accessibilityLabel={`${copy.loading.title} ${subtitle}`}>
+          <InkBloom />
+          <T style={[font.display, styles.text, { marginTop: space[7] }]}>{copy.loading.title}</T>
+          <T style={[font.body, styles.text2, { marginTop: space[2] }]}>{subtitle}</T>
+          {secs > 0 && <T style={[font.caption, styles.text3]}>{fill(copy.loading.elapsed, { sec: secs })}</T>}
+        </View>
+        <View style={{ marginTop: space[8], alignSelf: 'stretch' }}>
+          <Button variant="secondary" label={copy.loading.cancelButton} onPress={onCancel} />
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: space.screenX, paddingVertical: space[6], backgroundColor: color.paper },
+  container: { flex: 1, paddingHorizontal: space.screenX, paddingVertical: space[8], backgroundColor: color.paper },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   text: { color: color.ink, textAlign: 'center' },
   text2: { color: color.inkSecondary, textAlign: 'center' },

@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { BackHandler } from 'react-native';
 import App from '../App';
 import { YoutubeScreen } from '../src/screens/YoutubeScreen';
 import { YoutubeScreen as YoutubeScreenWeb } from '../src/screens/YoutubeScreen.web';
@@ -16,14 +17,15 @@ jest.mock('expo-clipboard', () => ({ getStringAsync: jest.fn() }));
 jest.mock('expo-keep-awake', () => ({ useKeepAwake: () => {} }));
 jest.mock('expo-image-picker', () => ({ launchImageLibraryAsync: jest.fn() }));
 
-// WebView 가짜: 받은 props를 보관해 테스트에서 onMessage 등을 직접 부른다
+// WebView 가짜: 받은 props를 보관해 테스트에서 onMessage 등을 직접 부른다. ref 메서드는 mockWebHandle로 확인
 const mockWebProps: { current: Record<string, any> | null } = { current: null };
+const mockWebHandle = { goBack: jest.fn(), reload: jest.fn(), injectJavaScript: jest.fn() };
 jest.mock('react-native-webview', () => {
   const React = require('react');
   const { View } = require('react-native');
   const WebView = React.forwardRef((props: Record<string, unknown>, ref: unknown) => {
     mockWebProps.current = props;
-    React.useImperativeHandle(ref, () => ({ goBack: jest.fn(), reload: jest.fn(), injectJavaScript: jest.fn() }));
+    React.useImperativeHandle(ref, () => mockWebHandle);
     return React.createElement(View, { testID: props.testID });
   });
   return { WebView, default: WebView };
@@ -36,7 +38,18 @@ const noop = () => {};
 beforeEach(() => {
   jest.useFakeTimers();
   mockWebProps.current = null;
+  Object.values(mockWebHandle).forEach((f) => f.mockClear());
 });
+
+/** Android 하드웨어 뒤로: 지금 등록된(마지막) 핸들러를 부른다 */
+function pressHardwareBack(spy: jest.SpyInstance) {
+  const calls = spy.mock.calls.filter((c) => c[0] === 'hardwareBackPress');
+  let handled = false;
+  act(() => {
+    handled = (calls[calls.length - 1][1] as () => boolean)();
+  });
+  return handled;
+}
 afterEach(() => jest.useRealTimers());
 
 describe('앱 안 유튜브 화면', () => {
@@ -48,7 +61,8 @@ describe('앱 안 유튜브 화면', () => {
     const web = mockWebProps.current!;
     expect(web.source).toEqual({ uri: 'https://m.youtube.com/shorts' });
     expect(typeof web.injectedJavaScript).toBe('string');
-    expect(screen.queryByTestId('youtube-badge')).toBeNull(); // 영상 아님 → 배지 없음
+    // 영상 아님 → 대기 배지(뒤로·나가기 메뉴 손잡이)는 보인다
+    expect(screen.getByText(copy.youtube.badgeIdle)).toBeTruthy();
 
     act(() => web.onMessage(msg('https://m.youtube.com/shorts/Vid000000a1?si=x')));
     expect(screen.getByText(copy.youtube.badgeChecking)).toBeTruthy();
@@ -133,10 +147,15 @@ describe('앱 안 유튜브 화면', () => {
     expect(style.borderWidth).toBe(border.strong);
     expect(style.shadowOpacity).toBeUndefined();
     fireEvent.press(badge);
+    // v2 §5.5: 높이 40 + hitSlop 4 → 터치 48
+    const { size, radius } = require('../src/ux/theme');
+    expect(style.minHeight).toBe(size.badgeHeight);
+    expect(style.minHeight + 2 * badge.props.hitSlop).toBeGreaterThanOrEqual(size.touchMin);
     const sheet = StyleSheet.flatten(screen.getByTestId('youtube-sheet').props.style);
     expect(sheet.backgroundColor).toBe(color.paper);
-    expect(sheet.borderTopWidth).toBe(border.rule);
-    expect(sheet.borderColor).toBe(color.ink);
+    // v2 §5.6: 윗선 없음(scrim만), 윗모서리 16
+    expect(sheet.borderTopWidth).toBeUndefined();
+    expect(sheet.borderTopLeftRadius).toBe(radius.sheet);
   });
 
   it('앱 열기 주소는 WebView 안에서 막는다', () => {
@@ -146,11 +165,114 @@ describe('앱 안 유튜브 화면', () => {
     expect(allow({ url: 'https://m.youtube.com/shorts/abc' })).toBe(true);
   });
 
-  it('나가기 → onExit', () => {
+  it('상단 막대 없음: 처음 화면에 뒤로·쇼츠 처음으로·나가기 버튼이 보이지 않는다', () => {
+    render(<YoutubeScreen onExit={noop} onSubmitVideo={noop} />);
+    expect(screen.queryByText(copy.youtube.backButton)).toBeNull();
+    expect(screen.queryByText(copy.youtube.shortsButton)).toBeNull();
+    expect(screen.queryByText(copy.youtube.exitButton)).toBeNull();
+    expect(screen.queryByTestId('youtube-sheet')).toBeNull();
+    expect(screen.getByTestId('youtube-badge')).toBeTruthy();
+  });
+
+  it('결과 없음(영상 아닌 화면)에서도 배지 탭 → 시트: 상태 한 줄 + 세 가지 이동 버튼', () => {
+    render(<YoutubeScreen onExit={noop} onSubmitVideo={noop} />);
+    fireEvent.press(screen.getByTestId('youtube-badge'));
+    expect(screen.getByText(copy.youtube.sheetIdle)).toBeTruthy();
+    expect(screen.getByTestId('youtube-nav-back')).toBeTruthy();
+    expect(screen.getByTestId('youtube-nav-shorts')).toBeTruthy();
+    expect(screen.getByTestId('youtube-nav-exit')).toBeTruthy();
+    expect(screen.getByText(copy.youtube.backButton)).toBeTruthy();
+    expect(screen.getByText(copy.youtube.shortsButton)).toBeTruthy();
+    expect(screen.getByText(copy.youtube.exitButton)).toBeTruthy();
+  });
+
+  it('확인 중에도 배지 탭 → 시트에 확인 중 + 이동 버튼', () => {
+    render(<YoutubeScreen onExit={noop} onSubmitVideo={noop} />);
+    act(() => mockWebProps.current!.onMessage(msg('https://m.youtube.com/shorts/Vid000000g7')));
+    fireEvent.press(screen.getByTestId('youtube-badge'));
+    expect(screen.getByText(copy.loading.title)).toBeTruthy();
+    expect(screen.getByTestId('youtube-nav-exit')).toBeTruthy();
+  });
+
+  it('결과 시트에도 이동 버튼이 있고, 주 버튼은 하나(보내기)뿐', async () => {
+    (globalThis as unknown as { fetch: unknown }).fetch = jest.fn(() => jsonRes(SAMPLE));
+    render(<YoutubeScreen onExit={noop} onSubmitVideo={noop} />);
+    act(() => mockWebProps.current!.onMessage(msg('https://m.youtube.com/shorts/Vid000000h8')));
+    await act(async () => {
+      jest.advanceTimersByTime(800);
+    });
+    await screen.findByTestId('badge-icon-likely_ai');
+    fireEvent.press(screen.getByTestId('youtube-badge'));
+    expect(screen.getByText(copy.result.shareButton)).toBeTruthy();
+    const { StyleSheet } = require('react-native');
+    const { color, size } = require('../src/ux/theme');
+    for (const id of ['youtube-nav-back', 'youtube-nav-shorts', 'youtube-nav-exit']) {
+      const b = screen.getByTestId(id);
+      const s = StyleSheet.flatten(b.props.style);
+      expect(s.backgroundColor).not.toBe(color.ink); // 선 버튼 (주 버튼 아님)
+      expect(s.borderColor).toBe(color.lineUi);
+      expect(s.minHeight + 2 * b.props.hitSlop).toBe(52);
+      expect(s.minHeight).toBeLessThanOrEqual(size.buttonMinHeight);
+    }
+  });
+
+  it('[뒤로]: 유튜브 안에 뒤로 갈 곳이 있으면 WebView 뒤로 + 시트 닫힘', () => {
     const onExit = jest.fn();
     render(<YoutubeScreen onExit={onExit} onSubmitVideo={noop} />);
+    act(() => mockWebProps.current!.onNavigationStateChange({ url: 'https://m.youtube.com/', canGoBack: true }));
+    fireEvent.press(screen.getByTestId('youtube-badge'));
+    fireEvent.press(screen.getByLabelText(copy.youtube.backA11yLabel));
+    expect(mockWebHandle.goBack).toHaveBeenCalledTimes(1);
+    expect(onExit).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('youtube-sheet')).toBeNull();
+  });
+
+  it('[뒤로]: 더 갈 곳이 없으면 앱 홈(onExit)', () => {
+    const onExit = jest.fn();
+    render(<YoutubeScreen onExit={onExit} onSubmitVideo={noop} />);
+    fireEvent.press(screen.getByTestId('youtube-badge'));
+    fireEvent.press(screen.getByTestId('youtube-nav-back'));
+    expect(mockWebHandle.goBack).not.toHaveBeenCalled();
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('[쇼츠 처음으로]: 쇼츠 첫 화면으로 이동 + 시트 닫힘', () => {
+    render(<YoutubeScreen onExit={noop} onSubmitVideo={noop} />);
+    fireEvent.press(screen.getByTestId('youtube-badge'));
+    fireEvent.press(screen.getByTestId('youtube-nav-shorts'));
+    expect(mockWebHandle.injectJavaScript).toHaveBeenCalledWith(expect.stringContaining('https://m.youtube.com/shorts'));
+    expect(screen.queryByTestId('youtube-sheet')).toBeNull();
+  });
+
+  it('[나가기] → onExit', () => {
+    const onExit = jest.fn();
+    render(<YoutubeScreen onExit={onExit} onSubmitVideo={noop} />);
+    fireEvent.press(screen.getByTestId('youtube-badge'));
     fireEvent.press(screen.getByLabelText(copy.youtube.exitA11yLabel));
-    expect(onExit).toHaveBeenCalled();
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('하드웨어 뒤로: 시트 열림 → 닫기, 다음은 유튜브 뒤로, 더 없으면 앱 홈', () => {
+    const spy = jest.spyOn(BackHandler, 'addEventListener');
+    const onExit = jest.fn();
+    render(<YoutubeScreen onExit={onExit} onSubmitVideo={noop} />);
+    act(() => mockWebProps.current!.onNavigationStateChange({ url: 'https://m.youtube.com/', canGoBack: true }));
+    fireEvent.press(screen.getByTestId('youtube-badge'));
+    expect(screen.getByTestId('youtube-sheet')).toBeTruthy();
+
+    expect(pressHardwareBack(spy)).toBe(true); // 1) 시트 닫기
+    expect(screen.queryByTestId('youtube-sheet')).toBeNull();
+    expect(mockWebHandle.goBack).not.toHaveBeenCalled();
+    expect(onExit).not.toHaveBeenCalled();
+
+    expect(pressHardwareBack(spy)).toBe(true); // 2) 유튜브 안에서 뒤로
+    expect(mockWebHandle.goBack).toHaveBeenCalledTimes(1);
+    expect(onExit).not.toHaveBeenCalled();
+
+    act(() => mockWebProps.current!.onNavigationStateChange({ url: 'https://m.youtube.com/shorts', canGoBack: false }));
+    expect(pressHardwareBack(spy)).toBe(true); // 3) 더 없으면 앱 홈
+    expect(onExit).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
   });
 
   it('웹 버전은 WebView 없이 안내만 보여준다', () => {
@@ -167,6 +289,7 @@ describe('앱 안 유튜브 화면', () => {
     render(<App />);
     fireEvent.press(await screen.findByText(copy.home.youtubeButton));
     expect(screen.getByTestId('youtube-webview')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('youtube-badge'));
     fireEvent.press(screen.getByLabelText(copy.youtube.exitA11yLabel));
     expect(screen.getByText(copy.home.youtubeButton)).toBeTruthy();
   });

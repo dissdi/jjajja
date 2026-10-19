@@ -1,14 +1,14 @@
 // 로그인 / 회원가입 (계약 v2.0 — 로그인 필수, GitHub #20). 문구: copy.auth (senior-ux-korean 원칙)
 // 실패 code → copy.auth.error 문구. 서버 message_ko는 쓰지 않는다.
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+// 디자인 시스템 v2 §6.7: 제목 display(명조 600), 입력칸 사이 16, 라벨 subhead 18/600, 제출은 주 버튼 1개, 화면 전환은 텍스트 버튼.
 import { useState, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { login, signup, type AuthFailCode } from '../api/client';
 import type { AuthResponse } from '../api/contract';
 import { currentDeviceName } from '../auth/deviceName';
-import { Button, InlineError, Note, Rule, T, TextField, TopBar } from '../components/ui';
+import { Button, IconButton, InlineError, Note, ScreenTitle, T, TextField, TopBar } from '../components/ui';
 import { copy } from '../ux/copy';
-import { color, font, size, space } from '../ux/theme';
+import { color, font, space } from '../ux/theme';
 
 export const MIN_PASSWORD_LENGTH = 8;
 
@@ -22,15 +22,12 @@ export function authErrorText(code: AuthFailCode | AuthErrKey): string {
 
 function PasswordToggle({ shown, onToggle }: { shown: boolean; onToggle: () => void }) {
   return (
-    <Pressable
-      accessibilityRole="button"
+    <IconButton
+      icon={shown ? 'eye-off-outline' : 'eye-outline'}
       accessibilityLabel={shown ? copy.auth.hidePassword : copy.auth.showPassword}
       onPress={onToggle}
-      style={styles.eye}
-      hitSlop={4}
-    >
-      <MaterialCommunityIcons name={shown ? 'eye-off-outline' : 'eye-outline'} size={24} color={color.inkSecondary} />
-    </Pressable>
+      tint={color.inkSecondary}
+    />
   );
 }
 
@@ -40,11 +37,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <TopBar />
         <View style={{ marginTop: space.section }}>
-          <T style={[font.display, { color: color.ink }]} accessibilityRole="header">
-            {title}
-          </T>
-          <Rule style={{ marginTop: space[3] }} />
-          <T style={[font.body, { color: color.inkSecondary, marginTop: space[3] }]}>{subtitle}</T>
+          <ScreenTitle title={title} subtitle={subtitle} rule={false} />
         </View>
         {children}
       </ScrollView>
@@ -95,10 +88,10 @@ export function LoginScreen({ onLoggedIn, onGoSignup, notice = null }: LoginProp
       {notice && (
         <Note
           text={notice === 'pending' ? copy.auth.login.pendingNote : copy.auth.login.expiredNote}
-          style={{ marginTop: space[5] }}
+          style={{ marginTop: space[6] }}
         />
       )}
-      <View style={{ marginTop: space[6] }}>
+      <View style={{ marginTop: space[7] }}>
         <TextField
           label={copy.auth.emailLabel}
           placeholder={copy.auth.emailPlaceholder}
@@ -118,7 +111,7 @@ export function LoginScreen({ onLoggedIn, onGoSignup, notice = null }: LoginProp
           testID="login-email"
         />
       </View>
-      <View style={{ marginTop: space[5] }}>
+      <View style={{ marginTop: space[4] }}>
         <TextField
           label={copy.auth.passwordLabel}
           placeholder={copy.auth.passwordPlaceholder}
@@ -141,12 +134,12 @@ export function LoginScreen({ onLoggedIn, onGoSignup, notice = null }: LoginProp
         />
       </View>
       {formErr && <InlineError text={formErr} testID="login-error" />}
-      <View style={{ marginTop: space[6] }}>
+      <View style={{ marginTop: space[7] }}>
         <Button label={busy ? copy.auth.submitting : copy.auth.login.submit} onPress={submit} disabled={busy} testID="login-submit" />
       </View>
       <View style={{ marginTop: space.section }}>
-        <Button variant="secondary" label={copy.auth.login.toSignup} onPress={onGoSignup} />
         <T style={[font.caption, styles.caption]}>{copy.auth.login.toSignupHint}</T>
+        <Button variant="text" label={copy.auth.login.toSignup} onPress={onGoSignup} />
       </View>
     </Shell>
   );
@@ -218,8 +211,8 @@ export function SignupScreen({ onSignedUp, onGoLogin, notice = null }: SignupPro
 
   return (
     <Shell title={copy.auth.signup.title} subtitle={copy.auth.signup.subtitle}>
-      {notice && <Note text={copy.auth.login.pendingNote} style={{ marginTop: space[5] }} />}
-      <View style={{ marginTop: space[6] }}>
+      {notice && <Note text={copy.auth.login.pendingNote} style={{ marginTop: space[6] }} />}
+      <View style={{ marginTop: space[7] }}>
         <TextField
           label={copy.auth.emailLabel}
           placeholder={copy.auth.emailPlaceholder}
@@ -237,7 +230,7 @@ export function SignupScreen({ onSignedUp, onGoLogin, notice = null }: SignupPro
           testID="signup-email"
         />
       </View>
-      <View style={{ marginTop: space[5] }}>
+      <View style={{ marginTop: space[4] }}>
         <TextField
           label={copy.auth.passwordLabel}
           placeholder={copy.auth.passwordPlaceholder}
@@ -257,7 +250,7 @@ export function SignupScreen({ onSignedUp, onGoLogin, notice = null }: SignupPro
           testID="signup-password"
         />
       </View>
-      <View style={{ marginTop: space[5] }}>
+      <View style={{ marginTop: space[4] }}>
         <TextField
           label={copy.auth.passwordConfirmLabel}
           placeholder={copy.auth.passwordConfirmPlaceholder}
@@ -278,11 +271,11 @@ export function SignupScreen({ onSignedUp, onGoLogin, notice = null }: SignupPro
         />
       </View>
       {formErr && <InlineError text={formErr} testID="signup-error" />}
-      <View style={{ marginTop: space[6] }}>
+      <View style={{ marginTop: space[7] }}>
         <Button label={busy ? copy.auth.submitting : copy.auth.signup.submit} onPress={submit} disabled={busy} testID="signup-submit" />
       </View>
       <View style={{ marginTop: space.section }}>
-        <Button variant="secondary" label={copy.auth.signup.toLogin} onPress={onGoLogin} />
+        <Button variant="text" label={copy.auth.signup.toLogin} onPress={onGoLogin} />
       </View>
     </Shell>
   );
@@ -290,6 +283,5 @@ export function SignupScreen({ onSignedUp, onGoLogin, notice = null }: SignupPro
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, paddingHorizontal: space.screenX, paddingBottom: space[8], backgroundColor: color.paper },
-  caption: { color: color.inkTertiary, textAlign: 'center', marginTop: 6 },
-  eye: { width: size.touchMin, height: size.touchMin, alignItems: 'center', justifyContent: 'center' },
+  caption: { color: color.inkTertiary, textAlign: 'center' },
 });
