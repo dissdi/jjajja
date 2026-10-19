@@ -229,7 +229,7 @@ function renderHistory() {
     ...h.items.map((item) => {
       const v = historyItemView(item, now);
       const li = document.createElement('li');
-      li.appendChild(markElement(document, v.verdict, { small: true }));
+      li.appendChild(markElement(document, v.verdict, { bare: true }));
       const main = document.createElement('div');
       main.className = 'item-main';
       const head = document.createElement('p');

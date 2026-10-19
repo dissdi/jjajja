@@ -7,21 +7,29 @@
   <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="ui.css" />
   <style>
+    /* 옵션 페이지 (design-system.md v2 §5.3 설정 화면): 카드 테두리 없음, 섹션은 여백 40 + 1px line 한 줄,
+       주 버튼 [저장] 하나(44, 최대 400), 나머지는 선 버튼·텍스트 버튼(왼쪽 정렬). */
     body { max-width: 640px; margin: 0 auto; }
-    .top { height: 48px; display: flex; align-items: center; padding: 0 var(--sp-screen-x); border-bottom: var(--bw-hair) solid var(--line); }
+    .top { height: var(--size-touch-min); display: flex; align-items: center; padding: 0 var(--sp-screen-x); border-bottom: var(--bw-hair) solid var(--line); }
     main { padding: var(--sp-7) var(--sp-screen-x) var(--sp-9); }
-    h1 + .rule { margin: var(--sp-2) 0 var(--sp-3); }
-    .lead { margin-bottom: var(--sp-7); color: var(--ink-2); }
-    .card + .card { margin-top: var(--sp-6); }
-    .card .title { font-size: 20px; line-height: 30px; margin-bottom: var(--sp-3); }
-    .card .caption code { font-family: var(--font-mono); font-size: 15px; color: var(--ink); }
-    .row { display: flex; gap: var(--sp-3); margin-top: var(--sp-4); }
-    .row .btn { flex: 1; margin-top: 0; }
-    #reset { margin-top: var(--sp-2); }
-    #status { margin: var(--sp-2) 0 0; min-height: var(--lh-body); font-weight: var(--fw-body-strong); }
+    h1 + .rule { margin: var(--sp-3) 0; }
+    .lead { color: var(--ink-2); }
+    section { margin-top: var(--sp-section); }
+    section + section { border-top: var(--bw-hair) solid var(--line); padding-top: var(--sp-section); }
+    section > .title { margin-bottom: var(--sp-4); }
+    .field { margin-bottom: 0; }
+    /* 예시 주소: 실사용자 화면이라 고정폭(개발자 모드 글꼴)을 쓰지 않는다 */
+    code { font-family: inherit; color: var(--ink); overflow-wrap: anywhere; }
+    .actions { margin-top: var(--sp-6); }
+    .actions .btn-primary { margin-left: 0; }
+    .sub-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3) var(--sp-5); margin-top: var(--sp-3); }
+    .sub-actions .btn-secondary { margin: 0; }
+    #status { display: flex; gap: var(--sp-2); align-items: flex-start; margin: var(--sp-4) 0 0; min-height: var(--lh-body); }
+    #status:empty { min-height: 0; }
     #status.ok { color: var(--ink); }
     #status.bad { color: var(--v-ai); }
-    #status svg { width: 20px; height: 20px; vertical-align: -3px; margin-right: 6px; }
+    #status svg { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 5px; }
+    #account-state + .caption { margin-top: var(--sp-2); }
   </style>
 </head>
 <body>
@@ -31,9 +39,9 @@
     <div class="rule"></div>
     <p class="body lead">확인 서버 주소를 바꿀 수 있어요. 시연 때마다 임시 주소가 바뀌면 여기에 다시 넣어 주세요.</p>
 
-    <section class="card">
+    <section>
       <h2 class="title">확인 서버 주소</h2>
-      <label class="field" style="margin-bottom:0">
+      <label class="field">
         <span class="field-label">주소</span>
         <input class="input" type="text" id="server" placeholder="http://localhost:8000" autocomplete="off" spellcheck="false" />
       </label>
@@ -42,18 +50,20 @@
         <code>https://abc-def.trycloudflare.com</code>)를 넣어 주세요.
         localhost 가 아닌 주소는 저장할 때 크롬이 그 주소 사용 허락을 물어봐요. 그 주소 하나에만 허락을 받아요.
       </p>
-      <div class="row">
+      <div class="actions">
         <button type="button" class="btn btn-primary" id="save">저장</button>
-        <button type="button" class="btn btn-secondary" id="check">연결 확인</button>
+        <div class="sub-actions">
+          <button type="button" class="btn btn-secondary" id="check">연결 확인</button>
+          <button type="button" class="btn-text" id="reset">기본값으로 되돌리기</button>
+        </div>
       </div>
-      <button type="button" class="btn-text" id="reset">기본값으로 되돌리기</button>
-      <p id="status" role="status"></p>
+      <p class="body" id="status" role="status"></p>
     </section>
 
-    <section class="card">
+    <section>
       <h2 class="title">로그인</h2>
       <p class="body" id="account-state">확인하고 있어요…</p>
-      <p class="caption field-hint">서버 주소를 바꾸면 다시 로그인해야 해요. 로그인은 확장 버튼을 눌러 열리는 창에서 해요.</p>
+      <p class="caption">서버 주소를 바꾸면 다시 로그인해야 해요. 로그인은 확장 버튼을 눌러 열리는 창에서 해요.</p>
     </section>
   </main>
   <script type="module" src="options.js"></script>

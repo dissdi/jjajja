@@ -65,12 +65,15 @@ content script 의 `yt-navigate-finish` 이벤트 두 경로로 감지해 버튼
 
 ## 디자인·글꼴
 
+- 디자인 시스템 v2(정제·에디토리얼): 주 버튼은 화면당 하나(보이는 높이 44, 600, 모서리 8), 보조는 1px 선 버튼·텍스트 버튼,
+  선은 1px 헤어라인, 카드 테두리 없음, 굵기 700 은 판정 헤드라인(명조)에만. `test/tokens.test.js` 가 이 규칙을 검사합니다
 - 색·크기·간격은 `design/tokens.json` 에서 만든 `tokens.css` 의 CSS 변수만 씁니다. 라이트 모드 전용, 그림자 없음
   - 토큰을 바꾼 뒤: `node extension/tools/gen-tokens.mjs` (확인만: `--check`). `test/tokens.test.js` 가 커밋된 파일과 대조합니다
 - 글꼴은 패키지 안에 들어 있습니다(원격 로드 없음, `fonts/OFL.txt`):
   - Pretendard Regular/SemiBold/Bold (v1.3.9 woff2) — 본문·버튼·서버 문자열
-  - Noto Serif KR Bold 서브셋(KS X 1001 한글 2,350자 + ASCII, 약 400KB) — **고정 문구 헤드라인에만**.
-    다시 만들기: `pip install fonttools brotli` 후 `python extension/tools/subset-serif.py <NotoSerifKR-Bold.otf> extension/fonts/NotoSerifKR-Bold.subset.woff2`
+  - Noto Serif KR SemiBold·Bold 서브셋(KS X 1001 한글 2,350자 + ASCII, 각 약 400KB) — **고정 문구 헤드라인에만**.
+    SemiBold(600)는 큰 제목(로그인·확인 중·에러·내 기록·설정), Bold(700)는 판정 헤드라인.
+    다시 만들기: `pip install fonttools brotli` 후 `python extension/tools/subset-serif.py <NotoSerifKR-{Bold,SemiBold}.otf> extension/fonts/NotoSerifKR-{Bold,SemiBold}.subset.woff2`
 - 툴바 아이콘: `python extension/tools/gen-icons.py`(Pillow) — tokens.json 색으로 활성/비활성 PNG 를 다시 만듭니다
 
 ## 권한

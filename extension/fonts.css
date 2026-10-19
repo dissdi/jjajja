@@ -21,7 +21,15 @@
   font-style: normal;
   font-display: swap;
 }
-/* 서브셋(KS X 1001 한글 + ASCII). 고정 문구(헤드라인)에만 쓴다 — 서버 문자열 금지 */
+/* 서브셋(KS X 1001 한글 + ASCII). 고정 문구(헤드라인)에만 쓴다 — 서버 문자열 금지.
+   v2: 큰 제목(로그인·확인 중·에러·내 기록·설정)은 SemiBold 600, 판정 헤드라인만 Bold 700 (design-system.md §0.2 V2) */
+@font-face {
+  font-family: "Noto Serif KR";
+  src: url("fonts/NotoSerifKR-SemiBold.subset.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
 @font-face {
   font-family: "Noto Serif KR";
   src: url("fonts/NotoSerifKR-Bold.subset.woff2") format("woff2");

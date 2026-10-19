@@ -4,10 +4,10 @@
    Copyright (c) 2021, Kil Hyung-jin (https://github.com/orioncactus/pretendard),
    with Reserved Font Name Pretendard.
 
-2) Noto Serif KR Bold (NotoSerifKR-Bold.subset.woff2, v2.003 서브셋:
-   KS X 1001 한글 2,350자 + ASCII + 문장 부호)
+2) Noto Serif KR Bold / SemiBold (NotoSerifKR-Bold.subset.woff2, NotoSerifKR-SemiBold.subset.woff2,
+   v2.003 서브셋: KS X 1001 한글 2,350자 + ASCII + 문장 부호)
    Copyright 2017-2024 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
-   원본: https://github.com/notofonts/noto-cjk (Serif/SubsetOTF/KR/NotoSerifKR-Bold.otf)
+   원본: https://github.com/notofonts/noto-cjk (Serif/SubsetOTF/KR/NotoSerifKR-Bold.otf, NotoSerifKR-SemiBold.otf)
    서브셋은 extension/tools/subset-serif.py 로 만든 수정본(Modified Version)입니다.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

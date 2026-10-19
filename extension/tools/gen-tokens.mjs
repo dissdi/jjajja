@@ -17,6 +17,7 @@ const COLOR_VARS = {
   surface: 'surface',
   sunken: 'sunken',
   line: 'line',
+  lineUi: 'line-ui',
   lineStrong: 'line-strong',
   ink: 'ink',
   inkSecondary: 'ink-2',
@@ -52,8 +53,8 @@ export function renderTokensCss(t) {
   out.push('  /* verdict */');
   for (const [k, short] of Object.entries(VERDICT_VARS)) {
     v(`v-${short}`, t.verdict[k].main);
-    v(`v-${short}-tint`, t.verdict[k].tint);
   }
+  // verdict.*.tint 는 v2 예약값(판정 블록에 면을 칠하지 않음) — CSS 변수로 내보내지 않는다(문서 §8.2)
 
   out.push('  /* dev */');
   for (const [k, val] of Object.entries(t.dev)) v(`dev-${kebab(k)}`, val);
@@ -82,10 +83,9 @@ export function renderTokensCss(t) {
 
   out.push('  /* space */');
   for (const [k, val] of Object.entries(t.space)) {
-    if (typeof val === 'number') v(`sp-${k}`, px(val));
+    if (typeof val === 'number') v(`sp-${kebab(k)}`, px(val));
   }
   v('sp-screen-x', px(t.space.screenX.extension));
-  for (const k of ['section', 'item', 'buttonGap']) v(`sp-${kebab(k)}`, px(t.space[k]));
 
   out.push('  /* radius */');
   for (const [k, val] of Object.entries(t.radius)) v(`r-${k}`, px(val));
@@ -107,13 +107,15 @@ export function renderTokensCss(t) {
   v('motion-ink-bloom-scale-to', ib.scaleTo);
   v('motion-ink-bloom-opacity-from', ib.opacityFrom);
   v('motion-ink-bloom-opacity-to', ib.opacityTo);
+  if (ib.dot !== undefined) v('motion-ink-bloom-dot', px(ib.dot));
+  if (ib.ringBorder !== undefined) v('motion-ink-bloom-ring-border', px(ib.ringBorder));
   v('motion-press-duration', `${t.motion.press.durationMs}ms`);
   out.push('}');
 
   out.push('');
-  out.push('/* 판정 클래스: contract verdict 이름 그대로. 블록·마크는 var(--v-main)/var(--v-tint) 를 쓴다 */');
+  out.push('/* 판정 클래스: contract verdict 이름 그대로. 윗선·도장·헤드라인은 var(--v-main) 만 쓴다(v2: 면 없음) */');
   for (const [k, short] of Object.entries(VERDICT_VARS)) {
-    out.push(`.v-${k} { --v-main: var(--v-${short}); --v-tint: var(--v-${short}-tint); }`);
+    out.push(`.v-${k} { --v-main: var(--v-${short}); }`);
   }
   return out.join('\n') + '\n';
 }
